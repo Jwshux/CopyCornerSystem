@@ -3,14 +3,13 @@ echo =======================================
 echo  STARTING BACKEND (Flask)
 echo =======================================
 cd backend
-call venv\Scripts\activate
-start cmd /k "python app.py"
-cd ..
+call venv\Scripts\activate.bat
+start cmd /k "py app.py"
 
 echo =======================================
 echo  STARTING FRONTEND (React)
 echo =======================================
-cd frontend
+cd ..\frontend
 start cmd /k "npm start"
 
 echo =======================================
