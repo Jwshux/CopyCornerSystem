@@ -5,11 +5,31 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Logging in with:", { email, password });
-    // You can later connect this to your backend API
-  };
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    const response = await fetch("http://localhost:5000/login", {  // Flask URL
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+    console.log(data);
+
+    if (response.ok) {
+      alert(data.message);   // Login successful
+    } else {
+      alert(data.error);     // Invalid credentials
+    }
+
+  } catch (error) {
+    console.error("Error logging in:", error);
+    alert("Could not connect to backend");
+  }
+};
+
 
   return (
     <div className="login-container">
