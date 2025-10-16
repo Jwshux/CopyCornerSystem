@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import "./Login.css";
 
-function Login() {
+function Login({ onLoginSuccess }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Logging in:", email);
 
     try {
       const response = await fetch("http://127.0.0.1:5000/login", {
@@ -16,10 +17,12 @@ function Login() {
       });
 
       const data = await response.json();
-      console.log(data);
+      console.log("Login response:", data);
 
       if (response.ok) {
         alert(data.message);
+        // Pass user info to parent
+        onLoginSuccess(data.user);
       } else {
         alert(data.error || "Login failed");
       }
@@ -28,7 +31,6 @@ function Login() {
       alert("Could not connect to backend");
     }
   };
-
   return (
     
     <div className="page-container">
