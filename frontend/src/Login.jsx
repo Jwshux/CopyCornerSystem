@@ -6,30 +6,28 @@ function Login() {
   const [password, setPassword] = useState("");
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
-    const response = await fetch("http://127.0.0.1:5000/login", {  // Flask URL
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const response = await fetch("http://127.0.0.1:5000/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const data = await response.json();
-    console.log(data);
+      const data = await response.json();
+      console.log(data);
 
-    if (response.ok) {
-      alert(data.message);   // Login successful
-    } else {
-      alert(data.error);     // Invalid credentials
+      if (response.ok) {
+        alert(data.message); // Login successful
+      } else {
+        alert(data.error || "Login failed"); // Invalid credentials
+      }
+    } catch (error) {
+      console.error("Error logging in:", error);
+      alert("Could not connect to backend");
     }
-
-  } catch (error) {
-    console.error("Error logging in:", error);
-    alert("Could not connect to backend");
-  }
-};
-
+  };
 
   return (
     <div className="login-container">

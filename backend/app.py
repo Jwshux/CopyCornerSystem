@@ -1,32 +1,63 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # allow requests from React frontend
+from flask_cors import CORS
+from pymongo import MongoClient
+from dotenv import load_dotenv
+import os
 
+# -----------------------------
+# Load environment variables
+# -----------------------------
+load_dotenv()
+MONGO_URI = os.getenv("MONGO_URI")
+if not MONGO_URI:
+    raise ValueError("MONGO_URI not set in .env")
+
+# -----------------------------
+# Flask setup
+# -----------------------------
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app)
 
-# Dummy users for testing
-users = {
-    "test@example.com": "password123",
-    "alice@example.com": "mypassword"
-}
+# -----------------------------
+# MongoDB setup
+# -----------------------------
+try:
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+    db = client["CopyCornerSystem"]  # your existing database
+    users_collection = db["users"]
+    client.admin.command("ping")
+    print("✅ Connected to MongoDB Atlas!")
+except Exception as e:
+    print("❌ MongoDB connection error:", e)
+    raise e
 
-@app.route('/')
+# -----------------------------
+# Routes
+# -----------------------------
+@app.route("/")
 def home():
-    return jsonify({"message": "Flask backend is running!"})
+    return jsonify({"message": "Backend running!"})
 
-@app.route('/login', methods=['POST'])
+@app.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
-    email = data.get("email")
-    password = data.get("password")
+    email = data.get("email", "").strip().lower()  # normalize
+    password = data.get("password", "")
 
     if not email or not password:
-        return jsonify({"error": "Email and password are required"}), 400
+        return jsonify({"error": "Email and password required"}), 400
 
-    if email in users and users[email] == password:
-        return jsonify({"message": "Login successful!"})
+    user = users_collection.find_one({"email": email})
+    if user and user.get("password") == password:
+        return jsonify({
+            "message": "Login successful!",
+            "user": {"email": user["email"]}
+        }), 200
     else:
         return jsonify({"error": "Invalid credentials"}), 401
 
-if __name__ == '__main__':
+# -----------------------------
+# Run the app
+# -----------------------------
+if __name__ == "__main__":
     app.run(debug=True)
