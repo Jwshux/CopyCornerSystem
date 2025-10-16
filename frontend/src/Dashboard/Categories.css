@@ -1,0 +1,259 @@
+.categories-container {
+  display: flex;
+  gap: 100px;
+  padding: 20px;
+  font-family: "Poppins", sans-serif;
+  align-items: flex-start;
+}
+
+/* 🔹 Add Category Box */
+.add-category {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  flex: 0.8; /* smaller width relative to all-categories */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  height: auto; /* allow flexible height for new textarea */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 80%;
+}
+
+.add-category h3 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.add-category input,
+.add-category textarea {
+  width: 90%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+  resize: none; /* keep layout clean */
+}
+
+.add-category textarea {
+  height: 70px; /* description field size */
+}
+
+.add-category button {
+  width: 40%;
+  background-color: #007bff;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.add-category button:hover {
+  background-color: #0056b3;
+}
+
+/* 🔹 All Categories Table Container */
+.all-categories {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  flex: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  height: 600px;
+  overflow-y: auto;
+}
+
+.all-categories::-webkit-scrollbar {
+  width: 8px;
+}
+
+.all-categories::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+/* 🔹 Table Styling */
+.all-categories table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 500px; /* added width for new column */
+   table-layout: fixed;
+}
+
+.all-categories th,
+.all-categories td {
+  border-bottom: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.all-categories th {
+  background: #f7f7f7;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* 🔹 Description Column */
+.all-categories td.description-cell {
+  color: #555;
+  font-size: 14px;
+  line-height: 1.4;
+  max-width: 250px;
+  word-wrap: break-word;
+}
+
+/* Buttons */
+.edit-btn,
+.delete-btn {
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 5px;
+}
+
+.edit-btn {
+  background-color: #ffc107;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.edit-btn:hover {
+  background-color: #e0a800;
+}
+
+.delete-btn:hover {
+  background-color: #c82333;
+}
+
+/* Overlay */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* ====== Modal Box ====== */
+.confirm-modal,
+.alert-modal {
+  background: #fff;
+  padding: 20px 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  width: 380px;
+  text-align: left;
+}
+
+/* ====== Modal Titles ====== */
+.confirm-modal h3,
+.alert-modal h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+/* ====== Input for Edit Modal ====== */
+.edit-input {
+  width: 95%;
+  padding: 8px;
+  margin-bottom: 15px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+  outline: none;
+}
+
+.edit-input:focus {
+  border-color: #007bff;
+}
+
+/* ====== Modal Buttons ====== */
+.confirm-buttons,
+.alert-buttons {
+  text-align: right;
+}
+
+.yes-btn,
+.no-btn,
+.ok-btn {
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-left: 8px;
+  font-size: 15px;
+  transition: background 0.3s, transform 0.1s;
+}
+
+/* Primary Action Buttons */
+.yes-btn,
+.ok-btn {
+  background: #007bff;
+  color: #fff;
+}
+.yes-btn:hover,
+.ok-btn:hover {
+  background: #0056b3;
+  transform: scale(1.05);
+}
+
+/* Secondary (Cancel) Button */
+.no-btn {
+  background: #ccc;
+  color: #000;
+}
+.no-btn:hover {
+  background: #aaa;
+  transform: scale(1.05);
+}
+
+.description-cell {
+  white-space: normal;       /* allow line breaks */
+  word-wrap: break-word;     /* wrap long words */
+  overflow-wrap: break-word; /* ensure wrapping in all browsers */
+  max-width: 350px;          /* control width */
+  line-height: 1.4;
+  color: #555;
+  font-size: 14px;
+}
+
+.all-categories th:nth-child(1),
+.all-categories td:nth-child(1) {
+  width: 50px;
+  text-align: center;
+}
+
+.all-categories th:nth-child(2),
+.all-categories td:nth-child(2) {
+  width: 150px;
+}
+
+.all-categories th:nth-child(3),
+.all-categories td:nth-child(3) {
+  width: 200px;  /* description width */
+}
+
+.all-categories th:nth-child(4),
+.all-categories td:nth-child(4) {
+  width: 100px;
+  text-align: center;
+}
