@@ -8,7 +8,6 @@ body {
   font-family: "Poppins", sans-serif;
 }
 
-/* ==== Wave base styles ==== */
 .wave {
   position: absolute;
   left: 0;
@@ -20,37 +19,34 @@ body {
   transition: all 0.3s ease-in-out;
 }
 
-/* ==== Bottom waves ==== */
 .wave-bottom1 {
-  bottom: -60px; /* moved a bit down for spacing */
-  height: 35vh; /* taller for visibility */
+  bottom: -60px;
+  height: 35vh;
   opacity: 0.9;
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23e3ebf8" d="M0,256L48,234.7C96,213,192,171,288,165.3C384,160,480,192,576,202.7C672,213,768,203,864,202.7C960,203,1056,213,1152,229.3C1248,245,1344,267,1392,277.3L1440,288L1440,320L0,320Z"/></svg>');
 }
 
 .wave-bottom2 {
-  bottom: -100px; /* deeper layer */
+  bottom: -100px;
   height: 40vh;
   opacity: 1;
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23f6f9ff" d="M0,288L48,266.7C96,245,192,203,288,186.7C384,171,480,181,576,192C672,203,768,213,864,218.7C960,224,1056,224,1152,208C1248,192,1344,160,1392,144L1440,128L1440,320L0,320Z"/></svg>');
 }
 
-/* ==== Top wave ==== */
 .wave-top {
-  top: -60px; /* pull downward a bit */
-  height: 25vh; /* taller for visibility */
+  top: -60px;
+  height: 25vh;
   transform: rotate(180deg);
   opacity: 0.8;
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23e9f0fa" d="M0,224L48,192C96,160,192,96,288,80C384,64,480,96,576,138.7C672,181,768,235,864,245.3C960,256,1056,224,1152,186.7C1248,149,1344,107,1392,85.3L1440,64L1440,0L0,0Z"/></svg>');
 }
 
-/* ==== Side waves (soft gradient edges) ==== */
 .wave-left,
 .wave-right {
   position: absolute;
   top: 0;
   height: 100%;
-  width: 18vw; /* a bit wider for visibility */
+  width: 18vw;
   background-repeat: no-repeat;
   background-size: cover;
   opacity: 0.3;
@@ -89,9 +85,35 @@ body {
   overflow: hidden;
 }
 
+.login-icon {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1.8rem;
+}
+
+.login-icon img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 20px rgba(0, 32, 91, 0.2);
+  padding: 12px;
+  transition: all 0.3s ease;
+}
+
+.login-icon img:hover {
+  transform: scale(1.07);
+  box-shadow: 0 0 20px rgba(0, 64, 128, 0.4);
+  filter: brightness(1.1);
+}
+
 /* Left Section */
 .login-left {
-  flex: 1;
+  flex: 1.1; /* 60% of the space */
   position: relative;
   background: #00205B;
   display: flex;
@@ -138,12 +160,20 @@ body {
 
 /* Right Section */
 .login-right {
-  flex: 1;
+  flex: 0.9; /* 40% of the space */
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: #f9fbfd;
+  background-image: repeating-radial-gradient(
+    circle at center,
+    rgba(0, 0, 0, 0.06) 0,
+    rgba(0, 0, 0, 0.06) 1px,
+    transparent 1px,
+    transparent 20px
+  );
 }
+
 
 .login-box {
   background: #fff;
@@ -177,12 +207,12 @@ body {
 }
 
 .input-group input {
-  width: 100%;           /* full width of the parent login-box */
-  padding: 0.9rem 1rem;  /* equal padding inside input */
+  width: 100%;
+  padding: 0.9rem 1rem;
   border: 1px solid #cbd3e1;
   border-radius: 0.5rem;
   font-size: 1rem;
-  box-sizing: border-box; /* include padding in width */
+  box-sizing: border-box;
   transition: all 0.3s ease;
 }
 
@@ -193,7 +223,6 @@ body {
   transform: scale(1.02);
 }
 
-/* Button */
 .login-btn {
   background-color: #00205b;
   color: #ffffff;
@@ -215,19 +244,19 @@ body {
 }
 
 .footer {
-  position: absolute;           /* pin to bottom */
-  bottom: 10px;                 /* distance from bottom */
-  left: 50%;                    /* center horizontally */
-  transform: translateX(-50%);  /* perfect horizontal centering */
-  text-align: center;           /* center text */
-  color: #777;                  /* your text color */
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  color: #777;
   font-size: 0.9rem;
-  background: none !important;  /* remove any background */
-  box-shadow: none !important;  /* remove shadows */
-  text-shadow: none !important; /* remove text shadows */
-  padding: 0;                   /* remove padding */
-  margin: 0;                    /* remove margin */
-  opacity: 1;                   /* fully visible */
+  background: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  padding: 0;
+  margin: 0;
+  opacity: 1;
 }
 
 
@@ -238,7 +267,7 @@ body {
     width: 95vw;
     max-width: 400px;
     height: auto;
-    margin: 2rem auto; /* center container */
+    margin: 2rem auto;
   }
 
   .login-left {
@@ -247,17 +276,17 @@ body {
 
   .login-right {
     width: 100%;
-    padding: 2rem; /* add equal padding on left and right */
+    padding: 2rem;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 80vh;
-    box-sizing: border-box; /* include padding in width */
+    box-sizing: border-box;
   }
 
   .login-box {
     width: 100%;
-    max-width: 350px; /* leave some gap on sides */
+    max-width: 350px;
     height: auto;
     padding: 2rem;
     margin: 0 auto;
@@ -267,7 +296,7 @@ body {
   /* Inputs and buttons full width */
   .login-box input,
   .login-box button {
-  width: 100%;           /* match input width */
+  width: 100%;
   padding: 1rem;
   border-radius: 0.5rem;
   box-sizing: border-box;

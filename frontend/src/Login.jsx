@@ -1,19 +1,20 @@
 import React, { useState } from "react";
 import "./Login.css";
+import loginIcon from "./login-icon.png";
 
 function Login({ onLoginSuccess }) {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Logging in:", email);
+    console.log("Logging in:", username);
 
     try {
       const response = await fetch("http://127.0.0.1:5000/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
       });
 
       const data = await response.json();
@@ -21,7 +22,6 @@ function Login({ onLoginSuccess }) {
 
       if (response.ok) {
         alert(data.message);
-        // Pass user info to parent
         onLoginSuccess(data.user);
       } else {
         alert(data.error || "Login failed");
@@ -31,14 +31,14 @@ function Login({ onLoginSuccess }) {
       alert("Could not connect to backend");
     }
   };
+
   return (
-    
     <div className="page-container">
-<div className="wave wave-top"></div>
-<div className="wave wave-bottom1"></div>
-<div className="wave wave-bottom2"></div>
-<div className="wave wave-left"></div>
-<div className="wave wave-right"></div>
+      <div className="wave wave-top"></div>
+      <div className="wave wave-bottom1"></div>
+      <div className="wave wave-bottom2"></div>
+      <div className="wave wave-left"></div>
+      <div className="wave wave-right"></div>
 
       <div className="login-page">
         {/* Left Section */}
@@ -48,7 +48,7 @@ function Login({ onLoginSuccess }) {
               <span className="highlight">COPY</span> CORNER
             </h1>
             <p className="tagline">
-              Streamline printing, inventory, and job order management — all in one system.
+              Manage inventory, track job orders, and monitor sales — all in one system.
             </p>
           </div>
         </div>
@@ -56,15 +56,18 @@ function Login({ onLoginSuccess }) {
         {/* Right Section */}
         <div className="login-right">
           <div className="login-box">
-            <h2>Access</h2>
+            <div className="login-icon">
+              <img src={loginIcon} alt="Login Icon" />
+            </div>
+
             <form onSubmit={handleSubmit}>
               <div className="input-group">
-                <label>Email</label>
+                <label>Username</label>
                 <input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   required
                 />
               </div>
@@ -87,6 +90,7 @@ function Login({ onLoginSuccess }) {
           </div>
         </div>
       </div>
+
       <footer className="footer">
         © 2025 Copy Corner. All rights reserved.
       </footer>

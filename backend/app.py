@@ -23,7 +23,7 @@ CORS(app)
 # -----------------------------
 try:
     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-    db = client["CopyCornerSystem"]  # your existing database
+    db = client["CopyCornerSystem"]
     users_collection = db["users"]
     client.admin.command("ping")
     print("✅ Connected to MongoDB Atlas!")
@@ -41,17 +41,17 @@ def home():
 @app.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
-    email = data.get("email", "").strip().lower()  # normalize
+    username = data.get("username", "").strip()
     password = data.get("password", "")
 
-    if not email or not password:
-        return jsonify({"error": "Email and password required"}), 400
+    if not username or not password:
+        return jsonify({"error": "Username and password required"}), 400
 
-    user = users_collection.find_one({"email": email})
+    user = users_collection.find_one({"username": username})
     if user and user.get("password") == password:
         return jsonify({
             "message": "Login successful!",
-            "user": {"email": user["email"]}
+            "user": {"username": user["username"]}
         }), 200
     else:
         return jsonify({"error": "Invalid credentials"}), 401
