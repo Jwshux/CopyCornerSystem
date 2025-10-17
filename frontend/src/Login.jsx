@@ -56,7 +56,7 @@ function Login({ onLoginSuccess }) {
         {/* Right Section */}
         <div className="login-right">
           <div className="login-box">
-            <h2>Staff Login</h2>
+            <h2>Access</h2>
             <form onSubmit={handleSubmit}>
               <div className="input-group">
                 <label>Email</label>
@@ -87,8 +87,6 @@ function Login({ onLoginSuccess }) {
           </div>
         </div>
       </div>
-
-      {/* Footer */}
       <footer className="footer">
         © 2025 Copy Corner. All rights reserved.
       </footer>

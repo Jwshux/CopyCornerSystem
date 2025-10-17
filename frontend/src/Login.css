@@ -177,10 +177,12 @@ body {
 }
 
 .input-group input {
-  padding: 0.9rem;
+  width: 100%;           /* full width of the parent login-box */
+  padding: 0.9rem 1rem;  /* equal padding inside input */
   border: 1px solid #cbd3e1;
   border-radius: 0.5rem;
   font-size: 1rem;
+  box-sizing: border-box; /* include padding in width */
   transition: all 0.3s ease;
 }
 
@@ -212,23 +214,31 @@ body {
   box-shadow: 0 6px 20px rgba(0, 32, 91, 0.35);
 }
 
-/* Footer */
 .footer {
-  position: absolute;
-  bottom: 10px;
-  width: 100%;
-  text-align: center;
-  color: #777;
+  position: absolute;           /* pin to bottom */
+  bottom: 10px;                 /* distance from bottom */
+  left: 50%;                    /* center horizontally */
+  transform: translateX(-50%);  /* perfect horizontal centering */
+  text-align: center;           /* center text */
+  color: #777;                  /* your text color */
   font-size: 0.9rem;
-  opacity: 0.8;
+  background: none !important;  /* remove any background */
+  box-shadow: none !important;  /* remove shadows */
+  text-shadow: none !important; /* remove text shadows */
+  padding: 0;                   /* remove padding */
+  margin: 0;                    /* remove margin */
+  opacity: 1;                   /* fully visible */
 }
+
 
 /* Responsive */
 @media (max-width: 900px) {
   .login-page {
     flex-direction: column;
-    width: 90vw;
+    width: 95vw;
+    max-width: 400px;
     height: auto;
+    margin: 2rem auto; /* center container */
   }
 
   .login-left {
@@ -237,12 +247,34 @@ body {
 
   .login-right {
     width: 100%;
-    padding: 2rem;
+    padding: 2rem; /* add equal padding on left and right */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+    box-sizing: border-box; /* include padding in width */
   }
 
   .login-box {
-    width: 90%;
+    width: 100%;
+    max-width: 350px; /* leave some gap on sides */
     height: auto;
-    padding: 2.5rem;
+    padding: 2rem;
+    margin: 0 auto;
+    box-sizing: border-box;
+  }
+
+  /* Inputs and buttons full width */
+  .login-box input,
+  .login-box button {
+  width: 100%;           /* match input width */
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-sizing: border-box;
+}
+
+  .login-box h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
   }
 }
