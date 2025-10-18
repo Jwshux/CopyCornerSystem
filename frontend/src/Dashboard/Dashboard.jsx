@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import "./Dashboard.css";
 import AllProducts from "./AllProducts";
 import Categories from "./Categories";
+import ManageGroup from "./ManageGroup";
+import ManageUsers from "./ManageUsers";
 
 function AdminDashboard() {
   const [activePage, setActivePage] = useState("Dashboard");
@@ -20,11 +22,14 @@ function AdminDashboard() {
         return "Staff Schedule";
       case "Sales":
         return "Sales Overview";
+      case "Manage Groups":
+        return "Group Management";
+      case "Manage Users":
+        return "User Management";
       default:
         return "Admin Dashboard";
     }
   };
-
 
   const renderContent = () => {
     switch (activePage) {
@@ -45,6 +50,12 @@ function AdminDashboard() {
 
       case "Categories":
         return <Categories />;
+
+      case "Manage Groups":
+        return <ManageGroup />;
+
+      case "Manage Users":
+        return <ManageUsers />;
 
       case "Staff":
         return (
@@ -70,6 +81,22 @@ function AdminDashboard() {
           </div>
         );
 
+      case "Manage Groups":
+        return (
+          <div>
+            <h2>Manage Groups</h2>
+            <p>Group list and permission settings will go here.</p>
+          </div>
+        );
+
+      case "Manage Users":
+        return (
+          <div>
+            <h2>Manage Users</h2>
+            <p>List of users and management options will go here.</p>
+          </div>
+        );
+
       default:
         return <h2>Welcome Admin</h2>;
     }
@@ -85,26 +112,43 @@ function AdminDashboard() {
       {/* Sidebar */}
       <aside className="sidebar">
         <h2 className="logo">PDM INVENTORY</h2>
+
         {/* Sidebar Menu */}
         <nav className="menu">
-          {["Dashboard", "Products", "Staff", "Staff Sched", "Sales"].map((page) => (
+          {[
+            "Dashboard",
+            "Products",
+            "Staff",
+            "Staff Sched",
+            "Sales",
+            "User Management",
+          ].map((page) => (
             <div key={page}>
               {/* Main menu button */}
               <button
                 className={
                   activePage === page ||
-                    (page === "Products" &&
-                      ["All Products", "Categories"].includes(activePage))
+                  (page === "Products" &&
+                    ["All Products", "Categories"].includes(activePage)) ||
+                  (page === "User Management" &&
+                    ["Manage Groups", "Manage Users"].includes(activePage))
                     ? "active"
                     : ""
                 }
                 onClick={() => {
                   if (page === "Products") {
-                    // Clicking "Products" toggles submenu and loads default view
+                    // Toggle Products submenu
                     if (activePage === "Products") {
-                      setActivePage(""); // collapse
+                      setActivePage("");
                     } else {
-                      setActivePage("All Products"); // expand with default
+                      setActivePage("All Products");
+                    }
+                  } else if (page === "User Management") {
+                    // Toggle User Management submenu
+                    if (activePage === "User Management") {
+                      setActivePage("");
+                    } else {
+                      setActivePage("Manage Groups");
                     }
                   } else {
                     setActivePage(page);
@@ -114,11 +158,27 @@ function AdminDashboard() {
                 {page}
               </button>
 
-              {/* Submenu under Products */}
+              {/* Products submenu */}
               {page === "Products" &&
                 ["All Products", "Categories"].includes(activePage) && (
                   <div className="submenu">
                     {["All Products", "Categories"].map((sub) => (
+                      <button
+                        key={sub}
+                        className={activePage === sub ? "active-sub" : ""}
+                        onClick={() => setActivePage(sub)}
+                      >
+                        {sub}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+              {/* User Management submenu */}
+              {page === "User Management" &&
+                ["Manage Groups", "Manage Users"].includes(activePage) && (
+                  <div className="submenu">
+                    {["Manage Groups", "Manage Users"].map((sub) => (
                       <button
                         key={sub}
                         className={activePage === sub ? "active-sub" : ""}
