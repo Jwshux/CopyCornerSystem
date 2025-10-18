@@ -29,40 +29,56 @@
 /* Sidebar */
 .sidebar {
   grid-area: sidebar;
-  background: linear-gradient(to bottom, #5c6bc0, #3f51b5);
-  color: white;
+  position: relative;
+  background: #00205B; /* Same navy blue */
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0px 0px;
+  justify-content: flex-start;
+  color: #fff;
+  padding: 2rem;
+  overflow: hidden;
+}
+
+/* The geometric triangle pattern */
+.sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'><g fill='none' stroke='rgba(255,255,255,0.15)' stroke-width='1'><path d='M0 0L200 0L100 200Z'/><path d='M0 200L200 200L100 0Z'/><path d='M0 0L0 200L100 100Z'/><path d='M200 0L200 200L100 100Z'/></g></svg>");
+  background-size: 140px 140px;
+  background-repeat: repeat;
+  z-index: 0;
+}
+
+/* Make sidebar content appear above the pattern */
+.sidebar > * {
+  position: relative;
+  z-index: 1;
 }
 
 .logo {
-  font-size: 1.1rem;
-  font-weight: bold;
-  margin-bottom: 30px;
-  position: relative;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: #ffffff;
+  text-transform: uppercase;
+  width: 100%;
+  padding: 14px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 83%;
-  border: 1px solid rgba(144, 141, 141, 0.635);
-  padding: 12px 20px;
-  border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-top: 0;
-  height: 38px;
-  
+  justify-content: space-between; /* space between Copy Corner and Hub */
+  margin-bottom: 40px;
 }
 
-/* White arrow on the right */
-.logo::after {
-  content: "▶";
-  font-size: 0.8rem;
-  color: white;
-  margin-left: 8px;
-  transition: transform 0.3s;
+.logo:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+  transition: all 0.3s ease;
 }
 
 /* Sidebar buttons */
@@ -101,7 +117,16 @@
   grid-area: main;
   padding: 20px;
   overflow-y: auto;
+  background-color: #f9fbfd;
+  background-image: repeating-radial-gradient(
+    circle at center,
+    rgba(0, 0, 0, 0.06) 0,
+    rgba(0, 0, 0, 0.06) 1px,
+    transparent 1px,
+    transparent 20px
+  );
 }
+
 
 .card-grid {
   display: flex;

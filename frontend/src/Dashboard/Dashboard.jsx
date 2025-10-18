@@ -111,7 +111,9 @@ function AdminDashboard() {
 
       {/* Sidebar */}
       <aside className="sidebar">
-        <h2 className="logo">PDM INVENTORY</h2>
+        <h2 className="logo">
+          Copy Corner Hub
+        </h2>
 
         {/* Sidebar Menu */}
         <nav className="menu">
