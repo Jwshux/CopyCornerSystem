@@ -4,6 +4,7 @@ import AllProducts from "./AllProducts";
 import Categories from "./Categories";
 import ManageGroup from "./ManageGroup";
 import ManageUsers from "./ManageUsers";
+import Sales from "./Sales";
 
 function AdminDashboard() {
   const [activePage, setActivePage] = useState("Dashboard");
@@ -73,13 +74,8 @@ function AdminDashboard() {
           </div>
         );
 
-      case "Sales":
-        return (
-          <div>
-            <h2>Sales Report</h2>
-            <p>Charts or sales data will be displayed here.</p>
-          </div>
-        );
+     case "Sales":
+  return <Sales />;
 
       case "Manage Groups":
         return (
