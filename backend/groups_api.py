@@ -48,6 +48,11 @@ def create_group():
     try:
         data = request.json
         
+        # Check if group name already exists
+        existing_group = groups_collection.find_one({'group_name': data['group_name']})
+        if existing_group:
+            return jsonify({'error': 'Group name already exists'}), 400
+        
         new_group = {
             'group_name': data['group_name'],
             'group_level': int(data['group_level']),
@@ -67,6 +72,14 @@ def create_group():
 def update_group(group_id):
     try:
         data = request.json
+        
+        # Check if group name already exists (excluding current group)
+        existing_group = groups_collection.find_one({
+            'group_name': data['group_name'],
+            '_id': {'$ne': ObjectId(group_id)}
+        })
+        if existing_group:
+            return jsonify({'error': 'Group name already exists'}), 400
         
         update_data = {
             'group_name': data['group_name'],

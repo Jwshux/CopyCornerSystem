@@ -14,6 +14,7 @@ function ManageGroup() {
     status: "Active",
   });
   const [loading, setLoading] = useState(false);
+  const [groupNameError, setGroupNameError] = useState("");
 
   // Fetch groups from backend
   const fetchGroups = async () => {
@@ -37,9 +38,45 @@ function ManageGroup() {
     fetchGroups();
   }, []);
 
+  // Check if group name exists
+  const checkGroupName = (groupName) => {
+    if (!groupName) {
+      setGroupNameError("");
+      return;
+    }
+
+    const existingGroup = groups.find(group => 
+      group.group_name.toLowerCase() === groupName.toLowerCase() &&
+      (!currentGroup._id || group._id !== currentGroup._id)
+    );
+
+    if (existingGroup) {
+      setGroupNameError("Group name already exists");
+    } else {
+      setGroupNameError("");
+    }
+  };
+
+  // Handle input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setCurrentGroup({ ...currentGroup, [name]: value });
+
+    // Check group name availability in real-time
+    if (name === "group_name") {
+      checkGroupName(value);
+    }
+  };
+
   // Handle Add or Edit (Save/Update)
   const handleSave = async (e) => {
     e.preventDefault();
+    
+    if (groupNameError) {
+      alert("Please fix the group name error before saving.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -61,7 +98,8 @@ function ManageGroup() {
           await fetchGroups(); // Refresh the list
           handleCloseForm();
         } else {
-          console.error('Failed to update group');
+          const error = await response.json();
+          alert(error.error || 'Failed to update group');
         }
       } else {
         // Create new group
@@ -81,11 +119,13 @@ function ManageGroup() {
           await fetchGroups(); // Refresh the list
           handleCloseForm();
         } else {
-          console.error('Failed to create group');
+          const error = await response.json();
+          alert(error.error || 'Failed to create group');
         }
       }
     } catch (error) {
       console.error('Error saving group:', error);
+      alert('Error saving group');
     } finally {
       setLoading(false);
     }
@@ -98,6 +138,7 @@ function ManageGroup() {
       group_level: group.group_level,
       status: group.status
     });
+    setGroupNameError("");
     setIsEditing(true);
     setShowForm(true);
   };
@@ -114,9 +155,11 @@ function ManageGroup() {
           await fetchGroups(); // Refresh the list
         } else {
           console.error('Failed to delete group');
+          alert('Failed to delete group');
         }
       } catch (error) {
         console.error('Error deleting group:', error);
+        alert('Error deleting group');
       } finally {
         setLoading(false);
       }
@@ -131,6 +174,7 @@ function ManageGroup() {
       group_level: "",
       status: "Active"
     });
+    setGroupNameError("");
     setShowForm(true);
   };
 
@@ -143,6 +187,7 @@ function ManageGroup() {
       group_level: "",
       status: "Active"
     });
+    setGroupNameError("");
   };
 
   return (
@@ -199,39 +244,35 @@ function ManageGroup() {
               <label>Group Name</label>
               <input 
                 type="text" 
+                name="group_name"
                 value={currentGroup.group_name}
-                onChange={(e) => setCurrentGroup({ 
-                  ...currentGroup, 
-                  group_name: e.target.value 
-                })} 
+                onChange={handleInputChange}
+                className={groupNameError ? "error-input" : ""}
                 required 
               />
+              {groupNameError && <div className="error-message">{groupNameError}</div>}
               
               <label>Group Level</label>
               <input 
                 type="number" 
+                name="group_level"
                 value={currentGroup.group_level}
-                onChange={(e) => setCurrentGroup({ 
-                  ...currentGroup, 
-                  group_level: e.target.value 
-                })} 
+                onChange={handleInputChange}
                 required 
               />
               
               <label>Status</label>
               <select 
+                name="status"
                 value={currentGroup.status}
-                onChange={(e) => setCurrentGroup({ 
-                  ...currentGroup, 
-                  status: e.target.value 
-                })}
+                onChange={handleInputChange}
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
               </select>
               
               <div className="form-buttons">
-                <button type="submit" className="save-btn" disabled={loading}>
+                <button type="submit" className="save-btn" disabled={loading || groupNameError}>
                   {isEditing ? "Update" : "Save"}
                 </button>
                 <button type="button" className="cancel-btn" onClick={handleCloseForm}>
