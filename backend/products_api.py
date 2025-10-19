@@ -31,11 +31,40 @@ def get_stock_status(stock_quantity):
     else:
         return "In Stock"
 
+# Generate sequential product ID
+def generate_product_id():
+    products = list(products_collection.find().sort("created_at", 1))
+    if not products:
+        return "PROD_001"
+    
+    # Count existing products for sequential numbering
+    count = products_collection.count_documents({})
+    return f"PROD_{count + 1:03d}"
+
+# Renumber all products sequentially
+def renumber_products():
+    try:
+        # Get all products sorted by creation date
+        products = list(products_collection.find().sort("created_at", 1))
+        
+        # Update each product with new sequential ID
+        for index, product in enumerate(products, 1):
+            new_product_id = f"PROD_{index:03d}"
+            products_collection.update_one(
+                {'_id': product['_id']},
+                {'$set': {'product_id': new_product_id}}
+            )
+        
+        return True
+    except Exception as e:
+        print(f"Error renumbering products: {e}")
+        return False
+
 # Get all products
 @products_bp.route('/api/products', methods=['GET'])
 def get_products():
     try:
-        products = list(products_collection.find())
+        products = list(products_collection.find().sort("created_at", 1))
         serialized_products = [serialize_doc(product) for product in products]
         return jsonify(serialized_products)
     except Exception as e:
@@ -63,16 +92,14 @@ def create_product():
         if existing_product:
             return jsonify({'error': 'Product name already exists'}), 400
         
-        # Auto-generate product_id
-        last_product = products_collection.find_one(sort=[("_id", -1)])
-        last_id = int(last_product['product_id'].split('-')[1]) if last_product else 0
-        new_product_id = f"PROD-{last_id + 1:03d}"
+        # Generate sequential product ID
+        product_id = generate_product_id()
         
         # Calculate status based on stock
         status = get_stock_status(data['stock_quantity'])
         
         new_product = {
-            'product_id': new_product_id,
+            'product_id': product_id,
             'product_name': data['product_name'],
             'category': data['category'],
             'stock_quantity': int(data['stock_quantity']),
@@ -125,13 +152,29 @@ def update_product(product_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Delete product
+# Delete product and renumber remaining products
 @products_bp.route('/api/products/<product_id>', methods=['DELETE'])
 def delete_product(product_id):
     try:
+        # First delete the product
         result = products_collection.delete_one({'_id': ObjectId(product_id)})
         if result.deleted_count:
-            return jsonify({'message': 'Product deleted successfully'})
+            # Then renumber all remaining products
+            if renumber_products():
+                return jsonify({'message': 'Product deleted and products renumbered successfully'})
+            else:
+                return jsonify({'message': 'Product deleted but renumbering failed'})
         return jsonify({'error': 'Product not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Endpoint to manually renumber products
+@products_bp.route('/api/products/renumber', methods=['POST'])
+def renumber_all_products():
+    try:
+        if renumber_products():
+            return jsonify({'message': 'All products renumbered successfully'})
+        else:
+            return jsonify({'error': 'Failed to renumber products'}), 500
     except Exception as e:
         return jsonify({'error': str(e)}), 500

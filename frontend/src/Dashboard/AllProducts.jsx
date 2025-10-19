@@ -8,6 +8,7 @@ function AllProducts() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [productToDelete, setProductToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -37,8 +38,24 @@ function AllProducts() {
     }
   };
 
+  // Fetch categories from backend
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/categories`);
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data);
+      } else {
+        console.error('Failed to fetch categories');
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
   }, []);
 
   // Check if product name exists
@@ -189,7 +206,7 @@ function AllProducts() {
       });
 
       if (response.ok) {
-        await fetchProducts();
+        await fetchProducts(); // This will fetch the renumbered products
         closeDeleteModal();
       } else {
         console.error('Failed to delete product');
@@ -226,7 +243,6 @@ function AllProducts() {
       <div className="product-header">
         <h2>List of Products</h2>
         <div className="header-right">
-          {loading && <div className="loading-indicator">Loading...</div>}
           <button className="add-product-btn" onClick={openAddModal}>
             Add Product
           </button>
@@ -236,6 +252,7 @@ function AllProducts() {
       <table className="product-table">
         <thead>
           <tr>
+            <th>#</th>
             <th>Product ID</th>
             <th>Product Name</th>
             <th>Category</th>
@@ -246,35 +263,45 @@ function AllProducts() {
           </tr>
         </thead>
         <tbody>
-          {products.map((product) => (
-            <tr key={product._id}>
-              <td>{product.product_id}</td>
-              <td>{product.product_name}</td>
-              <td>{product.category}</td>
-              <td>{product.stock_quantity}</td>
-              <td>{formatPrice(product.unit_price)}</td>
-              <td>
-                <span
-                  className={`status-tag ${
-                    product.status === "In Stock"
-                      ? "in-stock"
-                      : product.status === "Low Stock"
-                      ? "low-stock"
-                      : "out-stock"
-                  }`}
-                >
-                  {product.status}
-                </span>
-              </td>
-              <td>
-                <button className="edit-btn" onClick={() => handleEditProduct(product)}>Edit</button>
-                <button className="delete-btn" onClick={() => openDeleteModal(product)}>Delete</button>
+          {products.length === 0 ? (
+            <tr>
+              <td colSpan="8" style={{ textAlign: "center", color: "#888" }}>
+                No products yet.
               </td>
             </tr>
-          ))}
+          ) : (
+            products.map((product, index) => (
+              <tr key={product._id}>
+                <td>{index + 1}</td>
+                <td>{product.product_id}</td>
+                <td>{product.product_name}</td>
+                <td>{product.category}</td>
+                <td>{product.stock_quantity}</td>
+                <td>{formatPrice(product.unit_price)}</td>
+                <td>
+                  <span
+                    className={`status-tag ${
+                      product.status === "In Stock"
+                        ? "in-stock"
+                        : product.status === "Low Stock"
+                        ? "low-stock"
+                        : "out-stock"
+                    }`}
+                  >
+                    {product.status}
+                  </span>
+                </td>
+                <td>
+                  <button className="edit-btn" onClick={() => handleEditProduct(product)}>Edit</button>
+                  <button className="delete-btn" onClick={() => openDeleteModal(product)}>Delete</button>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
 
+      {/* Rest of your modals remain the same */}
       {/* ADD PRODUCT MODAL */}
       {showAddForm && (
         <div className="overlay">
@@ -305,10 +332,11 @@ function AllProducts() {
                 required
               >
                 <option value="" disabled hidden>Select Category</option>
-                <option value="Paper">Paper</option>
-                <option value="Ink">Ink</option>
-                <option value="Office Supplies">Office Supplies</option>
-                <option value="Other">Other</option>
+                {categories.map((category) => (
+                  <option key={category._id} value={category.name}>
+                    {category.name}
+                  </option>
+                ))}
               </select>
               
               <input
@@ -373,10 +401,11 @@ function AllProducts() {
                 required
               >
                 <option value="" disabled hidden>Select Category</option>
-                <option value="Paper">Paper</option>
-                <option value="Ink">Ink</option>
-                <option value="Office Supplies">Office Supplies</option>
-                <option value="Other">Other</option>
+                {categories.map((category) => (
+                  <option key={category._id} value={category.name}>
+                    {category.name}
+                  </option>
+                ))}
               </select>
               
               <input

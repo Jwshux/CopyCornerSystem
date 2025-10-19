@@ -9,6 +9,7 @@ import os
 from groups_api import groups_bp, init_groups_db
 from users_api import users_bp, init_users_db
 from products_api import products_bp, init_products_db
+from categories_api import categories_bp, init_categories_db
 
 # -----------------------------
 # Load environment variables
@@ -33,11 +34,13 @@ try:
     users_collection = db["users"]
     groups_collection = db["groups"]
     products_collection = db["products"]
+    categories_collection = db["categories"]
     
     # Initialize APIs with the collections
     init_groups_db(groups_collection)
     init_users_db(users_collection, groups_collection)
     init_products_db(products_collection)
+    init_categories_db(categories_collection)
     
     client.admin.command("ping")
     print("✅ Connected to MongoDB Atlas!")
@@ -51,6 +54,7 @@ except Exception as e:
 app.register_blueprint(groups_bp)
 app.register_blueprint(users_bp)
 app.register_blueprint(products_bp)
+app.register_blueprint(categories_bp)
 # -----------------------------
 # Routes
 # -----------------------------
