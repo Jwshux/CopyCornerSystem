@@ -5,16 +5,35 @@
   width: 100%;
   overflow-x: hidden;
   box-sizing: border-box;
-  padding-right: 10px; 
+  padding-right: 10px;
 }
 
+.product-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.loading-indicator {
+  color: #3b82f6;
+  font-weight: bold;
+  padding: 5px 10px;
+  background: #eff6ff;
+  border-radius: 4px;
+  font-size: 14px;
+}
 
 .add-product-btn {
   background-color: #3b82f6;
   color: white;
   border: none;
   padding: 8px 16px;
-  margin-right: 20px;
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.2s ease;
@@ -24,7 +43,6 @@
   background-color: #2563eb;
 }
 
-/* Table */
 .product-table {
   width: 100%;
   border-collapse: collapse;
@@ -62,7 +80,10 @@
   color: #333;
 }
 
-/* Popup form */
+.out-stock {
+  background-color: #ef4444;
+}
+
 .overlay {
   position: fixed;
   top: 0;
@@ -144,7 +165,6 @@
   margin-right: 5px;
 }
 
-/* Edit Button */
 .edit-btn {
   background-color: #f59e0b;
   color: white;
@@ -154,7 +174,6 @@
   background-color: #d97706;
 }
 
-/* Delete Button */
 .delete-btn {
   background-color: #ef4444;
   color: white;
@@ -164,3 +183,64 @@
   background-color: #dc2626;
 }
 
+.delete-confirmation {
+  text-align: center;
+  max-width: 400px;
+}
+
+.delete-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.delete-confirmation h3 {
+  color: #d9534f;
+  margin-bottom: 15px;
+}
+
+.delete-confirmation p {
+  margin-bottom: 10px;
+  color: #555;
+}
+
+.delete-warning {
+  color: #d9534f !important;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.confirm-delete-btn {
+  background-color: #d9534f;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.confirm-delete-btn:hover:not(:disabled) {
+  background-color: #c9302c;
+}
+
+.confirm-delete-btn:disabled {
+  background-color: #d9534f;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-input {
+  border: 2px solid #ff4444 !important;
+  background-color: #fff8f8;
+}
+
+.error-message {
+  color: #ff4444;
+  font-size: 12px;
+  margin-top: -8px;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background-color: #fff8f8;
+  border-radius: 4px;
+  border-left: 3px solid #ff4444;
+}
