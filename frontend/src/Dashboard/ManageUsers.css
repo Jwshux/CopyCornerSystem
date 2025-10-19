@@ -147,3 +147,52 @@ td {
 .cancel-btn:hover {
   background-color: #5a6268;
 }
+
+.error-input {
+  border: 2px solid #ff4444 !important;
+  background-color: #fff8f8;
+}
+
+.error-message {
+  color: #ff4444;
+  font-size: 12px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background-color: #fff8f8;
+  border-radius: 4px;
+  border-left: 3px solid #ff4444;
+}
+
+/* Fix form spacing to match original */
+.modal-content form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.modal-content form label {
+  font-size: 14px;
+  margin-top: 10px;
+  color: #333;
+  font-weight: 500;
+}
+
+.modal-content form input,
+.modal-content form select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.modal-content form .modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}

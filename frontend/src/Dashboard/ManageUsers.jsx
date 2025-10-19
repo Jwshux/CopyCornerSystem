@@ -17,6 +17,7 @@ function ManageUsers() {
     role: "",
     status: "Active",
   });
+  const [usernameError, setUsernameError] = useState("");
 
   // Fetch users and roles from backend
   const fetchUsers = async () => {
@@ -25,7 +26,7 @@ function ManageUsers() {
       const response = await fetch(`${API_BASE}/users`);
       if (response.ok) {
         const data = await response.json();
-        console.log('Users data from API:', data); // Debug log
+        console.log('Users data from API:', data);
         setUsers(data);
       } else {
         console.error('Failed to fetch users');
@@ -43,7 +44,6 @@ function ManageUsers() {
       if (response.ok) {
         const data = await response.json();
         setRoles(data);
-        // Set default role if roles exist
         if (data.length > 0 && !formData.role) {
           setFormData(prev => ({ ...prev, role: data[0] }));
         }
@@ -58,10 +58,34 @@ function ManageUsers() {
     fetchRoles();
   }, []);
 
+  // Check if username exists
+  const checkUsername = (username) => {
+    if (!username) {
+      setUsernameError("");
+      return;
+    }
+
+    const existingUser = users.find(user => 
+      user.username.toLowerCase() === username.toLowerCase() &&
+      (!selectedUser || user._id !== selectedUser._id)
+    );
+
+    if (existingUser) {
+      setUsernameError("Username already exists");
+    } else {
+      setUsernameError("");
+    }
+  };
+
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+
+    // Check username availability in real-time
+    if (name === "username") {
+      checkUsername(value);
+    }
   };
 
   // Reset form state
@@ -74,12 +98,17 @@ function ManageUsers() {
       status: "Active",
     });
     setSelectedUser(null);
+    setUsernameError("");
   };
 
   // Add user
-  const handleAddUser = async () => {
-    if (!formData.name || !formData.username || !formData.password || !formData.role)
-      return alert("Please fill out all fields.");
+  const handleAddUser = async (e) => {
+    if (e) e.preventDefault();
+    
+    if (usernameError) {
+      alert("Please fix the username error before saving.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -117,11 +146,19 @@ function ManageUsers() {
       role: user.role,
       status: user.status,
     });
+    setUsernameError("");
     setShowEditModal(true);
   };
 
   // Update user
-  const handleUpdateUser = async () => {
+  const handleUpdateUser = async (e) => {
+    if (e) e.preventDefault();
+    
+    if (usernameError) {
+      alert("Please fix the username error before updating.");
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/users/${selectedUser._id}`, {
@@ -185,23 +222,20 @@ function ManageUsers() {
     resetForm();
   };
 
-  // Format date for display - make it more robust
+  // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return "Never logged in";
     
     try {
-      // Handle different date formats
       let date;
       if (typeof dateString === 'string') {
         date = new Date(dateString);
       } else if (dateString && dateString.$date) {
-        // Handle MongoDB extended JSON format
         date = new Date(dateString.$date);
       } else {
         return "Never logged in";
       }
       
-      // Check if date is valid
       if (isNaN(date.getTime())) {
         return "Never logged in";
       }
@@ -265,34 +299,57 @@ function ManageUsers() {
         <div className="modal-overlay">
           <div className="modal-content">
             <h3><b>Add New User</b></h3>
-            <label>Full Name</label>
-            <input name="name" value={formData.name} onChange={handleInputChange} placeholder="Full Name" />
-            
-            <label>Username</label>
-            <input name="username" value={formData.username} onChange={handleInputChange} placeholder="Username" />
-            
-            <label>Password</label>
-            <input type="password" name="password" value={formData.password} onChange={handleInputChange} placeholder="Password" />
-            
-            <label>User Role</label>
-            <select name="role" value={formData.role} onChange={handleInputChange}>
-              {roles.map((role) => (
-                <option key={role} value={role}>{role}</option>
-              ))}
-            </select>
-            
-            <label>Status</label>
-            <select name="status" value={formData.status} onChange={handleInputChange}>
-              <option>Active</option>
-              <option>Inactive</option>
-            </select>
+            <form onSubmit={handleAddUser}>
+              <label>Full Name</label>
+              <input 
+                name="name" 
+                value={formData.name} 
+                onChange={handleInputChange} 
+                placeholder="Full Name" 
+                required 
+              />
+              
+              <label>Username</label>
+              <input 
+                name="username" 
+                value={formData.username} 
+                onChange={handleInputChange} 
+                placeholder="Username" 
+                className={usernameError ? "error-input" : ""}
+                required 
+              />
+              {usernameError && <div className="error-message">{usernameError}</div>}
+              
+              <label>Password</label>
+              <input 
+                type="password" 
+                name="password" 
+                value={formData.password} 
+                onChange={handleInputChange} 
+                placeholder="Password" 
+                required 
+              />
+              
+              <label>User Role</label>
+              <select name="role" value={formData.role} onChange={handleInputChange} required>
+                {roles.map((role) => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
+              </select>
+              
+              <label>Status</label>
+              <select name="status" value={formData.status} onChange={handleInputChange}>
+                <option>Active</option>
+                <option>Inactive</option>
+              </select>
 
-            <div className="modal-buttons">
-              <button className="save-btn" onClick={handleAddUser} disabled={loading}>
-                {loading ? "Saving..." : "Save"}
-              </button>
-              <button className="cancel-btn" onClick={closeModals}>Cancel</button>
-            </div>
+              <div className="modal-buttons">
+                <button type="submit" className="save-btn" disabled={loading || usernameError}>
+                  {loading ? "Saving..." : "Save"}
+                </button>
+                <button type="button" className="cancel-btn" onClick={closeModals}>Cancel</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -302,34 +359,54 @@ function ManageUsers() {
         <div className="modal-overlay">
           <div className="modal-content">
             <h3><b>Edit User</b></h3>
-            <label>Full Name</label>
-            <input name="name" value={formData.name} onChange={handleInputChange} />
-            
-            <label>Username</label>
-            <input name="username" value={formData.username} onChange={handleInputChange} />
-            
-            <label>Password</label>
-            <input type="password" name="password" value={formData.password} onChange={handleInputChange} placeholder="New Password (optional)" />
-            
-            <label>User Role</label>
-            <select name="role" value={formData.role} onChange={handleInputChange}>
-              {roles.map((role) => (
-                <option key={role} value={role}>{role}</option>
-              ))}
-            </select>
-            
-            <label>Status</label>
-            <select name="status" value={formData.status} onChange={handleInputChange}>
-              <option>Active</option>
-              <option>Inactive</option>
-            </select>
+            <form onSubmit={handleUpdateUser}>
+              <label>Full Name</label>
+              <input 
+                name="name" 
+                value={formData.name} 
+                onChange={handleInputChange} 
+                required 
+              />
+              
+              <label>Username</label>
+              <input 
+                name="username" 
+                value={formData.username} 
+                onChange={handleInputChange} 
+                className={usernameError ? "error-input" : ""}
+                required 
+              />
+              {usernameError && <div className="error-message">{usernameError}</div>}
+              
+              <label>Password</label>
+              <input 
+                type="password" 
+                name="password" 
+                value={formData.password} 
+                onChange={handleInputChange} 
+                placeholder="New Password (optional)" 
+              />
+              
+              <label>User Role</label>
+              <select name="role" value={formData.role} onChange={handleInputChange} required>
+                {roles.map((role) => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
+              </select>
+              
+              <label>Status</label>
+              <select name="status" value={formData.status} onChange={handleInputChange}>
+                <option>Active</option>
+                <option>Inactive</option>
+              </select>
 
-            <div className="modal-buttons">
-              <button className="save-btn" onClick={handleUpdateUser} disabled={loading}>
-                {loading ? "Updating..." : "Update"}
-              </button>
-              <button className="cancel-btn" onClick={closeModals}>Cancel</button>
-            </div>
+              <div className="modal-buttons">
+                <button type="submit" className="save-btn" disabled={loading || usernameError}>
+                  {loading ? "Updating..." : "Update"}
+                </button>
+                <button type="button" className="cancel-btn" onClick={closeModals}>Cancel</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
