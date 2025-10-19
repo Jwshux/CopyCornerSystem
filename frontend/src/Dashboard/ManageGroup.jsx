@@ -6,6 +6,7 @@ const API_BASE = "http://localhost:5000/api";
 function ManageGroup() {
   const [groups, setGroups] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentGroup, setCurrentGroup] = useState({
     _id: null,
@@ -13,6 +14,7 @@ function ManageGroup() {
     group_level: "",
     status: "Active",
   });
+  const [groupToDelete, setGroupToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
   const [groupNameError, setGroupNameError] = useState("");
 
@@ -143,26 +145,40 @@ function ManageGroup() {
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this group?")) {
-      setLoading(true);
-      try {
-        const response = await fetch(`${API_BASE}/groups/${id}`, {
-          method: 'DELETE',
-        });
+  // Open delete confirmation modal
+  const openDeleteModal = (group) => {
+    setGroupToDelete(group);
+    setShowDeleteModal(true);
+  };
 
-        if (response.ok) {
-          await fetchGroups(); // Refresh the list
-        } else {
-          console.error('Failed to delete group');
-          alert('Failed to delete group');
-        }
-      } catch (error) {
-        console.error('Error deleting group:', error);
-        alert('Error deleting group');
-      } finally {
-        setLoading(false);
+  // Close delete confirmation modal
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setGroupToDelete(null);
+  };
+
+  // Delete group
+  const handleDeleteGroup = async () => {
+    if (!groupToDelete) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/groups/${groupToDelete._id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        await fetchGroups();
+        closeDeleteModal();
+      } else {
+        console.error('Failed to delete group');
+        alert('Failed to delete group');
       }
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      alert('Error deleting group');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -226,7 +242,7 @@ function ManageGroup() {
                 <button className="edit-btn" onClick={() => handleEdit(group)}>
                   ✏️
                 </button>
-                <button className="delete-btn" onClick={() => handleDelete(group._id)}>
+                <button className="delete-btn" onClick={() => openDeleteModal(group)}>
                   ❌
                 </button>
               </td>
@@ -280,6 +296,25 @@ function ManageGroup() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {showDeleteModal && groupToDelete && (
+        <div className="overlay">
+          <div className="form-container delete-confirmation">
+            <div className="delete-icon">🗑️</div>
+            <h3>Delete Group</h3>
+            <p>Are you sure you want to delete group <strong>"{groupToDelete.group_name}"</strong>?</p>
+            <p className="delete-warning">This action cannot be undone.</p>
+            
+            <div className="form-buttons">
+              <button className="confirm-delete-btn" onClick={handleDeleteGroup} disabled={loading}>
+                {loading ? "Deleting..." : "Yes, Delete"}
+              </button>
+              <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
+            </div>
           </div>
         </div>
       )}

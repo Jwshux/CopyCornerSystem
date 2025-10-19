@@ -8,7 +8,9 @@ function ManageUsers() {
   const [roles, setRoles] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [userToDelete, setUserToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -185,27 +187,40 @@ function ManageUsers() {
     }
   };
 
-  // Delete user
-  const handleDeleteUser = async (id) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
-      setLoading(true);
-      try {
-        const response = await fetch(`${API_BASE}/users/${id}`, {
-          method: 'DELETE',
-        });
+  // Open delete confirmation modal
+  const openDeleteModal = (user) => {
+    setUserToDelete(user);
+    setShowDeleteModal(true);
+  };
 
-        if (response.ok) {
-          await fetchUsers();
-        } else {
-          console.error('Failed to delete user');
-          alert('Failed to delete user');
-        }
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        alert('Error deleting user');
-      } finally {
-        setLoading(false);
+  // Close delete confirmation modal
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setUserToDelete(null);
+  };
+
+  // Delete user
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/users/${userToDelete._id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        await fetchUsers();
+        closeDeleteModal();
+      } else {
+        console.error('Failed to delete user');
+        alert('Failed to delete user');
       }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Error deleting user');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -286,7 +301,7 @@ function ManageUsers() {
                 <td>{formatDate(user.last_login)}</td>
                 <td>
                   <button className="edit-btn" onClick={() => handleEditUser(user)}>✏️</button>
-                  <button className="delete-btn" onClick={() => handleDeleteUser(user._id)}>❌</button>
+                  <button className="delete-btn" onClick={() => openDeleteModal(user)}>❌</button>
                 </td>
               </tr>
             ))}
@@ -407,6 +422,25 @@ function ManageUsers() {
                 <button type="button" className="cancel-btn" onClick={closeModals}>Cancel</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {showDeleteModal && userToDelete && (
+        <div className="modal-overlay">
+          <div className="modal-content delete-confirmation">
+            <div className="delete-icon">🗑️</div>
+            <h3>Delete User</h3>
+            <p>Are you sure you want to delete user <strong>"{userToDelete.name}"</strong>?</p>
+            <p className="delete-warning">This action cannot be undone.</p>
+            
+            <div className="modal-buttons">
+              <button className="confirm-delete-btn" onClick={handleDeleteUser} disabled={loading}>
+                {loading ? "Deleting..." : "Yes, Delete"}
+              </button>
+              <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
+            </div>
           </div>
         </div>
       )}
