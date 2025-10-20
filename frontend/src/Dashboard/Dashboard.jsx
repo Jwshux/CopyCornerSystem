@@ -17,10 +17,10 @@ function AdminDashboard() {
         return "All Products";
       case "Categories":
         return "Categories";
-      case "Staff":
-        return "Staff Management";
-      case "Staff Sched":
-        return "Staff Schedule";
+      case "All Staffs":
+        return "All Staffs";
+      case "Staffs Schedule":
+        return "Staffs Schedule";
       case "Sales":
         return "Sales Overview";
       case "Manage Groups":
@@ -58,40 +58,24 @@ function AdminDashboard() {
       case "Manage Users":
         return <ManageUsers />;
 
-      case "Staff":
+      case "All Staffs":
         return (
           <div>
-            <h2>Staff</h2>
+            <h2>All Staffs</h2>
             <p>List of staff members and their details here.</p>
           </div>
         );
 
-      case "Staff Sched":
+      case "Staffs Schedule":
         return (
           <div>
-            <h2>Staff Schedule</h2>
+            <h2>Staffs Schedule</h2>
             <p>Schedule overview and time slots here.</p>
           </div>
         );
 
-     case "Sales":
-  return <Sales />;
-
-      case "Manage Groups":
-        return (
-          <div>
-            <h2>Manage Groups</h2>
-            <p>Group list and permission settings will go here.</p>
-          </div>
-        );
-
-      case "Manage Users":
-        return (
-          <div>
-            <h2>Manage Users</h2>
-            <p>List of users and management options will go here.</p>
-          </div>
-        );
+      case "Sales":
+        return <Sales />;
 
       default:
         return <h2>Welcome Admin</h2>;
@@ -116,8 +100,7 @@ function AdminDashboard() {
           {[
             "Dashboard",
             "Products",
-            "Staff",
-            "Staff Sched",
+            "Staffs",
             "Sales",
             "User Management",
           ].map((page) => (
@@ -128,6 +111,8 @@ function AdminDashboard() {
                   activePage === page ||
                   (page === "Products" &&
                     ["All Products", "Categories"].includes(activePage)) ||
+                  (page === "Staffs" &&
+                    ["All Staffs", "Staffs Schedule"].includes(activePage)) ||
                   (page === "User Management" &&
                     ["Manage Groups", "Manage Users"].includes(activePage))
                     ? "active"
@@ -136,14 +121,21 @@ function AdminDashboard() {
                 onClick={() => {
                   if (page === "Products") {
                     // Toggle Products submenu
-                    if (activePage === "Products") {
+                    if (["All Products", "Categories"].includes(activePage)) {
                       setActivePage("");
                     } else {
                       setActivePage("All Products");
                     }
+                  } else if (page === "Staffs") {
+                    // Toggle Staffs submenu - set "All Staffs" as default
+                    if (["All Staffs", "Staffs Schedule"].includes(activePage)) {
+                      setActivePage("");
+                    } else {
+                      setActivePage("All Staffs");
+                    }
                   } else if (page === "User Management") {
                     // Toggle User Management submenu
-                    if (activePage === "User Management") {
+                    if (["Manage Groups", "Manage Users"].includes(activePage)) {
                       setActivePage("");
                     } else {
                       setActivePage("Manage Groups");
@@ -161,6 +153,22 @@ function AdminDashboard() {
                 ["All Products", "Categories"].includes(activePage) && (
                   <div className="submenu">
                     {["All Products", "Categories"].map((sub) => (
+                      <button
+                        key={sub}
+                        className={activePage === sub ? "active-sub" : ""}
+                        onClick={() => setActivePage(sub)}
+                      >
+                        {sub}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+              {/* Staffs submenu */}
+              {page === "Staffs" &&
+                ["All Staffs", "Staffs Schedule"].includes(activePage) && (
+                  <div className="submenu">
+                    {["All Staffs", "Staffs Schedule"].map((sub) => (
                       <button
                         key={sub}
                         className={activePage === sub ? "active-sub" : ""}
