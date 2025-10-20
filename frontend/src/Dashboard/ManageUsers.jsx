@@ -375,24 +375,32 @@ function ManageUsers() {
             </tr>
           </thead>
           <tbody>
-            {users.map((user, index) => (
-              <tr key={user._id}>
-                <td>{index + 1}</td>
-                <td>{user.name}</td>
-                <td>{user.username}</td>
-                <td>{user.role}</td>
-                <td>
-                  <span className={user.status === "Active" ? "active-status" : "inactive-status"}>
-                    {user.status}
-                  </span>
-                </td>
-                <td>{formatDate(user.last_login)}</td>
-                <td>
-                  <button className="edit-btn" onClick={() => handleEditUser(user)}>✏️</button>
-                  <button className="delete-btn" onClick={() => openDeleteModal(user)}>❌</button>
+            {users.length === 0 ? (
+              <tr>
+                <td colSpan="7" style={{ textAlign: "center", color: "#888" }}>
+                  No users yet.
                 </td>
               </tr>
-            ))}
+            ) : (
+              users.map((user, index) => (
+                <tr key={user._id}>
+                  <td>{index + 1}</td>
+                  <td>{user.name}</td>
+                  <td>{user.username}</td>
+                  <td>{user.role}</td>
+                  <td>
+                    <span className={user.status === "Active" ? "active-status" : "inactive-status"}>
+                      {user.status}
+                    </span>
+                  </td>
+                  <td>{formatDate(user.last_login)}</td>
+                  <td>
+                    <button className="edit-btn" onClick={() => handleEditUser(user)}>✏️</button>
+                    <button className="delete-btn" onClick={() => openDeleteModal(user)}>❌</button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

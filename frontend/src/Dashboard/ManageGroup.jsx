@@ -228,26 +228,34 @@ function ManageGroup() {
           </tr>
         </thead>
         <tbody>
-          {groups.map((group, index) => (
-            <tr key={group._id}>
-              <td>{index + 1}</td>
-              <td>{group.group_name}</td>
-              <td>{group.group_level}</td>
-              <td>
-                <span className={`status ${group.status.toLowerCase()}`}>
-                  {group.status}
-                </span>
-              </td>
-              <td>
-                <button className="edit-btn" onClick={() => handleEdit(group)}>
-                  ✏️
-                </button>
-                <button className="delete-btn" onClick={() => openDeleteModal(group)}>
-                  ❌
-                </button>
+          {groups.length === 0 ? (
+            <tr>
+              <td colSpan="5" style={{ textAlign: "center", color: "#888" }}>
+                No groups yet.
               </td>
             </tr>
-          ))}
+          ) : (
+            groups.map((group, index) => (
+              <tr key={group._id}>
+                <td>{index + 1}</td>
+                <td>{group.group_name}</td>
+                <td>{group.group_level}</td>
+                <td>
+                  <span className={`status ${group.status.toLowerCase()}`}>
+                    {group.status}
+                  </span>
+                </td>
+                <td>
+                  <button className="edit-btn" onClick={() => handleEdit(group)}>
+                    ✏️
+                  </button>
+                  <button className="delete-btn" onClick={() => openDeleteModal(group)}>
+                    ❌
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
 
