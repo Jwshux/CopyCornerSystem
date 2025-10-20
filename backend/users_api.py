@@ -93,6 +93,10 @@ def create_user():
             'password': data['password'],
             'group_id': group['_id'],
             'status': data.get('status', 'Active'),
+            # Add staff-specific fields - use None (null in JSON) instead of empty strings
+            'studentNumber': data.get('studentNumber'),
+            'course': data.get('course'),
+            'section': data.get('section'),
             'last_login': None,
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
@@ -125,6 +129,10 @@ def update_user(user_id):
             'username': data['username'],
             'group_id': group['_id'],
             'status': data['status'],
+            # Add staff-specific fields - use None (null in JSON) instead of empty strings
+            'studentNumber': data.get('studentNumber'),
+            'course': data.get('course'),
+            'section': data.get('section'),
             'updated_at': datetime.utcnow()
         }
         

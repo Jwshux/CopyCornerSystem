@@ -18,6 +18,10 @@ function ManageUsers() {
     password: "",
     role: "",
     status: "Active",
+    // Staff-specific fields - initialize as null
+    studentNumber: null,
+    course: null,
+    section: null
   });
   const [usernameError, setUsernameError] = useState("");
 
@@ -82,7 +86,13 @@ function ManageUsers() {
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    
+    // For staff fields, convert empty string to null
+    if (['studentNumber', 'course', 'section'].includes(name)) {
+      setFormData({ ...formData, [name]: value.trim() || null });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
 
     // Check username availability in real-time
     if (name === "username") {
@@ -98,9 +108,18 @@ function ManageUsers() {
       password: "",
       role: roles.length > 0 ? roles[0] : "",
       status: "Active",
+      // Reset staff-specific fields to null
+      studentNumber: null,
+      course: null,
+      section: null
     });
     setSelectedUser(null);
     setUsernameError("");
+  };
+
+  // Check if staff role is selected
+  const isStaffRole = () => {
+    return formData.role.toLowerCase().includes("staff");
   };
 
   // Add user
@@ -112,14 +131,42 @@ function ManageUsers() {
       return;
     }
 
+    // Validate staff-specific fields if staff role is selected
+    if (isStaffRole()) {
+      if (!formData.studentNumber) {
+        alert("Please enter student number for staff member.");
+        return;
+      }
+      if (!formData.course) {
+        alert("Please enter course for staff member.");
+        return;
+      }
+      if (!formData.section) {
+        alert("Please enter section for staff member.");
+        return;
+      }
+    }
+
     setLoading(true);
     try {
+      const userData = {
+        name: formData.name,
+        username: formData.username,
+        password: formData.password,
+        role: formData.role,
+        status: formData.status,
+        // Only include staff fields if staff role is selected, otherwise send null
+        studentNumber: isStaffRole() ? formData.studentNumber : null,
+        course: isStaffRole() ? formData.course : null,
+        section: isStaffRole() ? formData.section : null
+      };
+
       const response = await fetch(`${API_BASE}/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(userData),
       });
 
       if (response.ok) {
@@ -147,6 +194,10 @@ function ManageUsers() {
       password: "", // Don't fill password for security
       role: user.role,
       status: user.status,
+      // Fill staff-specific fields - convert empty strings to null for display
+      studentNumber: user.studentNumber || null,
+      course: user.course || null,
+      section: user.section || null
     });
     setUsernameError("");
     setShowEditModal(true);
@@ -161,14 +212,46 @@ function ManageUsers() {
       return;
     }
 
+    // Validate staff-specific fields if staff role is selected
+    if (isStaffRole()) {
+      if (!formData.studentNumber) {
+        alert("Please enter student number for staff member.");
+        return;
+      }
+      if (!formData.course) {
+        alert("Please enter course for staff member.");
+        return;
+      }
+      if (!formData.section) {
+        alert("Please enter section for staff member.");
+        return;
+      }
+    }
+
     setLoading(true);
     try {
+      const userData = {
+        name: formData.name,
+        username: formData.username,
+        role: formData.role,
+        status: formData.status,
+        // Only include staff fields if staff role is selected, otherwise send null
+        studentNumber: isStaffRole() ? formData.studentNumber : null,
+        course: isStaffRole() ? formData.course : null,
+        section: isStaffRole() ? formData.section : null
+      };
+
+      // Only include password if provided
+      if (formData.password) {
+        userData.password = formData.password;
+      }
+
       const response = await fetch(`${API_BASE}/users/${selectedUser._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(userData),
       });
 
       if (response.ok) {
@@ -262,6 +345,11 @@ function ManageUsers() {
     }
   };
 
+  // Helper to get input value for staff fields (convert null to empty string for input)
+  const getInputValue = (field) => {
+    return formData[field] || '';
+  };
+
   return (
     <div className="manage-users">
       <div className="user-table">
@@ -352,6 +440,38 @@ function ManageUsers() {
                 ))}
               </select>
               
+              {/* STAFF-SPECIFIC FIELDS - Only show when Staff role is selected */}
+              {isStaffRole() && (
+                <>
+                  <label>Student Number</label>
+                  <input 
+                    name="studentNumber" 
+                    value={getInputValue('studentNumber')} 
+                    onChange={handleInputChange} 
+                    placeholder="e.g., 2023-00123" 
+                    required={isStaffRole()}
+                  />
+                  
+                  <label>Course</label>
+                  <input 
+                    name="course" 
+                    value={getInputValue('course')} 
+                    onChange={handleInputChange} 
+                    placeholder="e.g., BSIT, BSCS, BSIS" 
+                    required={isStaffRole()}
+                  />
+                  
+                  <label>Section</label>
+                  <input 
+                    name="section" 
+                    value={getInputValue('section')} 
+                    onChange={handleInputChange} 
+                    placeholder="e.g., 3A, 2B" 
+                    required={isStaffRole()}
+                  />
+                </>
+              )}
+              
               <label>Status</label>
               <select name="status" value={formData.status} onChange={handleInputChange}>
                 <option>Active</option>
@@ -408,6 +528,38 @@ function ManageUsers() {
                   <option key={role} value={role}>{role}</option>
                 ))}
               </select>
+              
+              {/* STAFF-SPECIFIC FIELDS - Only show when Staff role is selected */}
+              {isStaffRole() && (
+                <>
+                  <label>Student Number</label>
+                  <input 
+                    name="studentNumber" 
+                    value={getInputValue('studentNumber')} 
+                    onChange={handleInputChange} 
+                    placeholder="e.g., 2023-00123" 
+                    required={isStaffRole()}
+                  />
+                  
+                  <label>Course</label>
+                  <input 
+                    name="course" 
+                    value={getInputValue('course')} 
+                    onChange={handleInputChange} 
+                    placeholder="e.g., BSIT, BSCS, BSIS" 
+                    required={isStaffRole()}
+                  />
+                  
+                  <label>Section</label>
+                  <input 
+                    name="section" 
+                    value={getInputValue('section')} 
+                    onChange={handleInputChange} 
+                    placeholder="e.g., 3A, 2B" 
+                    required={isStaffRole()}
+                  />
+                </>
+              )}
               
               <label>Status</label>
               <select name="status" value={formData.status} onChange={handleInputChange}>
