@@ -5,6 +5,7 @@ import Categories from "./Categories";
 import ManageGroup from "./ManageGroup";
 import ManageUsers from "./ManageUsers";
 import Sales from "./Sales";
+import AllStaff from "./AllStaff"; // Import the AllStaff component
 
 function AdminDashboard() {
   const [activePage, setActivePage] = useState("Dashboard");
@@ -59,12 +60,7 @@ function AdminDashboard() {
         return <ManageUsers />;
 
       case "All Staffs":
-        return (
-          <div>
-            <h2>All Staffs</h2>
-            <p>List of staff members and their details here.</p>
-          </div>
-        );
+        return <AllStaff />; // Use the AllStaff component
 
       case "Staffs Schedule":
         return (
