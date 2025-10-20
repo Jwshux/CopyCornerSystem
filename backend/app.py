@@ -10,6 +10,7 @@ from groups_api import groups_bp, init_groups_db
 from users_api import users_bp, init_users_db
 from products_api import products_bp, init_products_db
 from categories_api import categories_bp, init_categories_db
+from schedule_api import schedules_bp, init_schedules_db
 
 # -----------------------------
 # Load environment variables
@@ -35,12 +36,14 @@ try:
     groups_collection = db["groups"]
     products_collection = db["products"]
     categories_collection = db["categories"]
+    schedule_collection = db["schedule"]
     
     # Initialize APIs with the collections
     init_groups_db(groups_collection)
     init_users_db(users_collection, groups_collection)
     init_products_db(products_collection)
     init_categories_db(categories_collection)
+    init_schedules_db(schedule_collection, users_collection, groups_collection)
     
     client.admin.command("ping")
     print("✅ Connected to MongoDB Atlas!")
@@ -55,6 +58,8 @@ app.register_blueprint(groups_bp)
 app.register_blueprint(users_bp)
 app.register_blueprint(products_bp)
 app.register_blueprint(categories_bp)
+app.register_blueprint(schedules_bp)
+
 # -----------------------------
 # Routes
 # -----------------------------

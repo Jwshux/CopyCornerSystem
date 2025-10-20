@@ -25,19 +25,21 @@
 }
 
 /* Add Schedule button */
-.add-btn,
-.main-add {
+.add-btn.main-add {
   background: #5bc0de;
   color: white;
-  padding: 8px 16px;
-  border-radius: 4px;
+  padding: 10px 20px;
+  border-radius: 6px;
   border: none;
   cursor: pointer;
   font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
-.add-btn:hover {
-  opacity: 0.9;
+.add-btn.main-add:hover {
+  background: #31b0d5;
+  transform: translateY(-1px);
 }
 
 /* === Table Styling === */
@@ -74,38 +76,63 @@
   font-weight: 600;
   color: #333;
   background: #f7f7f7;
+  vertical-align: top;
 }
 
 /* === Staff & Time === */
 .staff-row {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 20px;
+  min-height: 40px;
+  width: 100%;
+}
+
+/* Staff name with fixed width */
+.staff-row strong {
+  min-width: 120px;
+  max-width: 120px;
+  word-wrap: break-word;
+  font-size: 0.9rem;
 }
 
 /* Time display (non-editing) */
 .time-text {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 180px;
+  width: 200px;
   height: 36px;
-  background: #fff;
-  border: 1px solid #ddd;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
   border-radius: 6px;
   color: #333;
   font-size: 0.9rem;
-  line-height: 1;
+  font-weight: 500;
   box-sizing: border-box;
   text-align: center;
+  font-family: 'Courier New', monospace;
+  flex-shrink: 0;
 }
 
-/* Time input (editing mode) */
-.time-input {
-  display: inline-flex;
+/* Time input container for editing mode - MAKE WIDER */
+.time-edit-container {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 180px;
+  gap: 8px;
+  width: 240px; /* Increased from 200px to 240px */
+  flex-shrink: 0;
+}
+
+.time-edit-container span {
+  color: #666;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Custom time input styling - MAKE WIDER FOR AM/PM */
+.time-input {
+  width: 100px !important; /* Increased from 85px to 100px */
   height: 36px;
   border: 1px solid #ccc;
   border-radius: 6px;
@@ -114,6 +141,16 @@
   box-sizing: border-box;
   text-align: center;
   background: #fff;
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* KEEP THE CLOCK PICKER */
+.time-input[type="time"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 /* === Action Buttons === */
@@ -121,23 +158,24 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-height: 40px;
 }
 
 .action-buttons button {
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 500;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   height: 32px;
-  width: 80px; /* FIXED WIDTH - same for all buttons */
+  width: 80px;
   transition: all 0.15s ease;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .edit-btn {
@@ -145,23 +183,35 @@
   color: white;
 }
 
+.edit-btn:hover:not(:disabled) {
+  background: #ec971f;
+  transform: translateY(-1px);
+}
+
 .save-btn {
   background: #007bff;
   color: white;
 }
 
+.save-btn:hover:not(:disabled) {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
 .remove-btn {
-  background: #d9534f; /* Red for delete */
+  background: #d9534f;
   color: white;
 }
 
-button:hover:not(:disabled) {
-  opacity: 0.9;
+.remove-btn:hover:not(:disabled) {
+  background: #c9302c;
+  transform: translateY(-1px);
 }
 
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none !important;
 }
 
 /* === Modal === */
@@ -171,7 +221,7 @@ button:disabled {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -185,32 +235,40 @@ button:disabled {
   border-radius: 10px;
   width: 100%;
   max-width: 400px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 
 .modal-box h3 {
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   color: #333;
   text-align: center;
+  font-size: 1.3rem;
 }
 
 .modal-box label {
   font-size: 14px;
   color: #333;
   font-weight: 500;
+  margin-bottom: 5px;
 }
 
 .modal-box select,
 .modal-box input[type="time"] {
   width: 100%;
-  padding: 8px;
+  padding: 10px;
   border: 1px solid #ccc;
   border-radius: 6px;
   font-size: 14px;
   box-sizing: border-box;
+  background: #fff;
+}
+
+/* KEEP THE CLOCK PICKER IN MODAL */
+.modal-box input[type="time"] {
+  font-family: 'Courier New', monospace;
 }
 
 .modal-actions {
@@ -221,7 +279,86 @@ button:disabled {
 }
 
 .modal-actions button {
-  min-width: 80px;
-  height: 36px;
+  min-width: 90px;
+  height: 38px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
+.modal-actions .save-btn {
+  background: #28a745;
+  color: white;
+}
+
+.modal-actions .save-btn:hover:not(:disabled) {
+  background: #218838;
+}
+
+.modal-actions .remove-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.modal-actions .remove-btn:hover:not(:disabled) {
+  background: #5a6268;
+}
+
+/* === Loading === */
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-style: italic;
+  font-size: 1rem;
+}
+
+/* === No Staff Message === */
+.no-staff {
+  color: #888;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Ensure consistent row heights and alignment */
+.schedule-table tr {
+  height: 60px;
+}
+
+/* Make sure all elements stay in one line */
+.staff-row > * {
+  flex-shrink: 0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .schedule-container {
+    padding: 15px;
+    width: calc(100% - 30px);
+  }
+  
+  .schedule-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+  
+  .staff-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .staff-row strong {
+    min-width: 100%;
+    max-width: 100%;
+  }
+  
+  .time-text,
+  .time-edit-container {
+    width: 100%;
+  }
+}
