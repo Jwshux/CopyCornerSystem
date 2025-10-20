@@ -176,7 +176,7 @@ function AllStaff() {
           <h3>ALL STAFFS</h3>
         </div>
 
-        {loading && <div className="loading">Loading...</div>}
+        {/* {loading && <div className="loading">Loading...</div>} */}
 
         <table>
           <thead>

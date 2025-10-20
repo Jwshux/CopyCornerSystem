@@ -359,8 +359,8 @@ function ManageUsers() {
             ADD NEW USER
           </button>
         </div>
-
-        {loading && <div className="loading">Loading...</div>}
+{/* 
+        {loading && <div className="loading">Loading...</div>} */}
 
         <table>
           <thead>

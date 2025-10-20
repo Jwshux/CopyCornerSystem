@@ -215,7 +215,7 @@ function ManageGroup() {
         </button>
       </div>
 
-      {loading && <div className="loading">Loading...</div>}
+      {/* {loading && <div className="loading">Loading...</div>} */}
 
       <table className="group-table">
         <thead>
@@ -297,7 +297,7 @@ function ManageGroup() {
               
               <div className="form-buttons">
                 <button type="submit" className="save-btn" disabled={loading || groupNameError}>
-                  {isEditing ? "Update" : "Save"}
+                  {loading ? (isEditing ? "Updating..." : "Saving...") : (isEditing ? "Update" : "Save")}
                 </button>
                 <button type="button" className="cancel-btn" onClick={handleCloseForm}>
                   Cancel
