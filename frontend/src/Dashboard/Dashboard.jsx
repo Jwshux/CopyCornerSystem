@@ -7,7 +7,7 @@ import ManageUsers from "./ManageUsers";
 import Sales from "./Sales";
 import AllStaff from "./AllStaff";
 import StaffSchedule from "./StaffSchedule";
-
+import Transactions from "./Transactions"; // ✅ Added new Transactions page
 
 function AdminDashboard() {
   const [activePage, setActivePage] = useState("Dashboard");
@@ -30,6 +30,8 @@ function AdminDashboard() {
         return "Group Management";
       case "Manage Users":
         return "User Management";
+      case "Transactions":
+        return "Transactions Overview";
       default:
         return "Admin Dashboard";
     }
@@ -48,29 +50,22 @@ function AdminDashboard() {
             </div>
           </div>
         );
-
       case "All Products":
         return <AllProducts />;
-
       case "Categories":
         return <Categories />;
-
       case "Manage Groups":
         return <ManageGroup />;
-
       case "Manage Users":
         return <ManageUsers />;
-
       case "All Staffs":
         return <AllStaff />;
-
       case "Staffs Schedule":
         return <StaffSchedule />;
-
-
       case "Sales":
         return <Sales />;
-
+      case "Transactions":
+        return <Transactions />; // ✅ Added here
       default:
         return <h2>Welcome Admin</h2>;
     }
@@ -85,9 +80,7 @@ function AdminDashboard() {
 
       {/* Sidebar */}
       <aside className="sidebar">
-        <h2 className="logo">
-          Copy Corner Hub
-        </h2>
+        <h2 className="logo">Copy Corner Hub</h2>
 
         {/* Sidebar Menu */}
         <nav className="menu">
@@ -96,6 +89,7 @@ function AdminDashboard() {
             "Products",
             "Staffs",
             "Sales",
+            "Transactions", // ✅ Added new menu item
             "User Management",
           ].map((page) => (
             <div key={page}>
@@ -114,21 +108,18 @@ function AdminDashboard() {
                 }
                 onClick={() => {
                   if (page === "Products") {
-                    // Toggle Products submenu
                     if (["All Products", "Categories"].includes(activePage)) {
                       setActivePage("");
                     } else {
                       setActivePage("All Products");
                     }
                   } else if (page === "Staffs") {
-                    // Toggle Staffs submenu - set "All Staffs" as default
                     if (["All Staffs", "Staffs Schedule"].includes(activePage)) {
                       setActivePage("");
                     } else {
                       setActivePage("All Staffs");
                     }
                   } else if (page === "User Management") {
-                    // Toggle User Management submenu
                     if (["Manage Groups", "Manage Users"].includes(activePage)) {
                       setActivePage("");
                     } else {
