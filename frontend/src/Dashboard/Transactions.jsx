@@ -289,12 +289,21 @@ import React, { useState } from "react";
 import "./Transactions.css";
 
 const Transactions = () => {
+  // Service type options for dropdown
+  const serviceTypeOptions = [
+    "Printing",
+    "Photocopying", 
+    "Tshirt Printing",
+    "Thesis Hardbound",
+    "Softbind"
+  ];
+
   const [transactions, setTransactions] = useState([
     {
       transactionId: "T-001",
       customerName: "Juan Dela Cruz",
       section: "BSIT31A",
-      serviceType: "Xerox",
+      serviceType: "Photocopying", // Updated to match dropdown options
       pricePerUnit: "20",
       quantity: "1",
       totalAmount: "20.00",
@@ -305,7 +314,7 @@ const Transactions = () => {
       transactionId: "T-002",
       customerName: "Maria Santos",
       section: "BSED21B",
-      serviceType: "Full Colored Printing",
+      serviceType: "Printing", // Updated to match dropdown options
       pricePerUnit: "10",
       quantity: "10",
       totalAmount: "100.00",
@@ -327,7 +336,7 @@ const Transactions = () => {
       transactionId: "T-004",
       customerName: "Ana Fuentes",
       section: "BSIT21B",
-      serviceType: "Photocopy",
+      serviceType: "Photocopying", // Updated to match dropdown options
       pricePerUnit: "1",
       quantity: "50",
       totalAmount: "50.00",
@@ -338,7 +347,7 @@ const Transactions = () => {
       transactionId: "T-005",
       customerName: "Carlos Garcia",
       section: "BSOA22A",
-      serviceType: "Xerox",
+      serviceType: "Photocopying", // Updated to match dropdown options
       pricePerUnit: "1",
       quantity: "5",
       totalAmount: "5.00",
@@ -349,7 +358,7 @@ const Transactions = () => {
       transactionId: "T-006",
       customerName: "Sofia Reyes",
       section: "BSHM21C",
-      serviceType: "T-shirt print",
+      serviceType: "Tshirt Printing", // Updated to match dropdown options
       pricePerUnit: "200",
       quantity: "5",
       totalAmount: "1000.00",
@@ -402,7 +411,7 @@ const Transactions = () => {
       transactionId: `T-${String(transactions.length + 1).padStart(3, "0")}`,
       customerName: "",
       section: "",
-      serviceType: "",
+      serviceType: "", // Empty by default
       pricePerUnit: "",
       quantity: "",
       totalAmount: "",
@@ -413,7 +422,6 @@ const Transactions = () => {
     setShowFormModal(true);
   };
 
-  //  Handle edit and update (All tab can edit status)
   const handleEdit = (index) => {
     setFormData(transactions[index]);
     setEditIndex(index);
@@ -463,9 +471,9 @@ const Transactions = () => {
       minimumFractionDigits: 2,
     })}`;
 
-  //logic with new tabs
+  // Filter logic
   const filteredByTab = transactions.filter((t) => {
-    if (activeTab === "All") return true; // show all statuses
+    if (activeTab === "All") return true;
     if (activeTab === "Pending") return t.status === "Pending";
     return t.status === activeTab;
   });
@@ -550,7 +558,7 @@ const Transactions = () => {
                   </span>
                 </td>
                 <td>
-                  {/*Pending tab actions */}
+                  {/* Pending tab actions */}
                   {activeTab === "Pending" && (
                     <>
                       <button
@@ -574,7 +582,7 @@ const Transactions = () => {
                     </>
                   )}
 
-                  {/*  All tab actions */}
+                  {/* All tab actions */}
                   {activeTab === "All" && (
                     <>
                       <button
@@ -592,7 +600,7 @@ const Transactions = () => {
                     </>
                   )}
 
-                  {/*  Completed or Cancelled tab actions */}
+                  {/* Completed or Cancelled tab actions */}
                   {(activeTab === "Completed" || activeTab === "Cancelled") && (
                     <>
                       <button
@@ -656,14 +664,22 @@ const Transactions = () => {
                 onChange={handleChange}
                 required
               />
-              <input
-                type="text"
+              
+              {/* Service Type Dropdown */}
+              <select
                 name="serviceType"
-                placeholder="Service Type"
                 value={formData.serviceType}
                 onChange={handleChange}
                 required
-              />
+              >
+                <option value="">Select Service Type</option>
+                {serviceTypeOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+
               <input
                 type="number"
                 name="pricePerUnit"

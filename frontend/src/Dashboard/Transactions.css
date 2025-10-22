@@ -377,3 +377,29 @@
 .confirm-delete-btn:hover {
   background-color: #c9302c;
 }
+
+.form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.form-group select:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+
+/* Ensure dropdown matches other form elements */
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
