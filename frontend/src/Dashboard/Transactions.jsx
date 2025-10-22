@@ -1,290 +1,3 @@
-// import React, { useState } from "react";
-// import "./Transactions.css";
-
-// const Transactions = () => {
-//   const [transactions, setTransactions] = useState([
-//     {
-//       transactionId: "T-001",
-//       customerName: "Juan Dela Cruz",
-//       section: "BSIT 3A",
-//       serviceType: "Black & White Printing",
-//       pricePerUnit: "3",
-//       quantity: "20",
-//       totalAmount: "60.00",
-//       status: "Completed",
-//       date: "2025-10-20",
-//     },
-//     {
-//       transactionId: "T-002",
-//       customerName: "Maria Santos",
-//       section: "BSED 2B",
-//       serviceType: "Full Colored Printing",
-//       pricePerUnit: "10",
-//       quantity: "10",
-//       totalAmount: "100.00",
-//       status: "Pending",
-//       date: "2025-10-21",
-//     },
-//     {
-//       transactionId: "T-003",
-//       customerName: "Pedro Ramirez",
-//       section: "BSBA 1C",
-//       serviceType: "Thesis Hardbound",
-//       pricePerUnit: "400",
-//       quantity: "1",
-//       totalAmount: "400.00",
-//       status: "Completed",
-//       date: "2025-10-19",
-//     },
-//   ]);
-
-//   const [searchTerm, setSearchTerm] = useState("");
-//   const [showModal, setShowModal] = useState(false);
-//   const [editIndex, setEditIndex] = useState(null);
-//   const [formData, setFormData] = useState({
-//     transactionId: "",
-//     customerName: "",
-//     section: "",
-//     serviceType: "",
-//     pricePerUnit: "",
-//     quantity: "",
-//     totalAmount: "",
-//     status: "Pending",
-//     date: "",
-//   });
-
-//   const handleChange = (e) => {
-//     const { name, value } = e.target;
-//     let updated = { ...formData, [name]: value };
-
-//     if (name === "pricePerUnit" || name === "quantity") {
-//       const price = parseFloat(updated.pricePerUnit) || 0;
-//       const qty = parseFloat(updated.quantity) || 0;
-//       updated.totalAmount = (price * qty).toFixed(2);
-//     }
-
-//     setFormData(updated);
-//   };
-
-//   const handleAdd = () => {
-//     setFormData({
-//       transactionId: `T-${String(transactions.length + 1).padStart(3, "0")}`,
-//       customerName: "",
-//       section: "",
-//       serviceType: "",
-//       pricePerUnit: "",
-//       quantity: "",
-//       totalAmount: "",
-//       status: "Pending",
-//       date: new Date().toISOString().split("T")[0],
-//     });
-//     setEditIndex(null);
-//     setShowModal(true);
-//   };
-
-//   const handleSave = () => {
-//     if (editIndex !== null) {
-//       const updated = [...transactions];
-//       updated[editIndex] = formData;
-//       setTransactions(updated);
-//     } else {
-//       setTransactions([...transactions, formData]);
-//     }
-//     setShowModal(false);
-//   };
-
-//   const handleEdit = (index) => {
-//     setFormData(transactions[index]);
-//     setEditIndex(index);
-//     setShowModal(true);
-//   };
-
-//   const handleDelete = (index) => {
-//     const updated = [...transactions];
-//     updated.splice(index, 1);
-//     setTransactions(updated);
-//   };
-
-//   const filteredTransactions = transactions.filter(
-//     (t) =>
-//       t.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-//       t.transactionId.toLowerCase().includes(searchTerm.toLowerCase())
-//   );
-
-//   const formatPeso = (amount) =>
-//     `₱${parseFloat(amount).toLocaleString("en-PH", {
-//       minimumFractionDigits: 2,
-//     })}`;
-
-//   return (
-//     <div className="transactions-container">
-//       <div className="transactions-header">
-//         <h2>Transaction Records</h2>
-//         <div className="transactions-controls">
-//           <input
-//             type="text"
-//             placeholder="Search by name"
-//             value={searchTerm}
-//             onChange={(e) => setSearchTerm(e.target.value)}
-//           />
-//           <button className="add-btn" onClick={handleAdd}>
-//             + Add Transaction
-//           </button>
-//         </div>
-//       </div>
-
-//       <table className="transactions-table">
-//         <thead>
-//           <tr>
-//             <th>Transaction ID</th>
-//             <th>Customer Name</th>
-//             <th>Section</th>
-//             <th>Service Type</th>
-//             <th>Price/Unit</th>
-//             <th>Qty</th>
-//             <th>Total</th>
-//             <th>Status</th>
-//             <th>Date</th>
-//             <th>Actions</th>
-//           </tr>
-//         </thead>
-//         <tbody>
-//           {filteredTransactions.length > 0 ? (
-//             filteredTransactions.map((t, index) => (
-//               <tr key={t.transactionId}>
-//                 <td>{t.transactionId}</td>
-//                <td>{t.customerName}</td>
-//                 <td>{t.section}</td>
-//                 <td>{t.serviceType}</td>
-//                 <td>{formatPeso(t.pricePerUnit)}</td>
-//                 <td>{t.quantity}</td>
-//                 <td>{formatPeso(t.totalAmount)}</td>
-//                 <td>
-//                   <span
-//                     className={`status-tag ${
-//                       t.status === "Completed"
-//                         ? "completed"
-//                         : t.status === "Cancelled"
-//                         ? "cancelled"
-//                         : "pending"
-//                     }`}
-//                   >
-//                     {t.status}
-//                   </span>
-//                 </td>
-//                 <td>{t.date}</td>
-//                 <td>
-//                   <button className="edit-btn" onClick={() => handleEdit(index)}>
-//                     Edit
-//                   </button>
-//                   <button className="delete-btn" onClick={() => handleDelete(index)}>
-//                     Delete
-//                   </button>
-//                 </td>
-//               </tr>
-//             ))
-//           ) : (
-//             <tr>
-//               <td colSpan="10" style={{ textAlign: "center", padding: "20px" }}>
-//                 No transactions found.
-//               </td>
-//             </tr>
-//           )}
-//         </tbody>
-//       </table>
-
-//       {showModal && (
-//         <div className="modal-overlay">
-//           <div className="modal">
-//             <h3>{editIndex !== null ? "Edit Transaction" : "Add Transaction"}</h3>
-//             <div className="form-grid">
-//               <div className="form-group">
-//                 <label>Customer Name:</label>
-//                 <input
-//                   name="customerName"
-//                   value={formData.customerName}
-//                   onChange={handleChange}
-//                 />
-//               </div>
-//               <div className="form-group">
-//                 <label>Section:</label>
-//                 <input
-//                   name="section"
-//                   value={formData.section}
-//                   onChange={handleChange}
-//                 />
-//               </div>
-//               <div className="form-group">
-//                 <label>Service Type:</label>
-//                 <input
-//                   name="serviceType"
-//                   value={formData.serviceType}
-//                   onChange={handleChange}
-//                 />
-//               </div>
-//               <div className="form-group">
-//                 <label>Price per Unit:</label>
-//                 <input
-//                   type="number"
-//                   name="pricePerUnit"
-//                   value={formData.pricePerUnit}
-//                   onChange={handleChange}
-//                 />
-//               </div>
-//               <div className="form-group">
-//                 <label>Quantity:</label>
-//                 <input
-//                   type="number"
-//                   name="quantity"
-//                   value={formData.quantity}
-//                   onChange={handleChange}
-//                 />
-//               </div>
-//               <div className="form-group">
-//                 <label>Total Amount (₱):</label>
-//                 <div className="readonly-field">
-//                   {formatPeso(formData.totalAmount || 0)}
-//                 </div>
-//               </div>
-//               <div className="form-group">
-//                 <label>Status:</label>
-//                 <select
-//                   name="status"
-//                   value={formData.status}
-//                   onChange={handleChange}
-//                 >
-//                   <option>Pending</option>
-//                   <option>Completed</option>
-//                   <option>Cancelled</option>
-//                 </select>
-//               </div>
-//               <div className="form-group">
-//                 <label>Date:</label>
-//                 <input
-//                   type="date"
-//                   name="date"
-//                   value={formData.date}
-//                   onChange={handleChange}
-//                 />
-//               </div>
-//             </div>
-
-//             <div className="form-actions">
-//               <button className="save-btn" onClick={handleSave}>
-//                 Save
-//               </button>
-//               <button className="cancel-btn" onClick={() => setShowModal(false)}>
-//                 Cancel
-//               </button>
-//             </div>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// };
-
-// export default Transactions;
 import React, { useState } from "react";
 import "./Transactions.css";
 
@@ -300,10 +13,10 @@ const Transactions = () => {
 
   const [transactions, setTransactions] = useState([
     {
+      queueNumber: "001",
       transactionId: "T-001",
-      customerName: "Juan Dela Cruz",
-      section: "BSIT31A",
-      serviceType: "Photocopying", // Updated to match dropdown options
+      customerName: "J. Dela Cruz",
+      serviceType: "Photocopying",
       pricePerUnit: "20",
       quantity: "1",
       totalAmount: "20.00",
@@ -311,10 +24,10 @@ const Transactions = () => {
       date: "2025-10-20",
     },
     {
+      queueNumber: "002",
       transactionId: "T-002",
-      customerName: "Maria Santos",
-      section: "BSED21B",
-      serviceType: "Printing", // Updated to match dropdown options
+      customerName: "M. Santos",
+      serviceType: "Printing",
       pricePerUnit: "10",
       quantity: "10",
       totalAmount: "100.00",
@@ -322,9 +35,9 @@ const Transactions = () => {
       date: "2025-10-21",
     },
     {
+      queueNumber: "003",
       transactionId: "T-003",
-      customerName: "Pedro Ramirez",
-      section: "BSBA12C",
+      customerName: "P. Ramirez",
       serviceType: "Thesis Hardbound",
       pricePerUnit: "400",
       quantity: "1",
@@ -333,10 +46,10 @@ const Transactions = () => {
       date: "2025-10-18",
     },
     {
+      queueNumber: "004",
       transactionId: "T-004",
-      customerName: "Ana Fuentes",
-      section: "BSIT21B",
-      serviceType: "Photocopying", // Updated to match dropdown options
+      customerName: "A. Fuentes",
+      serviceType: "Photocopying",
       pricePerUnit: "1",
       quantity: "50",
       totalAmount: "50.00",
@@ -344,10 +57,10 @@ const Transactions = () => {
       date: "2025-10-19",
     },
     {
+      queueNumber: "005",
       transactionId: "T-005",
-      customerName: "Carlos Garcia",
-      section: "BSOA22A",
-      serviceType: "Photocopying", // Updated to match dropdown options
+      customerName: "C. Garcia",
+      serviceType: "Photocopying",
       pricePerUnit: "1",
       quantity: "5",
       totalAmount: "5.00",
@@ -355,10 +68,10 @@ const Transactions = () => {
       date: "2025-10-17",
     },
     {
+      queueNumber: "006",
       transactionId: "T-006",
-      customerName: "Sofia Reyes",
-      section: "BSHM21C",
-      serviceType: "Tshirt Printing", // Updated to match dropdown options
+      customerName: "S. Reyes",
+      serviceType: "Tshirt Printing",
       pricePerUnit: "200",
       quantity: "5",
       totalAmount: "1000.00",
@@ -379,9 +92,9 @@ const Transactions = () => {
 
   // === Form Data ===
   const [formData, setFormData] = useState({
+    queueNumber: "",
     transactionId: "",
     customerName: "",
-    section: "",
     serviceType: "",
     pricePerUnit: "",
     quantity: "",
@@ -406,12 +119,22 @@ const Transactions = () => {
     setFormData(updated);
   };
 
+  const getNextQueueNumber = () => {
+    if (transactions.length === 0) return "001";
+    
+    const lastQueueNumber = Math.max(
+      ...transactions.map(t => parseInt(t.queueNumber))
+    );
+    return String(lastQueueNumber + 1).padStart(3, "0");
+  };
+
   const handleAdd = () => {
+    const nextQueue = getNextQueueNumber();
     setFormData({
-      transactionId: `T-${String(transactions.length + 1).padStart(3, "0")}`,
+      queueNumber: nextQueue,
+      transactionId: `T-${nextQueue}`,
       customerName: "",
-      section: "",
-      serviceType: "", // Empty by default
+      serviceType: "",
       pricePerUnit: "",
       quantity: "",
       totalAmount: "",
@@ -481,6 +204,7 @@ const Transactions = () => {
   const filteredTransactions = filteredByTab.filter(
     (t) =>
       t.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.queueNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.transactionId.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -491,7 +215,7 @@ const Transactions = () => {
         <div className="transactions-controls">
           <input
             type="text"
-            placeholder="Search by Name or ID"
+            placeholder="Search by Queue, Name, or ID"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -520,9 +244,9 @@ const Transactions = () => {
       <table className="transactions-table">
         <thead>
           <tr>
-            <th>#</th>
+            <th>Queue #</th>
+            <th>Transaction ID</th>
             <th>Customer</th>
-            <th>Section</th>
             <th>Service Type</th>
             <th>Price</th>
             <th>Qty</th>
@@ -536,9 +260,9 @@ const Transactions = () => {
           {filteredTransactions.length > 0 ? (
             filteredTransactions.map((t, index) => (
               <tr key={t.transactionId}>
+                <td className="queue-number">{t.queueNumber}</td>
                 <td>{t.transactionId}</td>
                 <td>{t.customerName}</td>
-                <td>{t.section}</td>
                 <td>{t.serviceType}</td>
                 <td>{formatPeso(t.pricePerUnit)}</td>
                 <td>{t.quantity}</td>
@@ -642,25 +366,32 @@ const Transactions = () => {
                 : "Add Transaction"}
             </h3>
             <form onSubmit={handleSave}>
-              <input
-                type="text"
-                value={formData.transactionId}
-                readOnly
-                placeholder="Transaction ID"
-              />
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Queue Number:</label>
+                  <input
+                    type="text"
+                    value={formData.queueNumber}
+                    readOnly
+                    className="readonly-field"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Transaction ID:</label>
+                  <input
+                    type="text"
+                    value={formData.transactionId}
+                    readOnly
+                    className="readonly-field"
+                  />
+                </div>
+              </div>
+              
               <input
                 type="text"
                 name="customerName"
-                placeholder="Customer Name"
+                placeholder="Customer Name (e.g., J. Dela Cruz)"
                 value={formData.customerName}
-                onChange={handleChange}
-                required
-              />
-              <input
-                type="text"
-                name="section"
-                placeholder="Section"
-                value={formData.section}
                 onChange={handleChange}
                 required
               />
@@ -680,28 +411,41 @@ const Transactions = () => {
                 ))}
               </select>
 
-              <input
-                type="number"
-                name="pricePerUnit"
-                placeholder="Price per Unit"
-                value={formData.pricePerUnit}
-                onChange={handleChange}
-                required
-              />
-              <input
-                type="number"
-                name="quantity"
-                placeholder="Quantity"
-                value={formData.quantity}
-                onChange={handleChange}
-                required
-              />
-              <input
-                type="text"
-                value={`₱${formData.totalAmount}`}
-                readOnly
-                placeholder="Total Amount"
-              />
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Price per Unit:</label>
+                  <input
+                    type="number"
+                    name="pricePerUnit"
+                    placeholder="0.00"
+                    value={formData.pricePerUnit}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Quantity:</label>
+                  <input
+                    type="number"
+                    name="quantity"
+                    placeholder="0"
+                    value={formData.quantity}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Total Amount:</label>
+                <input
+                  type="text"
+                  value={formatPeso(formData.totalAmount)}
+                  readOnly
+                  className="readonly-field total-amount"
+                />
+              </div>
+
               <input
                 type="date"
                 name="date"
@@ -749,7 +493,7 @@ const Transactions = () => {
             <h3>Delete Transaction</h3>
             <p>
               Are you sure you want to delete transaction{" "}
-              <strong>"{transactionToDelete.transactionId}"</strong> for{" "}
+              <strong>Queue #{transactionToDelete.queueNumber}</strong> for{" "}
               <strong>{transactionToDelete.customerName}</strong>?
             </p>
             <p className="delete-warning">This action cannot be undone.</p>
