@@ -8,6 +8,7 @@ import Sales from "./Sales";
 import AllStaff from "./AllStaff";
 import StaffSchedule from "./StaffSchedule";
 import Transactions from "./Transactions"; // ✅ Added new Transactions page
+import DashboardUI from "./DashboardUI";
 
 function AdminDashboard() {
   const [activePage, setActivePage] = useState("Dashboard");
@@ -40,16 +41,7 @@ function AdminDashboard() {
   const renderContent = () => {
     switch (activePage) {
       case "Dashboard":
-        return (
-          <div>
-            <h2>Dashboard Overview</h2>
-            <div className="card-grid">
-              <div className="card">Total Users: 120</div>
-              <div className="card">Sales: $5,200</div>
-              <div className="card">Pending Orders: 8</div>
-            </div>
-          </div>
-        );
+  return <DashboardUI />;
       case "All Products":
         return <AllProducts />;
       case "Categories":

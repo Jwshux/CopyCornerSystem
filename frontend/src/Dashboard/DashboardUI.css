@@ -1,0 +1,150 @@
+.dashboard-ui {
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* === Summary Cards === */
+.dashboard-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.summary-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  text-align: center;
+}
+
+.summary-card h2 {
+  color: #1d4ed8;
+  font-size: 1.4rem;
+  margin-bottom: 4px;
+}
+
+.summary-card p {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* === Charts Section === */
+.dashboard-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.chart-box {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;  
+}
+
+.chart-box h3 {
+  color: #1f2937;
+  font-size: 1rem;
+  margin-bottom: 8px;
+}
+
+.pie-wrapper {
+  position: relative;
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* === Tables === */
+.dashboard-tables {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.table-box {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+}
+
+.table-box table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 0.95rem;
+}
+
+.table-box th,
+.table-box td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.table-box th {
+  color: #374151;
+  font-weight: 600;
+}
+
+.table-box td {
+  color: #4b5563;
+}
+
+/* === Notifications === */
+.dashboard-notifications {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+}
+
+.dashboard-notifications h3 {
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.dashboard-notifications ul {
+  list-style: none;
+  padding: 0;
+}
+
+.dashboard-notifications li {
+  padding: 6px 0;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-charts,
+  .dashboard-tables {
+    grid-template-columns: 1fr;
+  }
+}
+
+.status-tag {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: white;
+}
+
+.in-stock {
+  background-color: #22c55e;
+}
+
+.low-stock {
+  background-color: #facc15;
+  color: #333;
+}
+
+.out-stock {
+  background-color: #ef4444;
+}
