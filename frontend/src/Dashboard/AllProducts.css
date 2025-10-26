@@ -273,3 +273,56 @@
   background-color: white;
   cursor: pointer;
 }
+
+/* Table Container - Same as Users */
+.table-container {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Remove the border-radius and overflow from product-table since container handles it */
+.product-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  /* Remove these: border-radius: 10px; overflow: hidden; */
+}
+
+/* Simple Pagination Styles - Make sure they're the same as Users */
+.simple-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  margin-top: 20px;
+  padding: 15px 0;
+  border-top: 1px solid #eee;
+}
+
+.page-info {
+  color: #666;
+  font-weight: 500;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  background: white;
+  color: #333;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f5f5f5;
+  border-color: #ccc;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f9f9f9;
+}

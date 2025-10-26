@@ -280,6 +280,7 @@ function AllProducts() {
         </div>
       </div>
 
+    <div className="table-container">
       <table className="product-table">
         <thead>
           <tr>
@@ -296,17 +297,17 @@ function AllProducts() {
         <tbody>
           {products.length === 0 ? (
             <tr>
-                <td colSpan="8" style={{ textAlign: "center", color: "#888" }}>
-                    {loading ? (
-                      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
-                        <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
-                      </div>
-                    ) : (
-                      "No users found."
-                    )}
-                  </td>
-                </tr>
-              ) : (
+              <td colSpan="8" style={{ textAlign: "center", color: "#888" }}>
+                {loading ? (
+                  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                    <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                  </div>
+                ) : (
+                  "No products found."
+                )}
+              </td>
+            </tr>
+          ) : (
             products.map((product, index) => (
               <tr key={product._id}>
                 <td>{(currentPage - 1) * 10 + index + 1}</td>
@@ -338,7 +339,7 @@ function AllProducts() {
         </tbody>
       </table>
 
-      {/* SIMPLE PAGINATION CONTROLS */}
+      {/* PAGINATION CONTROLS - Now inside the container */}
       <div className="simple-pagination">
         <button 
           className="pagination-btn" 
@@ -358,6 +359,7 @@ function AllProducts() {
           Next
         </button>
       </div>
+    </div>
 
       {showAddForm && (
         <div className="overlay">
