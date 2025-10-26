@@ -280,3 +280,11 @@ td {
   cursor: not-allowed;
   background: #f9f9f9;
 }
+
+/* Form Animation Center */
+.form-animation-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+}

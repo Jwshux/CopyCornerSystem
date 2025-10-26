@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./ManageUsers.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
+import checkmarkAnimation from "../animations/checkmark.json";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -14,6 +15,8 @@ function ManageUsers() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [userToDelete, setUserToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     username: "",
@@ -71,6 +74,13 @@ function ManageUsers() {
     fetchRoles();
   }, []);
 
+  // Reset save success state when modals close
+  useEffect(() => {
+    if (!showAddModal && !showEditModal) {
+      setSaveSuccess(false);
+    }
+  }, [showAddModal, showEditModal]);
+
   // Pagination handlers
   const handleNextPage = () => {
     if (currentPage < totalPages) {
@@ -84,7 +94,6 @@ function ManageUsers() {
     }
   };
 
-  // All your existing functions remain exactly the same...
   const checkUsername = (username) => {
     if (!username) {
       setUsernameError("");
@@ -130,6 +139,7 @@ function ManageUsers() {
     });
     setSelectedUser(null);
     setUsernameError("");
+    setSaveSuccess(false);
   };
 
   const isStaffRole = () => {
@@ -159,7 +169,7 @@ function ManageUsers() {
       }
     }
 
-    setLoading(true);
+    setSaving(true);
     try {
       const userData = {
         name: formData.name,
@@ -181,18 +191,23 @@ function ManageUsers() {
       });
 
       if (response.ok) {
-        await fetchUsers(currentPage);
-        setShowAddModal(false);
-        resetForm();
+        setSaveSuccess(true);
+        // Wait for animation to complete before closing
+        setTimeout(async () => {
+          await fetchUsers(currentPage);
+          setShowAddModal(false);
+          resetForm();
+          setSaving(false);
+        }, 1500);
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to create user');
+        setSaving(false);
       }
     } catch (error) {
       console.error('Error creating user:', error);
       alert('Error creating user');
-    } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -235,7 +250,7 @@ function ManageUsers() {
       }
     }
 
-    setLoading(true);
+    setSaving(true);
     try {
       const userData = {
         name: formData.name,
@@ -260,18 +275,23 @@ function ManageUsers() {
       });
 
       if (response.ok) {
-        await fetchUsers(currentPage);
-        setShowEditModal(false);
-        resetForm();
+        setSaveSuccess(true);
+        // Wait for animation to complete before closing
+        setTimeout(async () => {
+          await fetchUsers(currentPage);
+          setShowEditModal(false);
+          resetForm();
+          setSaving(false);
+        }, 1500);
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to update user');
+        setSaving(false);
       }
     } catch (error) {
       console.error('Error updating user:', error);
       alert('Error updating user');
-    } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -295,14 +315,11 @@ function ManageUsers() {
       });
 
       if (response.ok) {
-        // Check if this was the last item on the current page
         const isLastItemOnPage = users.length === 1;
         
         if (isLastItemOnPage && currentPage > 1) {
-          // If it was the last item and we're not on page 1, go to previous page
           await fetchUsers(currentPage - 1);
         } else {
-          // Otherwise refresh current page (backend will handle empty pages)
           await fetchUsers(currentPage);
         }
         closeDeleteModal();
@@ -437,180 +454,225 @@ function ManageUsers() {
           </div>
       </div>
 
-      {/* ALL YOUR EXISTING MODALS - UNCHANGED */}
+      {/* ADD USER MODAL */}
       {showAddModal && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h3><b>Add New User</b></h3>
-            <form onSubmit={handleAddUser}>
-              <label>Full Name</label>
-              <input 
-                name="name" 
-                value={formData.name} 
-                onChange={handleInputChange} 
-                placeholder="Full Name" 
-                required 
-              />
-              
-              <label>Username</label>
-              <input 
-                name="username" 
-                value={formData.username} 
-                onChange={handleInputChange} 
-                placeholder="Username" 
-                className={usernameError ? "error-input" : ""}
-                required 
-              />
-              {usernameError && <div className="error-message">{usernameError}</div>}
-              
-              <label>Password</label>
-              <input 
-                type="password" 
-                name="password" 
-                value={formData.password} 
-                onChange={handleInputChange} 
-                placeholder="Password" 
-                required 
-              />
-              
-              <label>User Role</label>
-              <select name="role" value={formData.role} onChange={handleInputChange} required>
-                {roles.map((role) => (
-                  <option key={role} value={role}>{role}</option>
-                ))}
-              </select>
-              
-              {isStaffRole() && (
-                <>
-                  <label>Student Number</label>
-                  <input 
-                    name="studentNumber" 
-                    value={getInputValue('studentNumber')} 
-                    onChange={handleInputChange} 
-                    placeholder="e.g., 2023-00123" 
-                    required={isStaffRole()}
+            
+            {/* Show only loading animation when saving, then checkmark */}
+            {saving ? (
+              <div className="form-animation-center">
+                {!saveSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 350, height: 350 }}
                   />
-                  
-                  <label>Course</label>
-                  <input 
-                    name="course" 
-                    value={getInputValue('course')} 
-                    onChange={handleInputChange} 
-                    placeholder="e.g., BSIT, BSCS, BSIS" 
-                    required={isStaffRole()}
+                ) : (
+                  <Lottie 
+                    animationData={checkmarkAnimation} 
+                    loop={false}
+                    style={{ width: 350, height: 350 }}
                   />
-                  
-                  <label>Section</label>
-                  <input 
-                    name="section" 
-                    value={getInputValue('section')} 
-                    onChange={handleInputChange} 
-                    placeholder="e.g., 3A, 2B" 
-                    required={isStaffRole()}
-                  />
-                </>
-              )}
-              
-              <label>Status</label>
-              <select name="status" value={formData.status} onChange={handleInputChange}>
-                <option>Active</option>
-                <option>Inactive</option>
-              </select>
-
-              <div className="modal-buttons">
-                <button type="submit" className="save-btn" disabled={loading || usernameError}>
-                  {loading ? "Saving..." : "Save"}
-                </button>
-                <button type="button" className="cancel-btn" onClick={closeModals}>Cancel</button>
+                )}
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleAddUser}>
+                <label>Full Name</label>
+                <input 
+                  name="name" 
+                  value={formData.name} 
+                  onChange={handleInputChange} 
+                  placeholder="Full Name" 
+                  required 
+                />
+                
+                <label>Username</label>
+                <input 
+                  name="username" 
+                  value={formData.username} 
+                  onChange={handleInputChange} 
+                  placeholder="Username" 
+                  className={usernameError ? "error-input" : ""}
+                  required 
+                />
+                {usernameError && <div className="error-message">{usernameError}</div>}
+                
+                <label>Password</label>
+                <input 
+                  type="password" 
+                  name="password" 
+                  value={formData.password} 
+                  onChange={handleInputChange} 
+                  placeholder="Password" 
+                  required 
+                />
+                
+                <label>User Role</label>
+                <select name="role" value={formData.role} onChange={handleInputChange} required>
+                  {roles.map((role) => (
+                    <option key={role} value={role}>{role}</option>
+                  ))}
+                </select>
+                
+                {isStaffRole() && (
+                  <>
+                    <label>Student Number</label>
+                    <input 
+                      name="studentNumber" 
+                      value={getInputValue('studentNumber')} 
+                      onChange={handleInputChange} 
+                      placeholder="e.g., 2023-00123" 
+                      required={isStaffRole()}
+                    />
+                    
+                    <label>Course</label>
+                    <input 
+                      name="course" 
+                      value={getInputValue('course')} 
+                      onChange={handleInputChange} 
+                      placeholder="e.g., BSIT, BSCS, BSIS" 
+                      required={isStaffRole()}
+                    />
+                    
+                    <label>Section</label>
+                    <input 
+                      name="section" 
+                      value={getInputValue('section')} 
+                      onChange={handleInputChange} 
+                      placeholder="e.g., 3A, 2B" 
+                      required={isStaffRole()}
+                    />
+                  </>
+                )}
+                
+                <label>Status</label>
+                <select name="status" value={formData.status} onChange={handleInputChange}>
+                  <option>Active</option>
+                  <option>Inactive</option>
+                </select>
+
+                <div className="modal-buttons">
+                  <button type="submit" className="save-btn" disabled={usernameError}>
+                    Save
+                  </button>
+                  <button type="button" className="cancel-btn" onClick={closeModals}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
 
+      {/* EDIT USER MODAL */}
       {showEditModal && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h3><b>Edit User</b></h3>
-            <form onSubmit={handleUpdateUser}>
-              <label>Full Name</label>
-              <input 
-                name="name" 
-                value={formData.name} 
-                onChange={handleInputChange} 
-                required 
-              />
-              
-              <label>Username</label>
-              <input 
-                name="username" 
-                value={formData.username} 
-                onChange={handleInputChange} 
-                className={usernameError ? "error-input" : ""}
-                required 
-              />
-              {usernameError && <div className="error-message">{usernameError}</div>}
-              
-              <label>Password</label>
-              <input 
-                type="password" 
-                name="password" 
-                value={formData.password} 
-                onChange={handleInputChange} 
-                placeholder="New Password (optional)" 
-              />
-              
-              <label>User Role</label>
-              <select name="role" value={formData.role} onChange={handleInputChange} required>
-                {roles.map((role) => (
-                  <option key={role} value={role}>{role}</option>
-                ))}
-              </select>
-              
-              {isStaffRole() && (
-                <>
-                  <label>Student Number</label>
-                  <input 
-                    name="studentNumber" 
-                    value={getInputValue('studentNumber')} 
-                    onChange={handleInputChange} 
-                    placeholder="e.g., 2023-00123" 
-                    required={isStaffRole()}
+            
+            {/* Show only loading animation when saving, then checkmark */}
+            {saving ? (
+              <div className="form-animation-center">
+                {!saveSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 350, height: 350 }}
                   />
-                  
-                  <label>Course</label>
-                  <input 
-                    name="course" 
-                    value={getInputValue('course')} 
-                    onChange={handleInputChange} 
-                    placeholder="e.g., BSIT, BSCS, BSIS" 
-                    required={isStaffRole()}
+                ) : (
+                  <Lottie 
+                    animationData={checkmarkAnimation} 
+                    loop={false}
+                    style={{ width: 350, height: 350 }}
                   />
-                  
-                  <label>Section</label>
-                  <input 
-                    name="section" 
-                    value={getInputValue('section')} 
-                    onChange={handleInputChange} 
-                    placeholder="e.g., 3A, 2B" 
-                    required={isStaffRole()}
-                  />
-                </>
-              )}
-              
-              <label>Status</label>
-              <select name="status" value={formData.status} onChange={handleInputChange}>
-                <option>Active</option>
-                <option>Inactive</option>
-              </select>
-
-              <div className="modal-buttons">
-                <button type="submit" className="save-btn" disabled={loading || usernameError}>
-                  {loading ? "Updating..." : "Update"}
-                </button>
-                <button type="button" className="cancel-btn" onClick={closeModals}>Cancel</button>
+                )}
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleUpdateUser}>
+                <label>Full Name</label>
+                <input 
+                  name="name" 
+                  value={formData.name} 
+                  onChange={handleInputChange} 
+                  required 
+                />
+                
+                <label>Username</label>
+                <input 
+                  name="username" 
+                  value={formData.username} 
+                  onChange={handleInputChange} 
+                  className={usernameError ? "error-input" : ""}
+                  required 
+                />
+                {usernameError && <div className="error-message">{usernameError}</div>}
+                
+                <label>Password</label>
+                <input 
+                  type="password" 
+                  name="password" 
+                  value={formData.password} 
+                  onChange={handleInputChange} 
+                  placeholder="New Password (optional)" 
+                />
+                
+                <label>User Role</label>
+                <select name="role" value={formData.role} onChange={handleInputChange} required>
+                  {roles.map((role) => (
+                    <option key={role} value={role}>{role}</option>
+                  ))}
+                </select>
+                
+                {isStaffRole() && (
+                  <>
+                    <label>Student Number</label>
+                    <input 
+                      name="studentNumber" 
+                      value={getInputValue('studentNumber')} 
+                      onChange={handleInputChange} 
+                      placeholder="e.g., 2023-00123" 
+                      required={isStaffRole()}
+                    />
+                    
+                    <label>Course</label>
+                    <input 
+                      name="course" 
+                      value={getInputValue('course')} 
+                      onChange={handleInputChange} 
+                      placeholder="e.g., BSIT, BSCS, BSIS" 
+                      required={isStaffRole()}
+                    />
+                    
+                    <label>Section</label>
+                    <input 
+                      name="section" 
+                      value={getInputValue('section')} 
+                      onChange={handleInputChange} 
+                      placeholder="e.g., 3A, 2B" 
+                      required={isStaffRole()}
+                    />
+                  </>
+                )}
+                
+                <label>Status</label>
+                <select name="status" value={formData.status} onChange={handleInputChange}>
+                  <option>Active</option>
+                  <option>Inactive</option>
+                </select>
+
+                <div className="modal-buttons">
+                  <button type="submit" className="save-btn" disabled={usernameError}>
+                    Update
+                  </button>
+                  <button type="button" className="cancel-btn" onClick={closeModals}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
