@@ -362,3 +362,11 @@ button:disabled {
     width: 100%;
   }
 }
+
+/* Form Animation Center */
+.form-animation-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+}

@@ -2,16 +2,22 @@ import React, { useState, useEffect } from "react";
 import "./StaffSchedule.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
+import checkmarkAnimation from "../animations/checkmark.json";
 
 const API_BASE = "http://localhost:5000/api";
 
 function StaffSchedule() {
   const [schedules, setSchedules] = useState([]);
   const [staffList, setStaffList] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [tableLoading, setTableLoading] = useState(false); // For initial table load
+  const [tableActionLoading, setTableActionLoading] = useState(false); // For table CRUD operations (edit/delete)
+  const [modalLoading, setModalLoading] = useState(false); // For modal add operation
   const [editing, setEditing] = useState({ id: null });
   const [tempTime, setTempTime] = useState({ start: "", end: "" });
   const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [scheduleToDelete, setScheduleToDelete] = useState(null);
+  const [addSuccess, setAddSuccess] = useState(false);
   const [newEntry, setNewEntry] = useState({
     day: "Monday",
     staff_id: "",
@@ -19,9 +25,11 @@ function StaffSchedule() {
     end_time: "",
   });
 
-  // Fetch schedules from backend
-  const fetchSchedules = async () => {
-    setLoading(true);
+  // Fetch schedules from backend - ONLY for initial load
+  const fetchSchedules = async (isInitialLoad = false) => {
+    if (isInitialLoad) {
+      setTableLoading(true);
+    }
     try {
       const response = await fetch(`${API_BASE}/schedules`);
       if (response.ok) {
@@ -33,7 +41,9 @@ function StaffSchedule() {
     } catch (error) {
       console.error('Error fetching schedules:', error);
     } finally {
-      setLoading(false);
+      if (isInitialLoad) {
+        setTableLoading(false);
+      }
     }
   };
 
@@ -56,9 +66,16 @@ function StaffSchedule() {
   };
 
   useEffect(() => {
-    fetchSchedules();
+    fetchSchedules(true); // Pass true for initial load
     fetchStaff();
   }, []);
+
+  // Reset add success state when modal closes
+  useEffect(() => {
+    if (!showModal) {
+      setAddSuccess(false);
+    }
+  }, [showModal]);
 
   // Group schedules by day
   const scheduleByDay = {
@@ -80,7 +97,7 @@ function StaffSchedule() {
   };
 
   const handleSave = async (scheduleId) => {
-    setLoading(true);
+    setTableActionLoading(true);
     try {
       const response = await fetch(`${API_BASE}/schedules/${scheduleId}`, {
         method: 'PUT',
@@ -96,7 +113,7 @@ function StaffSchedule() {
       });
 
       if (response.ok) {
-        await fetchSchedules();
+        await fetchSchedules(); // No loading for refresh
         setEditing({ id: null });
       } else {
         const error = await response.json();
@@ -106,23 +123,35 @@ function StaffSchedule() {
       console.error('Error updating schedule:', error);
       alert('Error updating schedule');
     } finally {
-      setLoading(false);
+      setTableActionLoading(false);
     }
   };
 
-  const handleRemoveStaff = async (scheduleId) => {
-    if (!window.confirm("Are you sure you want to delete this schedule?")) {
-      return;
-    }
+  // Open delete confirmation modal
+  const openDeleteModal = (schedule) => {
+    setScheduleToDelete(schedule);
+    setShowDeleteModal(true);
+  };
 
-    setLoading(true);
+  // Close delete confirmation modal
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setScheduleToDelete(null);
+  };
+
+  // Delete schedule
+  const handleDeleteSchedule = async () => {
+    if (!scheduleToDelete) return;
+
+    setTableActionLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/schedules/${scheduleId}`, {
+      const response = await fetch(`${API_BASE}/schedules/${scheduleToDelete._id}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        await fetchSchedules();
+        await fetchSchedules(); // No loading for refresh
+        closeDeleteModal();
       } else {
         console.error('Failed to delete schedule');
         alert('Failed to delete schedule');
@@ -131,7 +160,7 @@ function StaffSchedule() {
       console.error('Error deleting schedule:', error);
       alert('Error deleting schedule');
     } finally {
-      setLoading(false);
+      setTableActionLoading(false);
     }
   };
 
@@ -141,7 +170,7 @@ function StaffSchedule() {
       return;
     }
 
-    setLoading(true);
+    setModalLoading(true);
     try {
       const response = await fetch(`${API_BASE}/schedules`, {
         method: 'POST',
@@ -152,36 +181,42 @@ function StaffSchedule() {
       });
 
       if (response.ok) {
-        await fetchSchedules();
-        setShowModal(false);
-        setNewEntry({ day: "Monday", staff_id: "", start_time: "", end_time: "" });
+        setAddSuccess(true);
+        // Wait for animation to complete before refreshing and closing
+        setTimeout(async () => {
+          await fetchSchedules(); // No loading for refresh
+          setShowModal(false);
+          setNewEntry({ day: "Monday", staff_id: "", start_time: "", end_time: "" });
+          setAddSuccess(false);
+          setModalLoading(false);
+        }, 1500);
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to create schedule');
+        setModalLoading(false);
       }
     } catch (error) {
       console.error('Error creating schedule:', error);
       alert('Error creating schedule');
-    } finally {
-      setLoading(false);
+      setModalLoading(false);
     }
   };
 
-// Convert military time to 12-hour format with AM/PM
-const formatTimeForDisplay = (time) => {
-  if (!time) return '';
-  
-  // Remove seconds if present
-  const timeWithoutSeconds = time.slice(0, 5);
-  
-  // Convert to 12-hour format
-  const [hours, minutes] = timeWithoutSeconds.split(':');
-  const hour = parseInt(hours, 10);
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-  const hour12 = hour % 12 || 12;
-  
-  return `${hour12}:${minutes} ${ampm}`;
-};
+  // Convert military time to 12-hour format with AM/PM
+  const formatTimeForDisplay = (time) => {
+    if (!time) return '';
+    
+    // Remove seconds if present
+    const timeWithoutSeconds = time.slice(0, 5);
+    
+    // Convert to 12-hour format
+    const [hours, minutes] = timeWithoutSeconds.split(':');
+    const hour = parseInt(hours, 10);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    
+    return `${hour12}:${minutes} ${ampm}`;
+  };
 
   return (
     <div className="schedule-container">
@@ -191,8 +226,6 @@ const formatTimeForDisplay = (time) => {
           ➕ Add Schedule
         </button>
       </div>
-
-      {/* {loading && <div className="loading">Loading...</div>} */}
 
       <table className="schedule-table">
         <colgroup>
@@ -208,7 +241,7 @@ const formatTimeForDisplay = (time) => {
           </tr>
         </thead>
         <tbody>
-          {loading ? (
+          {tableLoading ? ( // Only show loading for initial table load
             <tr>
               <td colSpan="3" style={{ textAlign: "center", padding: "40px 0" }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -277,24 +310,20 @@ const formatTimeForDisplay = (time) => {
                               handleEdit(schedule);
                             }
                           }}
-                          disabled={loading}
+                          disabled={tableActionLoading}
                         >
                           {editing.id === schedule._id ? (
-                            <>
-                              💾 <span>Save</span>
-                            </>
+                            tableActionLoading ? "⏳" : "💾 Save"
                           ) : (
-                            <>
-                              ✏️ <span>Edit</span>
-                            </>
+                            "✏️ Edit"
                           )}
                         </button>
                         <button
-                          className="remove-btn"
-                          onClick={() => handleRemoveStaff(schedule._id)}
-                          disabled={loading}
+                          className="delete-btn"
+                          onClick={() => openDeleteModal(schedule)}
+                          disabled={tableActionLoading}
                         >
-                          🗑️ <span>Delete</span>
+                          ❌
                         </button>
                       </td>
                     </tr>
@@ -306,56 +335,96 @@ const formatTimeForDisplay = (time) => {
         </tbody>
       </table>
 
-      {/* === Modal === */}
+      {/* === Add Schedule Modal === */}
       {showModal && (
         <div className="modal-backdrop">
           <div className="modal-box">
             <h3>Add New Schedule</h3>
+            
+            {/* Show only loading animation when adding, then checkmark */}
+            {modalLoading ? (
+              <div className="form-animation-center">
+                {!addSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 350, height: 350 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={checkmarkAnimation} 
+                    loop={false}
+                    style={{ width: 350, height: 350 }}
+                  />
+                )}
+              </div>
+            ) : (
+              <>
+                <label>Day:</label>
+                <select
+                  value={newEntry.day}
+                  onChange={(e) => setNewEntry({ ...newEntry, day: e.target.value })}
+                >
+                  {Object.keys(scheduleByDay).map((d) => (
+                    <option key={d}>{d}</option>
+                  ))}
+                </select>
 
-            <label>Day:</label>
-            <select
-              value={newEntry.day}
-              onChange={(e) => setNewEntry({ ...newEntry, day: e.target.value })}
-            >
-              {Object.keys(scheduleByDay).map((d) => (
-                <option key={d}>{d}</option>
-              ))}
-            </select>
+                <label>Staff:</label>
+                <select
+                  value={newEntry.staff_id}
+                  onChange={(e) => setNewEntry({ ...newEntry, staff_id: e.target.value })}
+                >
+                  <option value="">Select Staff</option>
+                  {staffList.map((staff) => (
+                    <option key={staff._id} value={staff._id}>
+                      {staff.name}
+                    </option>
+                  ))}
+                </select>
 
-            <label>Staff:</label>
-            <select
-              value={newEntry.staff_id}
-              onChange={(e) => setNewEntry({ ...newEntry, staff_id: e.target.value })}
-            >
-              <option value="">Select Staff</option>
-              {staffList.map((staff) => (
-                <option key={staff._id} value={staff._id}>
-                  {staff.name}
-                </option>
-              ))}
-            </select>
+                <label>Start Time:</label>
+                <input
+                  type="time"
+                  value={newEntry.start_time}
+                  onChange={(e) => setNewEntry({ ...newEntry, start_time: e.target.value })}
+                />
 
-            <label>Start Time:</label>
-            <input
-              type="time"
-              value={newEntry.start_time}
-              onChange={(e) => setNewEntry({ ...newEntry, start_time: e.target.value })}
-            />
+                <label>End Time:</label>
+                <input
+                  type="time"
+                  value={newEntry.end_time}
+                  onChange={(e) => setNewEntry({ ...newEntry, end_time: e.target.value })}
+                />
 
-            <label>End Time:</label>
-            <input
-              type="time"
-              value={newEntry.end_time}
-              onChange={(e) => setNewEntry({ ...newEntry, end_time: e.target.value })}
-            />
+                <div className="modal-actions">
+                  <button className="save-btn" onClick={handleAddStaff} disabled={modalLoading}>
+                    {modalLoading ? "⏳ Adding..." : "💾 Save"}
+                  </button>
+                  <button className="cancel-btn" onClick={() => setShowModal(false)} disabled={modalLoading}>
+                    ✖ Cancel
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
+      {/* === Delete Confirmation Modal === */}
+      {showDeleteModal && scheduleToDelete && (
+        <div className="modal-backdrop">
+          <div className="modal-box delete-confirmation">
+            <div className="delete-icon">🗑️</div>
+            <h3>Delete Schedule</h3>
+            <p>Are you sure you want to delete schedule for <strong>"{scheduleToDelete.staff_name}"</strong> on <strong>{scheduleToDelete.day}</strong>?</p>
+            <p className="delete-warning">This action cannot be undone.</p>
+            
             <div className="modal-actions">
-              <button className="save-btn" onClick={handleAddStaff} disabled={loading}>
-                {loading ? "Adding..." : "💾 Save"}
+              <button className="confirm-delete-btn" onClick={handleDeleteSchedule} disabled={tableActionLoading}>
+                {tableActionLoading ? "Deleting..." : "Yes, Delete"}
               </button>
-              <button className="remove-btn" onClick={() => setShowModal(false)} disabled={loading}>
-                ✖ Cancel
-              </button>
+              <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
             </div>
           </div>
         </div>
