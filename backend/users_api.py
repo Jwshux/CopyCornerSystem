@@ -43,12 +43,30 @@ def serialize_doc(doc):
                     
     return doc
 
-# Get all users with group names
+# Get all users with group names - UPDATED FOR PAGINATION
 @users_bp.route('/api/users', methods=['GET'])
 def get_users():
     try:
-        # Simple find with manual processing to handle date formats properly
-        users_cursor = users_collection.find()
+        # Get pagination parameters from query string
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        
+        # Calculate skip value
+        skip = (page - 1) * per_page
+        
+        # Get total count for pagination info
+        total_users = users_collection.count_documents({})
+        
+        # Calculate total pages
+        total_pages = (total_users + per_page - 1) // per_page  # Ceiling division
+        
+        # If requested page is beyond available pages, go to last page
+        if page > total_pages and total_pages > 0:
+            page = total_pages
+            skip = (page - 1) * per_page
+        
+        # Get paginated users
+        users_cursor = users_collection.find().skip(skip).limit(per_page)
         users = []
         
         for user in users_cursor:
@@ -62,7 +80,17 @@ def get_users():
             users.append(user)
         
         serialized_users = [serialize_doc(user) for user in users]
-        return jsonify(serialized_users)
+        
+        # Return pagination info along with users
+        return jsonify({
+            'users': serialized_users,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_users': total_users,
+                'total_pages': total_pages
+            }
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

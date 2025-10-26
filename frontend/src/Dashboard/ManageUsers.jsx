@@ -18,22 +18,27 @@ function ManageUsers() {
     password: "",
     role: "",
     status: "Active",
-    // Staff-specific fields - initialize as null
     studentNumber: null,
     course: null,
     section: null
   });
   const [usernameError, setUsernameError] = useState("");
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Fetch users and roles from backend
-  const fetchUsers = async () => {
+  const fetchUsers = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/users`);
+      const response = await fetch(`${API_BASE}/users?page=${page}&per_page=10`);
       if (response.ok) {
         const data = await response.json();
         console.log('Users data from API:', data);
-        setUsers(data);
+        setUsers(data.users);
+        setCurrentPage(data.pagination.page);
+        setTotalPages(data.pagination.total_pages);
       } else {
         console.error('Failed to fetch users');
       }
@@ -64,7 +69,20 @@ function ManageUsers() {
     fetchRoles();
   }, []);
 
-  // Check if username exists
+  // Pagination handlers
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      fetchUsers(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      fetchUsers(currentPage - 1);
+    }
+  };
+
+  // All your existing functions remain exactly the same...
   const checkUsername = (username) => {
     if (!username) {
       setUsernameError("");
@@ -83,24 +101,20 @@ function ManageUsers() {
     }
   };
 
-  // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
-    // For staff fields, convert empty string to null
     if (['studentNumber', 'course', 'section'].includes(name)) {
       setFormData({ ...formData, [name]: value.trim() || null });
     } else {
       setFormData({ ...formData, [name]: value });
     }
 
-    // Check username availability in real-time
     if (name === "username") {
       checkUsername(value);
     }
   };
 
-  // Reset form state
   const resetForm = () => {
     setFormData({
       name: "",
@@ -108,7 +122,6 @@ function ManageUsers() {
       password: "",
       role: roles.length > 0 ? roles[0] : "",
       status: "Active",
-      // Reset staff-specific fields to null
       studentNumber: null,
       course: null,
       section: null
@@ -117,12 +130,10 @@ function ManageUsers() {
     setUsernameError("");
   };
 
-  // Check if staff role is selected
   const isStaffRole = () => {
     return formData.role.toLowerCase().includes("staff");
   };
 
-  // Add user
   const handleAddUser = async (e) => {
     if (e) e.preventDefault();
     
@@ -131,7 +142,6 @@ function ManageUsers() {
       return;
     }
 
-    // Validate staff-specific fields if staff role is selected
     if (isStaffRole()) {
       if (!formData.studentNumber) {
         alert("Please enter student number for staff member.");
@@ -155,7 +165,6 @@ function ManageUsers() {
         password: formData.password,
         role: formData.role,
         status: formData.status,
-        // Only include staff fields if staff role is selected, otherwise send null
         studentNumber: isStaffRole() ? formData.studentNumber : null,
         course: isStaffRole() ? formData.course : null,
         section: isStaffRole() ? formData.section : null
@@ -170,7 +179,7 @@ function ManageUsers() {
       });
 
       if (response.ok) {
-        await fetchUsers();
+        await fetchUsers(currentPage);
         setShowAddModal(false);
         resetForm();
       } else {
@@ -185,16 +194,14 @@ function ManageUsers() {
     }
   };
 
-  // Edit user - fills form for editing
   const handleEditUser = (user) => {
     setSelectedUser(user);
     setFormData({
       name: user.name || "",
       username: user.username,
-      password: "", // Don't fill password for security
+      password: "",
       role: user.role,
       status: user.status,
-      // Fill staff-specific fields - convert empty strings to null for display
       studentNumber: user.studentNumber || null,
       course: user.course || null,
       section: user.section || null
@@ -203,7 +210,6 @@ function ManageUsers() {
     setShowEditModal(true);
   };
 
-  // Update user
   const handleUpdateUser = async (e) => {
     if (e) e.preventDefault();
     
@@ -212,7 +218,6 @@ function ManageUsers() {
       return;
     }
 
-    // Validate staff-specific fields if staff role is selected
     if (isStaffRole()) {
       if (!formData.studentNumber) {
         alert("Please enter student number for staff member.");
@@ -235,13 +240,11 @@ function ManageUsers() {
         username: formData.username,
         role: formData.role,
         status: formData.status,
-        // Only include staff fields if staff role is selected, otherwise send null
         studentNumber: isStaffRole() ? formData.studentNumber : null,
         course: isStaffRole() ? formData.course : null,
         section: isStaffRole() ? formData.section : null
       };
 
-      // Only include password if provided
       if (formData.password) {
         userData.password = formData.password;
       }
@@ -255,7 +258,7 @@ function ManageUsers() {
       });
 
       if (response.ok) {
-        await fetchUsers();
+        await fetchUsers(currentPage);
         setShowEditModal(false);
         resetForm();
       } else {
@@ -270,19 +273,16 @@ function ManageUsers() {
     }
   };
 
-  // Open delete confirmation modal
   const openDeleteModal = (user) => {
     setUserToDelete(user);
     setShowDeleteModal(true);
   };
 
-  // Close delete confirmation modal
   const closeDeleteModal = () => {
     setShowDeleteModal(false);
     setUserToDelete(null);
   };
 
-  // Delete user
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
 
@@ -293,7 +293,16 @@ function ManageUsers() {
       });
 
       if (response.ok) {
-        await fetchUsers();
+        // Check if this was the last item on the current page
+        const isLastItemOnPage = users.length === 1;
+        
+        if (isLastItemOnPage && currentPage > 1) {
+          // If it was the last item and we're not on page 1, go to previous page
+          await fetchUsers(currentPage - 1);
+        } else {
+          // Otherwise refresh current page (backend will handle empty pages)
+          await fetchUsers(currentPage);
+        }
         closeDeleteModal();
       } else {
         console.error('Failed to delete user');
@@ -307,20 +316,17 @@ function ManageUsers() {
     }
   };
 
-  // Open "Add New User" modal
   const openAddModal = () => {
     resetForm();
     setShowAddModal(true);
   };
 
-  // Close modals
   const closeModals = () => {
     setShowAddModal(false);
     setShowEditModal(false);
     resetForm();
   };
 
-  // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return "Never logged in";
     
@@ -345,7 +351,6 @@ function ManageUsers() {
     }
   };
 
-  // Helper to get input value for staff fields (convert null to empty string for input)
   const getInputValue = (field) => {
     return formData[field] || '';
   };
@@ -359,8 +364,6 @@ function ManageUsers() {
             ADD NEW USER
           </button>
         </div>
-{/* 
-        {loading && <div className="loading">Loading...</div>} */}
 
         <table>
           <thead>
@@ -378,13 +381,13 @@ function ManageUsers() {
             {users.length === 0 ? (
               <tr>
                 <td colSpan="7" style={{ textAlign: "center", color: "#888" }}>
-                  No users yet.
+                  {loading ? "Loading..." : "No users found."}
                 </td>
               </tr>
             ) : (
               users.map((user, index) => (
                 <tr key={user._id}>
-                  <td>{index + 1}</td>
+                  <td>{(currentPage - 1) * 10 + index + 1}</td>
                   <td>{user.name}</td>
                   <td>{user.username}</td>
                   <td>{user.role}</td>
@@ -403,9 +406,30 @@ function ManageUsers() {
             )}
           </tbody>
         </table>
+
+        {/* SIMPLE PAGINATION CONTROLS */}
+          <div className="simple-pagination">
+            <button 
+              className="pagination-btn" 
+              onClick={handlePrevPage}
+              disabled={currentPage === 1 || loading}
+            >
+              Previous
+            </button>
+            <span className="page-info">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button 
+              className="pagination-btn" 
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages || loading}
+            >
+              Next
+            </button>
+          </div>
       </div>
 
-      {/* ADD USER MODAL */}
+      {/* ALL YOUR EXISTING MODALS - UNCHANGED */}
       {showAddModal && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -448,7 +472,6 @@ function ManageUsers() {
                 ))}
               </select>
               
-              {/* STAFF-SPECIFIC FIELDS - Only show when Staff role is selected */}
               {isStaffRole() && (
                 <>
                   <label>Student Number</label>
@@ -497,7 +520,6 @@ function ManageUsers() {
         </div>
       )}
 
-      {/* EDIT USER MODAL */}
       {showEditModal && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -537,7 +559,6 @@ function ManageUsers() {
                 ))}
               </select>
               
-              {/* STAFF-SPECIFIC FIELDS - Only show when Staff role is selected */}
               {isStaffRole() && (
                 <>
                   <label>Student Number</label>
@@ -586,7 +607,6 @@ function ManageUsers() {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
       {showDeleteModal && userToDelete && (
         <div className="modal-overlay">
           <div className="modal-content delete-confirmation">
