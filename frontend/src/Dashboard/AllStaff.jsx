@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./AllStaff.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
+import checkmarkAnimation from "../animations/checkmark.json";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -12,6 +13,8 @@ function AllStaff() {
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [staffToDelete, setStaffToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     username: "",
@@ -50,6 +53,13 @@ function AllStaff() {
   useEffect(() => {
     fetchStaffs();
   }, []);
+
+  // Reset update success state when modal closes
+  useEffect(() => {
+    if (!showEditModal) {
+      setUpdateSuccess(false);
+    }
+  }, [showEditModal]);
 
   // Pagination handlers
   const handleNextPage = () => {
@@ -103,7 +113,7 @@ function AllStaff() {
   const handleUpdateStaff = async (e) => {
     if (e) e.preventDefault();
 
-    setLoading(true);
+    setUpdating(true);
     try {
       const staffData = {
         name: formData.name,
@@ -128,18 +138,23 @@ function AllStaff() {
       });
 
       if (response.ok) {
-        await fetchStaffs(currentPage);
-        setShowEditModal(false);
-        resetForm();
+        setUpdateSuccess(true);
+        // Wait for animation to complete before closing
+        setTimeout(async () => {
+          await fetchStaffs(currentPage);
+          setShowEditModal(false);
+          resetForm();
+          setUpdating(false);
+        }, 1500);
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to update staff');
+        setUpdating(false);
       }
     } catch (error) {
       console.error('Error updating staff:', error);
       alert('Error updating staff');
-    } finally {
-      setLoading(false);
+      setUpdating(false);
     }
   };
 
@@ -225,7 +240,7 @@ function AllStaff() {
                         <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
                       </div>
                     ) : (
-                      "No users found."
+                      "No staffs found."
                     )}
                   </td>
                 </tr>
@@ -280,73 +295,93 @@ function AllStaff() {
         <div className="modal-overlay">
           <div className="modal-content">
             <h3><b>Edit Staff Member</b></h3>
-            <form onSubmit={handleUpdateStaff}>
-              <label>Full Name</label>
-              <input 
-                name="name" 
-                value={formData.name} 
-                onChange={handleInputChange} 
-                required 
-              />
-              
-              <label>Username</label>
-              <input 
-                name="username" 
-                value={formData.username} 
-                onChange={handleInputChange} 
-                placeholder="Username" 
-                required
-              />
-              
-              <label>Password</label>
-              <input 
-                type="password" 
-                name="password" 
-                value={formData.password} 
-                onChange={handleInputChange} 
-                placeholder="New Password (optional)" 
-              />
-              
-              <label>Student Number</label>
-              <input 
-                name="studentNumber" 
-                value={formData.studentNumber} 
-                onChange={handleInputChange} 
-                placeholder="e.g., 2023-00123" 
-                required
-              />
-              
-              <label>Course</label>
-              <input 
-                name="course" 
-                value={formData.course} 
-                onChange={handleInputChange} 
-                placeholder="e.g., BSIT, BSCS, BSIS" 
-                required
-              />
-              
-              <label>Section</label>
-              <input 
-                name="section" 
-                value={formData.section} 
-                onChange={handleInputChange} 
-                placeholder="e.g., 3A, 2B" 
-                required
-              />
-              
-              <label>Status</label>
-              <select name="status" value={formData.status} onChange={handleInputChange}>
-                <option>Active</option>
-                <option>Inactive</option>
-              </select>
-
-              <div className="modal-buttons">
-                <button type="submit" className="save-btn" disabled={loading}>
-                  {loading ? "Updating..." : "Update"}
-                </button>
-                <button type="button" className="cancel-btn" onClick={closeModals}>Cancel</button>
+            
+            {/* Show only loading animation when updating, then checkmark */}
+            {updating ? (
+              <div className="form-animation-center">
+                {!updateSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 350, height: 350 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={checkmarkAnimation} 
+                    loop={false}
+                    style={{ width: 350, height: 350 }}
+                  />
+                )}
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleUpdateStaff}>
+                <label>Full Name</label>
+                <input 
+                  name="name" 
+                  value={formData.name} 
+                  onChange={handleInputChange} 
+                  required 
+                />
+                
+                <label>Username</label>
+                <input 
+                  name="username" 
+                  value={formData.username} 
+                  onChange={handleInputChange} 
+                  placeholder="Username" 
+                  required
+                />
+                
+                <label>Password</label>
+                <input 
+                  type="password" 
+                  name="password" 
+                  value={formData.password} 
+                  onChange={handleInputChange} 
+                  placeholder="New Password (optional)" 
+                />
+                
+                <label>Student Number</label>
+                <input 
+                  name="studentNumber" 
+                  value={formData.studentNumber} 
+                  onChange={handleInputChange} 
+                  placeholder="e.g., 2023-00123" 
+                  required
+                />
+                
+                <label>Course</label>
+                <input 
+                  name="course" 
+                  value={formData.course} 
+                  onChange={handleInputChange} 
+                  placeholder="e.g., BSIT, BSCS, BSIS" 
+                  required
+                />
+                
+                <label>Section</label>
+                <input 
+                  name="section" 
+                  value={formData.section} 
+                  onChange={handleInputChange} 
+                  placeholder="e.g., 3A, 2B" 
+                  required
+                />
+                
+                <label>Status</label>
+                <select name="status" value={formData.status} onChange={handleInputChange}>
+                  <option>Active</option>
+                  <option>Inactive</option>
+                </select>
+
+                <div className="modal-buttons">
+                  <button type="submit" className="save-btn">
+                    Update
+                  </button>
+                  <button type="button" className="cancel-btn" onClick={closeModals}>Cancel</button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

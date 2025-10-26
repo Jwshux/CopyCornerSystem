@@ -192,3 +192,11 @@ td {
   padding: 10px;
   color: #666;
 }
+
+/* Form Animation Center */
+.form-animation-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+}
