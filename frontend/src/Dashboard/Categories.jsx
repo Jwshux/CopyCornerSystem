@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./Categories.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
+import checkmarkAnimation from "../animations/checkmark.json";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -23,6 +24,7 @@ const Categories = () => {
   const [addingLoading, setAddingLoading] = useState(false);
   const [updatingLoading, setUpdatingLoading] = useState(false);
   const [deletingLoading, setDeletingLoading] = useState(false);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
   
   // Category name errors
   const [categoryNameError, setCategoryNameError] = useState("");
@@ -51,6 +53,13 @@ const Categories = () => {
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  // Reset update success state when modal closes
+  useEffect(() => {
+    if (!showEditModal) {
+      setUpdateSuccess(false);
+    }
+  }, [showEditModal]);
 
   // Pagination handlers - Same as Products
   const handleNextPage = () => {
@@ -202,17 +211,22 @@ const Categories = () => {
       });
 
       if (response.ok) {
-        await fetchCategories(currentPage);
-        setShowEditModal(false);
-        resetForm();
+        setUpdateSuccess(true);
+        // Wait for animation to complete before closing
+        setTimeout(async () => {
+          await fetchCategories(currentPage);
+          setShowEditModal(false);
+          resetForm();
+          setUpdatingLoading(false);
+        }, 1500);
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to update category');
+        setUpdatingLoading(false);
       }
     } catch (error) {
       console.error('Error updating category:', error);
       alert('Error updating category');
-    } finally {
       setUpdatingLoading(false);
     }
   };
@@ -326,7 +340,7 @@ const Categories = () => {
                         <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
                       </div>
                     ) : (
-                      "No users found."
+                      "No categories found."
                     )}
                   </td>
                 </tr>
@@ -385,41 +399,62 @@ const Categories = () => {
         <div className="overlay">
           <div className="modal-content">
             <h3>Edit Category</h3>
-            <form onSubmit={handleUpdateCategory}>
-              <div className="input-with-error">
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="Category Name"
-                  value={selectedCategory.name || ""}
-                  onChange={handleEditInputChange}
-                  className={editCategoryNameError ? "error-input" : ""}
-                  required
-                />
-                {editCategoryNameError && <div className="error-message">{editCategoryNameError}</div>}
+            
+            {/* Show only loading animation when updating, then checkmark */}
+            {updatingLoading ? (
+              <div className="form-animation-center">
+                {!updateSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 350, height: 350 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={checkmarkAnimation} 
+                    loop={false}
+                    style={{ width: 350, height: 350 }}
+                  />
+                )}
               </div>
-              <div className="input-with-error">
-                <textarea
-                  name="description"
-                  placeholder="Description"
-                  value={selectedCategory.description || ""}
-                  onChange={handleEditInputChange}
-                  required
-                />
-              </div>
-              <div className="form-buttons">
-                <button 
-                  type="submit" 
-                  className="save-btn" 
-                  disabled={updatingLoading}
-                >
-                  {updatingLoading ? "Updating..." : "Update"}
-                </button>
-                <button type="button" className="cancel-btn" onClick={closeEditModal}>
-                  Cancel
-                </button>
-              </div>
-            </form>
+            ) : (
+              <form onSubmit={handleUpdateCategory}>
+                <div className="input-with-error">
+                  <label>Category Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    placeholder="Category Name"
+                    value={selectedCategory.name || ""}
+                    onChange={handleEditInputChange}
+                    className={editCategoryNameError ? "error-input" : ""}
+                    required
+                  />
+                  {editCategoryNameError && <div className="error-message">{editCategoryNameError}</div>}
+                </div>
+                <div className="input-with-error">
+                  <label>Description</label>
+                  <textarea
+                    name="description"
+                    placeholder="Description"
+                    value={selectedCategory.description || ""}
+                    onChange={handleEditInputChange}
+                    required
+                  />
+                </div>
+                <div className="form-buttons">
+                  <button 
+                    type="submit" 
+                    className="save-btn" 
+                  >
+                    Update
+                  </button>
+                  <button type="button" className="cancel-btn" onClick={closeEditModal}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
