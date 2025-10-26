@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./ManageGroup.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
+import checkmarkAnimation from "../animations/checkmark.json";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -18,6 +19,8 @@ function ManageGroup() {
   });
   const [groupToDelete, setGroupToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [groupNameError, setGroupNameError] = useState("");
   
   // Pagination state
@@ -47,6 +50,13 @@ function ManageGroup() {
   useEffect(() => {
     fetchGroups();
   }, []);
+
+  // Reset save success state when form closes
+  useEffect(() => {
+    if (!showForm) {
+      setSaveSuccess(false);
+    }
+  }, [showForm]);
 
   // Pagination handlers
   const handleNextPage = () => {
@@ -100,7 +110,7 @@ function ManageGroup() {
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
 
     try {
       if (isEditing) {
@@ -118,11 +128,17 @@ function ManageGroup() {
         });
 
         if (response.ok) {
-          await fetchGroups(currentPage); // Refresh current page
-          handleCloseForm();
+          setSaveSuccess(true);
+          // Wait for animation to complete before closing
+          setTimeout(async () => {
+            await fetchGroups(currentPage);
+            handleCloseForm();
+            setSaving(false);
+          }, 1500);
         } else {
           const error = await response.json();
           alert(error.error || 'Failed to update group');
+          setSaving(false);
         }
       } else {
         // Create new group
@@ -139,18 +155,23 @@ function ManageGroup() {
         });
 
         if (response.ok) {
-          await fetchGroups(currentPage); // Refresh current page
-          handleCloseForm();
+          setSaveSuccess(true);
+          // Wait for animation to complete before closing
+          setTimeout(async () => {
+            await fetchGroups(currentPage);
+            handleCloseForm();
+            setSaving(false);
+          }, 1500);
         } else {
           const error = await response.json();
           alert(error.error || 'Failed to create group');
+          setSaving(false);
         }
       }
     } catch (error) {
       console.error('Error saving group:', error);
       alert('Error saving group');
-    } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -264,7 +285,7 @@ function ManageGroup() {
                         <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
                       </div>
                     ) : (
-                      "No users found."
+                      "No groups found."
                     )}
                   </td>
                 </tr>
@@ -319,46 +340,66 @@ function ManageGroup() {
         <div className="overlay">
           <div className="form-container">
             <h3>{isEditing ? "Edit Group" : "Add New User Group"}</h3>
-            <form onSubmit={handleSave}>
-              <label>Group Name</label>
-              <input 
-                type="text" 
-                name="group_name"
-                value={currentGroup.group_name}
-                onChange={handleInputChange}
-                className={groupNameError ? "error-input" : ""}
-                required 
-              />
-              {groupNameError && <div className="error-message">{groupNameError}</div>}
-              
-              <label>Group Level</label>
-              <input 
-                type="number" 
-                name="group_level"
-                value={currentGroup.group_level}
-                onChange={handleInputChange}
-                required 
-              />
-              
-              <label>Status</label>
-              <select 
-                name="status"
-                value={currentGroup.status}
-                onChange={handleInputChange}
-              >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-              
-              <div className="form-buttons">
-                <button type="submit" className="save-btn" disabled={loading || groupNameError}>
-                  {loading ? (isEditing ? "Updating..." : "Saving...") : (isEditing ? "Update" : "Save")}
-                </button>
-                <button type="button" className="cancel-btn" onClick={handleCloseForm}>
-                  Cancel
-                </button>
+            
+            {/* Show only loading animation when saving, then checkmark */}
+            {saving ? (
+              <div className="form-animation-center">
+                {!saveSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 350, height: 350 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={checkmarkAnimation} 
+                    loop={false}
+                    style={{ width: 350, height: 350 }}
+                  />
+                )}
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleSave}>
+                <label>Group Name</label>
+                <input 
+                  type="text" 
+                  name="group_name"
+                  value={currentGroup.group_name}
+                  onChange={handleInputChange}
+                  className={groupNameError ? "error-input" : ""}
+                  required 
+                />
+                {groupNameError && <div className="error-message">{groupNameError}</div>}
+                
+                <label>Group Level</label>
+                <input 
+                  type="number" 
+                  name="group_level"
+                  value={currentGroup.group_level}
+                  onChange={handleInputChange}
+                  required 
+                />
+                
+                <label>Status</label>
+                <select 
+                  name="status"
+                  value={currentGroup.status}
+                  onChange={handleInputChange}
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+                
+                <div className="form-buttons">
+                  <button type="submit" className="save-btn" disabled={groupNameError}>
+                    {isEditing ? "Update" : "Save"}
+                  </button>
+                  <button type="button" className="cancel-btn" onClick={handleCloseForm}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

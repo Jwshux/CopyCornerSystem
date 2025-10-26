@@ -255,3 +255,10 @@
   border-left: 3px solid #ff4444;
 }
 
+/* Form Animation Center */
+.form-animation-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+}
