@@ -351,62 +351,76 @@ function AllProducts() {
         </button>
       </div>
 
-      {/* Rest of your modals remain the same */}
-      {/* ADD PRODUCT MODAL */}
       {showAddForm && (
         <div className="overlay">
           <div className="add-form">
             <h3>Add New Product</h3>
             <form onSubmit={handleAddProduct}>
-              <input
-                type="text"
-                placeholder="Product ID"
-                value="Auto-generated"
-                readOnly
-              />
-              <input
-                type="text"
-                name="product_name"
-                placeholder="Product Name"
-                value={formData.product_name}
-                onChange={handleInputChange}
-                className={productNameError ? "error-input" : ""}
-                required
-              />
-              {productNameError && <div className="error-message">{productNameError}</div>}
+              <div className="form-field">
+                <label>Product ID</label>
+                <input
+                  type="text"
+                  placeholder="Auto-generated"
+                  value="Auto-generated"
+                  readOnly
+                />
+              </div>
               
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="" disabled hidden>Select Category</option>
-                {categories.map((category) => (
-                  <option key={category._id} value={category.name}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+              <div className="form-field">
+                <label>Product Name</label>
+                <input
+                  type="text"
+                  name="product_name"
+                  placeholder="Product Name"
+                  value={formData.product_name}
+                  onChange={handleInputChange}
+                  className={productNameError ? "error-input" : ""}
+                  required
+                />
+                {productNameError && <div className="error-message">{productNameError}</div>}
+              </div>
               
-              <input
-                type="number"
-                name="stock_quantity"
-                placeholder="Stock Quantity"
-                value={formData.stock_quantity}
-                onChange={handleInputChange}
-                required
-              />
+              <div className="form-field">
+                <label>Category</label>
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  required
+                >
+                  <option value="" disabled hidden>Select Category</option>
+                  {categories.map((category) => (
+                    <option key={category._id} value={category.name}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               
-              <input
-                type="number"
-                name="unit_price"
-                placeholder="Unit Price"
-                step="0.01"
-                value={formData.unit_price}
-                onChange={handleInputChange}
-                required
-              />
+              <div className="form-field">
+                <label>Stock Quantity</label>
+                <input
+                  type="number"
+                  name="stock_quantity"
+                  placeholder="Stock Quantity"
+                  value={formData.stock_quantity}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              
+              <div className="form-field">
+                <label>Unit Price</label>
+                <input
+                  type="number"
+                  name="unit_price"
+                  placeholder="Unit Price"
+                  step="0.01"
+                  value={formData.unit_price}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
 
               <div className="form-buttons">
                 <button type="submit" className="save-btn" disabled={loading || productNameError}>
@@ -421,61 +435,76 @@ function AllProducts() {
         </div>
       )}
 
-      {/* EDIT PRODUCT MODAL */}
       {showEditModal && (
         <div className="overlay">
           <div className="add-form">
             <h3>Edit Product</h3>
             <form onSubmit={handleUpdateProduct}>
-              <input
-                type="text"
-                placeholder="Product ID"
-                value={selectedProduct?.product_id || ""}
-                readOnly
-              />
-              <input
-                type="text"
-                name="product_name"
-                placeholder="Product Name"
-                value={formData.product_name}
-                onChange={handleInputChange}
-                className={productNameError ? "error-input" : ""}
-                required
-              />
-              {productNameError && <div className="error-message">{productNameError}</div>}
+              <div className="form-field">
+                <label>Product ID</label>
+                <input
+                  type="text"
+                  placeholder="Product ID"
+                  value={selectedProduct?.product_id || ""}
+                  readOnly
+                />
+              </div>
               
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="" disabled hidden>Select Category</option>
-                {categories.map((category) => (
-                  <option key={category._id} value={category.name}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+              <div className="form-field">
+                <label>Product Name</label>
+                <input
+                  type="text"
+                  name="product_name"
+                  placeholder="Product Name"
+                  value={formData.product_name}
+                  onChange={handleInputChange}
+                  className={productNameError ? "error-input" : ""}
+                  required
+                />
+                {productNameError && <div className="error-message">{productNameError}</div>}
+              </div>
               
-              <input
-                type="number"
-                name="stock_quantity"
-                placeholder="Stock Quantity"
-                value={formData.stock_quantity}
-                onChange={handleInputChange}
-                required
-              />
+              <div className="form-field">
+                <label>Category</label>
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  required
+                >
+                  <option value="" disabled hidden>Select Category</option>
+                  {categories.map((category) => (
+                    <option key={category._id} value={category.name}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               
-              <input
-                type="number"
-                name="unit_price"
-                placeholder="Unit Price"
-                step="0.01"
-                value={formData.unit_price}
-                onChange={handleInputChange}
-                required
-              />
+              <div className="form-field">
+                <label>Stock Quantity</label>
+                <input
+                  type="number"
+                  name="stock_quantity"
+                  placeholder="Stock Quantity"
+                  value={formData.stock_quantity}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              
+              <div className="form-field">
+                <label>Unit Price</label>
+                <input
+                  type="number"
+                  name="unit_price"
+                  placeholder="Unit Price"
+                  step="0.01"
+                  value={formData.unit_price}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
 
               <div className="form-buttons">
                 <button type="submit" className="save-btn" disabled={loading || productNameError}>
