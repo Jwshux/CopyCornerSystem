@@ -17,15 +17,21 @@ function ManageGroup() {
   const [groupToDelete, setGroupToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
   const [groupNameError, setGroupNameError] = useState("");
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Fetch groups from backend
-  const fetchGroups = async () => {
+  const fetchGroups = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/groups`);
+      const response = await fetch(`${API_BASE}/groups?page=${page}&per_page=10`);
       if (response.ok) {
         const data = await response.json();
-        setGroups(data);
+        setGroups(data.groups);
+        setCurrentPage(data.pagination.page);
+        setTotalPages(data.pagination.total_pages);
       } else {
         console.error('Failed to fetch groups');
       }
@@ -39,6 +45,19 @@ function ManageGroup() {
   useEffect(() => {
     fetchGroups();
   }, []);
+
+  // Pagination handlers
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      fetchGroups(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      fetchGroups(currentPage - 1);
+    }
+  };
 
   // Check if group name exists
   const checkGroupName = (groupName) => {
@@ -97,7 +116,7 @@ function ManageGroup() {
         });
 
         if (response.ok) {
-          await fetchGroups(); // Refresh the list
+          await fetchGroups(currentPage); // Refresh current page
           handleCloseForm();
         } else {
           const error = await response.json();
@@ -118,7 +137,7 @@ function ManageGroup() {
         });
 
         if (response.ok) {
-          await fetchGroups(); // Refresh the list
+          await fetchGroups(currentPage); // Refresh current page
           handleCloseForm();
         } else {
           const error = await response.json();
@@ -168,7 +187,16 @@ function ManageGroup() {
       });
 
       if (response.ok) {
-        await fetchGroups();
+        // Check if this was the last item on the current page
+        const isLastItemOnPage = groups.length === 1;
+        
+        if (isLastItemOnPage && currentPage > 1) {
+          // If it was the last item and we're not on page 1, go to previous page
+          await fetchGroups(currentPage - 1);
+        } else {
+          // Otherwise refresh current page (backend will handle empty pages)
+          await fetchGroups(currentPage);
+        }
         closeDeleteModal();
       } else {
         console.error('Failed to delete group');
@@ -215,8 +243,6 @@ function ManageGroup() {
         </button>
       </div>
 
-      {/* {loading && <div className="loading">Loading...</div>} */}
-
       <table className="group-table">
         <thead>
           <tr>
@@ -231,13 +257,13 @@ function ManageGroup() {
           {groups.length === 0 ? (
             <tr>
               <td colSpan="5" style={{ textAlign: "center", color: "#888" }}>
-                No groups yet.
+                {loading ? "Loading..." : "No groups found."}
               </td>
             </tr>
           ) : (
             groups.map((group, index) => (
               <tr key={group._id}>
-                <td>{index + 1}</td>
+                <td>{(currentPage - 1) * 10 + index + 1}</td>
                 <td>{group.group_name}</td>
                 <td>{group.group_level}</td>
                 <td>
@@ -258,6 +284,27 @@ function ManageGroup() {
           )}
         </tbody>
       </table>
+
+      {/* SIMPLE PAGINATION CONTROLS - ALWAYS VISIBLE */}
+      <div className="simple-pagination">
+        <button 
+          className="pagination-btn" 
+          onClick={handlePrevPage}
+          disabled={currentPage === 1 || loading}
+        >
+          Previous
+        </button>
+        <span className="page-info">
+          Page {currentPage} of {totalPages}
+        </span>
+        <button 
+          className="pagination-btn" 
+          onClick={handleNextPage}
+          disabled={currentPage === totalPages || loading}
+        >
+          Next
+        </button>
+      </div>
 
       {/* Overlay Form */}
       {showForm && (

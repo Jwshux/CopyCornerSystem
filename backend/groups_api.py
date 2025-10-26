@@ -21,13 +21,44 @@ def serialize_doc(doc):
         doc['_id'] = str(doc['_id'])
     return doc
 
-# Get all groups
+# Get all groups - UPDATED FOR PAGINATION
 @groups_bp.route('/api/groups', methods=['GET'])
 def get_groups():
     try:
-        groups = list(groups_collection.find())
+        # Get pagination parameters from query string
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        
+        # Calculate skip value
+        skip = (page - 1) * per_page
+        
+        # Get total count for pagination info
+        total_groups = groups_collection.count_documents({})
+        
+        # Calculate total pages
+        total_pages = (total_groups + per_page - 1) // per_page  # Ceiling division
+        
+        # If requested page is beyond available pages, go to last page
+        if page > total_pages and total_pages > 0:
+            page = total_pages
+            skip = (page - 1) * per_page
+        
+        # Get paginated groups
+        groups_cursor = groups_collection.find().skip(skip).limit(per_page)
+        groups = list(groups_cursor)
+        
         serialized_groups = [serialize_doc(group) for group in groups]
-        return jsonify(serialized_groups)
+        
+        # Return pagination info along with groups
+        return jsonify({
+            'groups': serialized_groups,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_groups': total_groups,
+                'total_pages': total_pages
+            }
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

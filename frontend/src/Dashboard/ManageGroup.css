@@ -200,3 +200,58 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Simple Pagination Styles */
+.simple-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  margin-top: 20px;
+  padding: 15px 0;
+  border-top: 1px solid #eee;
+}
+
+.page-info {
+  color: #666;
+  font-weight: 500;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  background: white;
+  color: #333;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f5f5f5;
+  border-color: #ccc;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f9f9f9;
+}
+
+/* Add error styles if not already present */
+.error-input {
+  border: 2px solid #ff4444 !important;
+  background-color: #fff8f8;
+}
+
+.error-message {
+  color: #ff4444;
+  font-size: 12px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background-color: #fff8f8;
+  border-radius: 4px;
+  border-left: 3px solid #ff4444;
+}
+
