@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./Categories.css";
+import Lottie from "lottie-react";
+import loadingAnimation from "../animations/loading.json";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -317,12 +319,18 @@ const Categories = () => {
           </thead>
           <tbody>
             {categories.length === 0 ? (
-              <tr>
+            <tr>
                 <td colSpan="4" style={{ textAlign: "center", color: "#888" }}>
-                  {loading ? "Loading..." : "No categories yet."}
-                </td>
-              </tr>
-            ) : (
+                    {loading ? (
+                      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                        <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                      </div>
+                    ) : (
+                      "No users found."
+                    )}
+                  </td>
+                </tr>
+              ) : (
               categories.map((category, index) => (
                 <tr key={category._id}>
                   <td>{(currentPage - 1) * 10 + index + 1}</td>

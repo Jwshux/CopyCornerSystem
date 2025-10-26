@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./StaffSchedule.css";
+import Lottie from "lottie-react";
+import loadingAnimation from "../animations/loading.json";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -190,7 +192,7 @@ const formatTimeForDisplay = (time) => {
         </button>
       </div>
 
-      {loading && <div className="loading">Loading...</div>}
+      {/* {loading && <div className="loading">Loading...</div>} */}
 
       <table className="schedule-table">
         <colgroup>
@@ -206,83 +208,101 @@ const formatTimeForDisplay = (time) => {
           </tr>
         </thead>
         <tbody>
-          {Object.entries(scheduleByDay).map(([day, daySchedules]) => (
-            <React.Fragment key={day}>
-              {daySchedules.length === 0 ? (
-                <tr>
-                  <td className="day-cell">{day}</td>
-                  <td className="no-staff" colSpan={2}>
-                    No staff assigned
-                  </td>
-                </tr>
-              ) : (
-                daySchedules.map((schedule, index) => (
-                  <tr key={schedule._id}>
-                    {/* Only render Day cell once using rowSpan */}
-                    {index === 0 && (
-                      <td className="day-cell" rowSpan={daySchedules.length}>
-                        {day}
-                      </td>
-                    )}
-
-                    <td>
-                      <div className="staff-row">
-                        <strong>{schedule.staff_name}</strong>
-                        {editing.id === schedule._id ? (
-                          <div className="time-edit-container">
-                            <input
-                              type="time"
-                              value={tempTime.start}
-                              onChange={(e) => setTempTime({ ...tempTime, start: e.target.value })}
-                              className="time-input"
-                            />
-                            <span> to </span>
-                            <input
-                              type="time"
-                              value={tempTime.end}
-                              onChange={(e) => setTempTime({ ...tempTime, end: e.target.value })}
-                              className="time-input"
-                            />
-                          </div>
-                        ) : (
-                          <span className="time-text">
-                            {formatTimeForDisplay(schedule.start_time)} - {formatTimeForDisplay(schedule.end_time)}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    <td className="action-buttons">
-                      <button
-                        className="edit-btn"
-                        onClick={() => {
-                          if (editing.id === schedule._id) {
-                            handleSave(schedule._id);
-                          } else {
-                            handleEdit(schedule);
-                          }
-                        }}
-                        disabled={loading}
-                      >
-                        {editing.id === schedule._id ? (
-                          <>💾 <span>Save</span></>
-                        ) : (
-                          <>✏️ <span>Edit</span></>
-                        )}
-                      </button>
-                      <button
-                        className="remove-btn"
-                        onClick={() => handleRemoveStaff(schedule._id)}
-                        disabled={loading}
-                      >
-                        🗑️ <span>Delete</span>
-                      </button>
+          {loading ? (
+            <tr>
+              <td colSpan="3" style={{ textAlign: "center", padding: "40px 0" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                </div>
+              </td>
+            </tr>
+          ) : (
+            Object.entries(scheduleByDay).map(([day, daySchedules]) => (
+              <React.Fragment key={day}>
+                {daySchedules.length === 0 ? (
+                  <tr>
+                    <td className="day-cell">{day}</td>
+                    <td className="no-staff" colSpan={2}>
+                      No staff assigned
                     </td>
                   </tr>
-                ))
-              )}
-            </React.Fragment>
-          ))}
+                ) : (
+                  daySchedules.map((schedule, index) => (
+                    <tr key={schedule._id}>
+                      {index === 0 && (
+                        <td className="day-cell" rowSpan={daySchedules.length}>
+                          {day}
+                        </td>
+                      )}
+
+                      <td>
+                        <div className="staff-row">
+                          <strong>{schedule.staff_name}</strong>
+                          {editing.id === schedule._id ? (
+                            <div className="time-edit-container">
+                              <input
+                                type="time"
+                                value={tempTime.start}
+                                onChange={(e) =>
+                                  setTempTime({ ...tempTime, start: e.target.value })
+                                }
+                                className="time-input"
+                              />
+                              <span> to </span>
+                              <input
+                                type="time"
+                                value={tempTime.end}
+                                onChange={(e) =>
+                                  setTempTime({ ...tempTime, end: e.target.value })
+                                }
+                                className="time-input"
+                              />
+                            </div>
+                          ) : (
+                            <span className="time-text">
+                              {formatTimeForDisplay(schedule.start_time)} -{" "}
+                              {formatTimeForDisplay(schedule.end_time)}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="action-buttons">
+                        <button
+                          className="edit-btn"
+                          onClick={() => {
+                            if (editing.id === schedule._id) {
+                              handleSave(schedule._id);
+                            } else {
+                              handleEdit(schedule);
+                            }
+                          }}
+                          disabled={loading}
+                        >
+                          {editing.id === schedule._id ? (
+                            <>
+                              💾 <span>Save</span>
+                            </>
+                          ) : (
+                            <>
+                              ✏️ <span>Edit</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          className="remove-btn"
+                          onClick={() => handleRemoveStaff(schedule._id)}
+                          disabled={loading}
+                        >
+                          🗑️ <span>Delete</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </React.Fragment>
+            ))
+          )}
         </tbody>
       </table>
 

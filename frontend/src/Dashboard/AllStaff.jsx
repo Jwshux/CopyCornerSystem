@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./AllStaff.css";
+import Lottie from "lottie-react";
+import loadingAnimation from "../animations/loading.json";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -216,12 +218,18 @@ function AllStaff() {
           </thead>
           <tbody>
             {staffs.length === 0 ? (
-              <tr>
-                <td colSpan="8" style={{ textAlign: "center", color: "#888" }}>
-                  {loading ? "Loading..." : "No staff members found."}
-                </td>
-              </tr>
-            ) : (
+                <tr>
+                  <td colSpan="8" style={{ textAlign: "center", color: "#888" }}>
+                    {loading ? (
+                      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                        <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                      </div>
+                    ) : (
+                      "No users found."
+                    )}
+                  </td>
+                </tr>
+              ) : (
               staffs.map((staff, index) => (
                 <tr key={staff._id}>
                   <td>{(currentPage - 1) * 10 + index + 1}</td>
