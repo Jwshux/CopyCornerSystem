@@ -379,3 +379,21 @@
   color: #374151;
   font-size: 14px;
 }
+
+/* Delete Animation Center */
+.delete-animation-center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  text-align: center;
+}
+
+/* Make sure the delete confirmation modal has enough height */
+.delete-confirmation {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}

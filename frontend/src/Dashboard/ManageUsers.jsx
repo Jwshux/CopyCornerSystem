@@ -3,6 +3,7 @@ import "./ManageUsers.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
+import deleteAnimation from "../animations/delete.json"; // Add this import
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -16,6 +17,8 @@ function ManageUsers() {
   const [userToDelete, setUserToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false); // New state for delete animation
+  const [deleteSuccess, setDeleteSuccess] = useState(false); // New state for delete success
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -80,6 +83,13 @@ function ManageUsers() {
       setSaveSuccess(false);
     }
   }, [showAddModal, showEditModal]);
+
+  // Reset delete success state when delete modal closes
+  useEffect(() => {
+    if (!showDeleteModal) {
+      setDeleteSuccess(false);
+    }
+  }, [showDeleteModal]);
 
   // Pagination handlers
   const handleNextPage = () => {
@@ -303,35 +313,43 @@ function ManageUsers() {
   const closeDeleteModal = () => {
     setShowDeleteModal(false);
     setUserToDelete(null);
+    setDeleting(false);
+    setDeleteSuccess(false);
   };
 
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
 
-    setLoading(true);
+    setDeleting(true);
+
     try {
       const response = await fetch(`${API_BASE}/users/${userToDelete._id}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        const isLastItemOnPage = users.length === 1;
-        
-        if (isLastItemOnPage && currentPage > 1) {
-          await fetchUsers(currentPage - 1);
-        } else {
-          await fetchUsers(currentPage);
-        }
-        closeDeleteModal();
+        setDeleteSuccess(true);
+        // Wait for animation to complete before closing and refreshing
+        setTimeout(async () => {
+          const isLastItemOnPage = users.length === 1;
+          
+          if (isLastItemOnPage && currentPage > 1) {
+            await fetchUsers(currentPage - 1);
+          } else {
+            await fetchUsers(currentPage);
+          }
+          closeDeleteModal();
+          setDeleting(false);
+        }, 1500);
       } else {
         console.error('Failed to delete user');
         alert('Failed to delete user');
+        setDeleting(false);
       }
     } catch (error) {
       console.error('Error deleting user:', error);
       alert('Error deleting user');
-    } finally {
-      setLoading(false);
+      setDeleting(false);
     }
   };
 
@@ -677,20 +695,45 @@ function ManageUsers() {
         </div>
       )}
 
+      {/* DELETE CONFIRMATION MODAL */}
       {showDeleteModal && userToDelete && (
         <div className="modal-overlay">
           <div className="modal-content delete-confirmation">
-            <div className="delete-icon">🗑️</div>
-            <h3>Delete User</h3>
-            <p>Are you sure you want to delete user <strong>"{userToDelete.name}"</strong>?</p>
-            <p className="delete-warning">This action cannot be undone.</p>
-            
-            <div className="modal-buttons">
-              <button className="confirm-delete-btn" onClick={handleDeleteUser} disabled={loading}>
-                {loading ? "Deleting..." : "Yes, Delete"}
-              </button>
-              <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
-            </div>
+            {/* Show delete animation when deleting, otherwise show normal content */}
+            {deleting ? (
+              <div className="delete-animation-center">
+                {!deleteSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 200, height: 200 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={deleteAnimation} 
+                    loop={false}
+                    style={{ width: 200, height: 200 }}
+                  />
+                )}
+                <p style={{ marginTop: '20px', color: '#666' }}>
+                  {!deleteSuccess ? "Deleting user..." : "User deleted successfully!"}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="delete-icon">🗑️</div>
+                <h3>Delete User</h3>
+                <p>Are you sure you want to delete user <strong>"{userToDelete.name}"</strong>?</p>
+                <p className="delete-warning">This action cannot be undone.</p>
+                
+                <div className="modal-buttons">
+                  <button className="confirm-delete-btn" onClick={handleDeleteUser}>
+                    Yes, Delete
+                  </button>
+                  <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

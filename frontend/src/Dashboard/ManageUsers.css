@@ -288,3 +288,29 @@ td {
   align-items: center;
   height: 300px;
 }
+
+/* Delete Animation Center */
+.delete-animation-center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  text-align: center;
+}
+
+/* Form Animation Center */
+.form-animation-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+}
+
+/* Make sure the delete confirmation modal has enough height */
+.delete-confirmation {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}

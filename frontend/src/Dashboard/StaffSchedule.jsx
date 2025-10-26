@@ -3,6 +3,7 @@ import "./StaffSchedule.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
+import deleteAnimation from "../animations/delete.json"; // Add this import
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -18,6 +19,8 @@ function StaffSchedule() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [scheduleToDelete, setScheduleToDelete] = useState(null);
   const [addSuccess, setAddSuccess] = useState(false);
+  const [deleting, setDeleting] = useState(false); // New state for delete animation
+  const [deleteSuccess, setDeleteSuccess] = useState(false); // New state for delete success
   const [newEntry, setNewEntry] = useState({
     day: "Monday",
     staff_id: "",
@@ -76,6 +79,13 @@ function StaffSchedule() {
       setAddSuccess(false);
     }
   }, [showModal]);
+
+  // Reset delete success state when modal closes
+  useEffect(() => {
+    if (!showDeleteModal) {
+      setDeleteSuccess(false);
+    }
+  }, [showDeleteModal]);
 
   // Group schedules by day
   const scheduleByDay = {
@@ -137,30 +147,36 @@ function StaffSchedule() {
   const closeDeleteModal = () => {
     setShowDeleteModal(false);
     setScheduleToDelete(null);
+    setDeleting(false);
+    setDeleteSuccess(false);
   };
 
   // Delete schedule
   const handleDeleteSchedule = async () => {
     if (!scheduleToDelete) return;
 
-    setTableActionLoading(true);
+    setDeleting(true);
     try {
       const response = await fetch(`${API_BASE}/schedules/${scheduleToDelete._id}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        await fetchSchedules(); // No loading for refresh
-        closeDeleteModal();
+        setDeleteSuccess(true);
+        // Wait for animation to complete before closing and refreshing
+        setTimeout(async () => {
+          await fetchSchedules(); // No loading for refresh
+          closeDeleteModal();
+        }, 1500);
       } else {
         console.error('Failed to delete schedule');
         alert('Failed to delete schedule');
+        setDeleting(false);
       }
     } catch (error) {
       console.error('Error deleting schedule:', error);
       alert('Error deleting schedule');
-    } finally {
-      setTableActionLoading(false);
+      setDeleting(false);
     }
   };
 
@@ -415,17 +431,41 @@ function StaffSchedule() {
       {showDeleteModal && scheduleToDelete && (
         <div className="modal-backdrop">
           <div className="modal-box delete-confirmation">
-            <div className="delete-icon">🗑️</div>
-            <h3>Delete Schedule</h3>
-            <p>Are you sure you want to delete schedule for <strong>"{scheduleToDelete.staff_name}"</strong> on <strong>{scheduleToDelete.day}</strong>?</p>
-            <p className="delete-warning">This action cannot be undone.</p>
-            
-            <div className="modal-actions">
-              <button className="confirm-delete-btn" onClick={handleDeleteSchedule} disabled={tableActionLoading}>
-                {tableActionLoading ? "Deleting..." : "Yes, Delete"}
-              </button>
-              <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
-            </div>
+            {/* Show delete animation when deleting, otherwise show normal content */}
+            {deleting ? (
+              <div className="delete-animation-center">
+                {!deleteSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 200, height: 200 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={deleteAnimation} 
+                    loop={false}
+                    style={{ width: 200, height: 200 }}
+                  />
+                )}
+                <p style={{ marginTop: '20px', color: '#666' }}>
+                  {!deleteSuccess ? "Deleting schedule..." : "Schedule deleted successfully!"}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="delete-icon">🗑️</div>
+                <h3>Delete Schedule</h3>
+                <p>Are you sure you want to delete schedule for <strong>"{scheduleToDelete.staff_name}"</strong> on <strong>{scheduleToDelete.day}</strong>?</p>
+                <p className="delete-warning">This action cannot be undone.</p>
+                
+                <div className="modal-actions">
+                  <button className="confirm-delete-btn" onClick={handleDeleteSchedule}>
+                    Yes, Delete
+                  </button>
+                  <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

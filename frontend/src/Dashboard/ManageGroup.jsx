@@ -3,6 +3,7 @@ import "./ManageGroup.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
+import deleteAnimation from "../animations/delete.json"; // Add this import
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -20,6 +21,8 @@ function ManageGroup() {
   const [groupToDelete, setGroupToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false); // New state for delete animation
+  const [deleteSuccess, setDeleteSuccess] = useState(false); // New state for delete success
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [groupNameError, setGroupNameError] = useState("");
   
@@ -57,6 +60,13 @@ function ManageGroup() {
       setSaveSuccess(false);
     }
   }, [showForm]);
+
+  // Reset delete success state when delete modal closes
+  useEffect(() => {
+    if (!showDeleteModal) {
+      setDeleteSuccess(false);
+    }
+  }, [showDeleteModal]);
 
   // Pagination handlers
   const handleNextPage = () => {
@@ -197,39 +207,47 @@ function ManageGroup() {
   const closeDeleteModal = () => {
     setShowDeleteModal(false);
     setGroupToDelete(null);
+    setDeleting(false);
+    setDeleteSuccess(false);
   };
 
   // Delete group
   const handleDeleteGroup = async () => {
     if (!groupToDelete) return;
 
-    setLoading(true);
+    setDeleting(true);
+
     try {
       const response = await fetch(`${API_BASE}/groups/${groupToDelete._id}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        // Check if this was the last item on the current page
-        const isLastItemOnPage = groups.length === 1;
-        
-        if (isLastItemOnPage && currentPage > 1) {
-          // If it was the last item and we're not on page 1, go to previous page
-          await fetchGroups(currentPage - 1);
-        } else {
-          // Otherwise refresh current page (backend will handle empty pages)
-          await fetchGroups(currentPage);
-        }
-        closeDeleteModal();
+        setDeleteSuccess(true);
+        // Wait for animation to complete before closing and refreshing
+        setTimeout(async () => {
+          // Check if this was the last item on the current page
+          const isLastItemOnPage = groups.length === 1;
+          
+          if (isLastItemOnPage && currentPage > 1) {
+            // If it was the last item and we're not on page 1, go to previous page
+            await fetchGroups(currentPage - 1);
+          } else {
+            // Otherwise refresh current page (backend will handle empty pages)
+            await fetchGroups(currentPage);
+          }
+          closeDeleteModal();
+          setDeleting(false);
+        }, 1500);
       } else {
         console.error('Failed to delete group');
         alert('Failed to delete group');
+        setDeleting(false);
       }
     } catch (error) {
       console.error('Error deleting group:', error);
       alert('Error deleting group');
-    } finally {
-      setLoading(false);
+      setDeleting(false);
     }
   };
 
@@ -408,17 +426,41 @@ function ManageGroup() {
       {showDeleteModal && groupToDelete && (
         <div className="overlay">
           <div className="form-container delete-confirmation">
-            <div className="delete-icon">🗑️</div>
-            <h3>Delete Group</h3>
-            <p>Are you sure you want to delete group <strong>"{groupToDelete.group_name}"</strong>?</p>
-            <p className="delete-warning">This action cannot be undone.</p>
-            
-            <div className="form-buttons">
-              <button className="confirm-delete-btn" onClick={handleDeleteGroup} disabled={loading}>
-                {loading ? "Deleting..." : "Yes, Delete"}
-              </button>
-              <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
-            </div>
+            {/* Show delete animation when deleting, otherwise show normal content */}
+            {deleting ? (
+              <div className="delete-animation-center">
+                {!deleteSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 200, height: 200 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={deleteAnimation} 
+                    loop={false}
+                    style={{ width: 200, height: 200 }}
+                  />
+                )}
+                <p style={{ marginTop: '20px', color: '#666' }}>
+                  {!deleteSuccess ? "Deleting group..." : "Group deleted successfully!"}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="delete-icon">🗑️</div>
+                <h3>Delete Group</h3>
+                <p>Are you sure you want to delete group <strong>"{groupToDelete.group_name}"</strong>?</p>
+                <p className="delete-warning">This action cannot be undone.</p>
+                
+                <div className="form-buttons">
+                  <button className="confirm-delete-btn" onClick={handleDeleteGroup}>
+                    Yes, Delete
+                  </button>
+                  <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

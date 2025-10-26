@@ -3,6 +3,7 @@ import "./AllStaff.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
+import deleteAnimation from "../animations/delete.json";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -14,7 +15,9 @@ function AllStaff() {
   const [staffToDelete, setStaffToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     username: "",
@@ -60,6 +63,13 @@ function AllStaff() {
       setUpdateSuccess(false);
     }
   }, [showEditModal]);
+
+  // Reset delete success state when modal closes
+  useEffect(() => {
+    if (!showDeleteModal) {
+      setDeleteSuccess(false);
+    }
+  }, [showDeleteModal]);
 
   // Pagination handlers
   const handleNextPage = () => {
@@ -168,13 +178,15 @@ function AllStaff() {
   const closeDeleteModal = () => {
     setShowDeleteModal(false);
     setStaffToDelete(null);
+    setDeleting(false);
+    setDeleteSuccess(false);
   };
 
   // Delete staff
   const handleDeleteStaff = async () => {
     if (!staffToDelete) return;
 
-    setLoading(true);
+    setDeleting(true);
     try {
       // Delete the user (this will cascade delete the staff record via the backend)
       const response = await fetch(`${API_BASE}/users/${staffToDelete.user_id}`, {
@@ -182,26 +194,31 @@ function AllStaff() {
       });
 
       if (response.ok) {
-        // Check if this was the last item on the current page
-        const isLastItemOnPage = staffs.length === 1;
+        setDeleteSuccess(true);
         
-        if (isLastItemOnPage && currentPage > 1) {
-          // If it was the last item and we're not on page 1, go to previous page
-          await fetchStaffs(currentPage - 1);
-        } else {
-          // Otherwise refresh current page
-          await fetchStaffs(currentPage);
-        }
-        closeDeleteModal();
+        // Wait for animation to complete before closing and refreshing
+        setTimeout(async () => {
+          // Check if this was the last item on the current page
+          const isLastItemOnPage = staffs.length === 1;
+          
+          if (isLastItemOnPage && currentPage > 1) {
+            // If it was the last item and we're not on page 1, go to previous page
+            await fetchStaffs(currentPage - 1);
+          } else {
+            // Otherwise refresh current page
+            await fetchStaffs(currentPage);
+          }
+          closeDeleteModal();
+        }, 1500);
       } else {
         console.error('Failed to delete staff');
         alert('Failed to delete staff');
+        setDeleting(false);
       }
     } catch (error) {
       console.error('Error deleting staff:', error);
       alert('Error deleting staff');
-    } finally {
-      setLoading(false);
+      setDeleting(false);
     }
   };
 
@@ -390,17 +407,40 @@ function AllStaff() {
       {showDeleteModal && staffToDelete && (
         <div className="modal-overlay">
           <div className="modal-content delete-confirmation">
-            <div className="delete-icon">🗑️</div>
-            <h3>Delete Staff Member</h3>
-            <p>Are you sure you want to delete staff member <strong>"{staffToDelete.name}"</strong>?</p>
-            <p className="delete-warning">This action cannot be undone.</p>
-            
-            <div className="modal-buttons">
-              <button className="confirm-delete-btn" onClick={handleDeleteStaff} disabled={loading}>
-                {loading ? "Deleting..." : "Yes, Delete"}
-              </button>
-              <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
-            </div>
+            {deleting ? (
+              <div className="delete-animation-center">
+                {!deleteSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 200, height: 200 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={deleteAnimation} 
+                    loop={false}
+                    style={{ width: 200, height: 200 }}
+                  />
+                )}
+                <p className="delete-animation-text">
+                  {!deleteSuccess ? "Deleting staff member..." : "Staff member deleted successfully!"}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="delete-icon">🗑️</div>
+                <h3>Delete Staff Member</h3>
+                <p>Are you sure you want to delete staff member <strong>"{staffToDelete.name}"</strong>?</p>
+                <p className="delete-warning">This action cannot be undone.</p>
+                
+                <div className="modal-buttons">
+                  <button className="confirm-delete-btn" onClick={handleDeleteStaff}>
+                    Yes, Delete
+                  </button>
+                  <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

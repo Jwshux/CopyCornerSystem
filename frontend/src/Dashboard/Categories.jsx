@@ -3,6 +3,7 @@ import "./Categories.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
+import deleteAnimation from "../animations/delete.json"; // Add this import
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -23,7 +24,8 @@ const Categories = () => {
   // Separate loading states for different actions
   const [addingLoading, setAddingLoading] = useState(false);
   const [updatingLoading, setUpdatingLoading] = useState(false);
-  const [deletingLoading, setDeletingLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false); // Changed for delete animation
+  const [deleteSuccess, setDeleteSuccess] = useState(false); // New state for delete success
   const [updateSuccess, setUpdateSuccess] = useState(false);
   
   // Category name errors
@@ -60,6 +62,13 @@ const Categories = () => {
       setUpdateSuccess(false);
     }
   }, [showEditModal]);
+
+  // Reset delete success state when modal closes
+  useEffect(() => {
+    if (!showDeleteModal) {
+      setDeleteSuccess(false);
+    }
+  }, [showDeleteModal]);
 
   // Pagination handlers - Same as Products
   const handleNextPage = () => {
@@ -241,39 +250,45 @@ const Categories = () => {
   const closeDeleteModal = () => {
     setShowDeleteModal(false);
     setCategoryToDelete(null);
+    setDeleting(false);
+    setDeleteSuccess(false);
   };
 
   // Delete category
   const handleDeleteCategory = async () => {
     if (!categoryToDelete) return;
 
-    setDeletingLoading(true);
+    setDeleting(true);
     try {
       const response = await fetch(`${API_BASE}/categories/${categoryToDelete._id}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        // Check if this was the last item on the current page
-        const isLastItemOnPage = categories.length === 1;
-        
-        if (isLastItemOnPage && currentPage > 1) {
-          // If it was the last item and we're not on page 1, go to previous page
-          await fetchCategories(currentPage - 1);
-        } else {
-          // Otherwise refresh current page
-          await fetchCategories(currentPage);
-        }
-        closeDeleteModal();
+        setDeleteSuccess(true);
+        // Wait for animation to complete before closing and refreshing
+        setTimeout(async () => {
+          // Check if this was the last item on the current page
+          const isLastItemOnPage = categories.length === 1;
+          
+          if (isLastItemOnPage && currentPage > 1) {
+            // If it was the last item and we're not on page 1, go to previous page
+            await fetchCategories(currentPage - 1);
+          } else {
+            // Otherwise refresh current page
+            await fetchCategories(currentPage);
+          }
+          closeDeleteModal();
+        }, 1500);
       } else {
         console.error('Failed to delete category');
         alert('Failed to delete category');
+        setDeleting(false);
       }
     } catch (error) {
       console.error('Error deleting category:', error);
       alert('Error deleting category');
-    } finally {
-      setDeletingLoading(false);
+      setDeleting(false);
     }
   };
 
@@ -463,17 +478,41 @@ const Categories = () => {
       {showDeleteModal && categoryToDelete && (
         <div className="overlay">
           <div className="modal-content delete-confirmation">
-            <div className="delete-icon">🗑️</div>
-            <h3>Delete Category</h3>
-            <p>Are you sure you want to delete category <strong>"{categoryToDelete.name}"</strong>?</p>
-            <p className="delete-warning">This action cannot be undone.</p>
-            
-            <div className="form-buttons">
-              <button className="confirm-delete-btn" onClick={handleDeleteCategory} disabled={deletingLoading}>
-                {deletingLoading ? "Deleting..." : "Yes, Delete"}
-              </button>
-              <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
-            </div>
+            {/* Show delete animation when deleting, otherwise show normal content */}
+            {deleting ? (
+              <div className="delete-animation-center">
+                {!deleteSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 200, height: 200 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={deleteAnimation} 
+                    loop={false}
+                    style={{ width: 200, height: 200 }}
+                  />
+                )}
+                <p style={{ marginTop: '20px', color: '#666' }}>
+                  {!deleteSuccess ? "Deleting category..." : "Category deleted successfully!"}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="delete-icon">🗑️</div>
+                <h3>Delete Category</h3>
+                <p>Are you sure you want to delete category <strong>"{categoryToDelete.name}"</strong>?</p>
+                <p className="delete-warning">This action cannot be undone.</p>
+                
+                <div className="form-buttons">
+                  <button className="confirm-delete-btn" onClick={handleDeleteCategory}>
+                    Yes, Delete
+                  </button>
+                  <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
