@@ -47,10 +47,11 @@ function AllProducts() {
   // Fetch categories from backend
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${API_BASE}/categories`);
+      const response = await fetch(`${API_BASE}/categories?page=1&per_page=100`); // Get all categories
       if (response.ok) {
         const data = await response.json();
-        setCategories(data);
+        // Extract categories from the paginated response
+        setCategories(data.categories || data); // Handle both old and new response formats
       } else {
         console.error('Failed to fetch categories');
       }

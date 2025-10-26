@@ -84,17 +84,10 @@
   padding: 20px;
   flex: 1;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  height: 600px;
-  overflow-y: auto;
-}
-
-.all-categories::-webkit-scrollbar {
-  width: 8px;
-}
-
-.all-categories::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  height: auto;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 🔹 Table Styling */
@@ -115,9 +108,6 @@
 
 .all-categories th {
   background: #f7f7f7;
-  position: sticky;
-  top: 0;
-  z-index: 1;
 }
 
 /* 🔹 Description Column */
@@ -154,6 +144,66 @@
 
 .delete-btn:hover {
   background-color: #c82333;
+}
+
+/* Column widths */
+.all-categories th:nth-child(1),
+.all-categories td:nth-child(1) {
+  width: 50px;
+  text-align: center;
+}
+
+.all-categories th:nth-child(2),
+.all-categories td:nth-child(2) {
+  width: 150px;
+}
+
+.all-categories th:nth-child(3),
+.all-categories td:nth-child(3) {
+  width: 200px;
+}
+
+.all-categories th:nth-child(4),
+.all-categories td:nth-child(4) {
+  width: 100px;
+  text-align: center;
+}
+
+/* Simple Pagination Styles - Same as Products */
+.simple-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  margin-top: 20px;
+  padding: 15px 0;
+  border-top: 1px solid #eee;
+}
+
+.page-info {
+  color: #666;
+  font-weight: 500;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  background: white;
+  color: #333;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f5f5f5;
+  border-color: #ccc;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f9f9f9;
 }
 
 /* Overlay */
@@ -311,26 +361,4 @@
   line-height: 1.4;
   color: #555;
   font-size: 14px;
-}
-
-.all-categories th:nth-child(1),
-.all-categories td:nth-child(1) {
-  width: 50px;
-  text-align: center;
-}
-
-.all-categories th:nth-child(2),
-.all-categories td:nth-child(2) {
-  width: 150px;
-}
-
-.all-categories th:nth-child(3),
-.all-categories td:nth-child(3) {
-  width: 200px;
-}
-
-.all-categories th:nth-child(4),
-.all-categories td:nth-child(4) {
-  width: 100px;
-  text-align: center;
 }

@@ -25,9 +25,50 @@ def serialize_doc(doc):
 @categories_bp.route('/api/categories', methods=['GET'])
 def get_categories():
     try:
-        categories = list(categories_collection.find())
+        # Check if pagination parameters are provided
+        page_param = request.args.get('page')
+        per_page_param = request.args.get('per_page')
+        
+        # If no pagination parameters, return all categories (for backward compatibility)
+        if not page_param and not per_page_param:
+            categories = list(categories_collection.find().sort("created_at", 1))
+            serialized_categories = [serialize_doc(category) for category in categories]
+            return jsonify(serialized_categories)
+        
+        # Otherwise, use pagination
+        page = int(page_param or 1)
+        per_page = int(per_page_param or 10)
+        
+        # Calculate skip value
+        skip = (page - 1) * per_page
+        
+        # Get total count for pagination info
+        total_categories = categories_collection.count_documents({})
+        
+        # Calculate total pages
+        total_pages = (total_categories + per_page - 1) // per_page  # Ceiling division
+        
+        # If requested page is beyond available pages, go to last page
+        if page > total_pages and total_pages > 0:
+            page = total_pages
+            skip = (page - 1) * per_page
+        
+        # Get paginated categories
+        categories_cursor = categories_collection.find().sort("created_at", 1).skip(skip).limit(per_page)
+        categories = list(categories_cursor)
+        
         serialized_categories = [serialize_doc(category) for category in categories]
-        return jsonify(serialized_categories)
+        
+        # Return pagination info along with categories
+        return jsonify({
+            'categories': serialized_categories,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_categories': total_categories,
+                'total_pages': total_pages
+            }
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
