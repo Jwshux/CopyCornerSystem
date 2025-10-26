@@ -60,13 +60,44 @@ def renumber_products():
         print(f"Error renumbering products: {e}")
         return False
 
-# Get all products
+# Get all products - UPDATED FOR PAGINATION
 @products_bp.route('/api/products', methods=['GET'])
 def get_products():
     try:
-        products = list(products_collection.find().sort("created_at", 1))
+        # Get pagination parameters from query string
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        
+        # Calculate skip value
+        skip = (page - 1) * per_page
+        
+        # Get total count for pagination info
+        total_products = products_collection.count_documents({})
+        
+        # Calculate total pages
+        total_pages = (total_products + per_page - 1) // per_page  # Ceiling division
+        
+        # If requested page is beyond available pages, go to last page
+        if page > total_pages and total_pages > 0:
+            page = total_pages
+            skip = (page - 1) * per_page
+        
+        # Get paginated products
+        products_cursor = products_collection.find().sort("created_at", 1).skip(skip).limit(per_page)
+        products = list(products_cursor)
+        
         serialized_products = [serialize_doc(product) for product in products]
-        return jsonify(serialized_products)
+        
+        # Return pagination info along with products
+        return jsonify({
+            'products': serialized_products,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_products': total_products,
+                'total_pages': total_pages
+            }
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

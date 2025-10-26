@@ -20,14 +20,20 @@ function AllProducts() {
     unit_price: ""
   });
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   // Fetch products from backend
-  const fetchProducts = async () => {
+  const fetchProducts = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/products`);
+      const response = await fetch(`${API_BASE}/products?page=${page}&per_page=10`);
       if (response.ok) {
         const data = await response.json();
-        setProducts(data);
+        setProducts(data.products);
+        setCurrentPage(data.pagination.page);
+        setTotalPages(data.pagination.total_pages);
       } else {
         console.error('Failed to fetch products');
       }
@@ -57,6 +63,19 @@ function AllProducts() {
     fetchProducts();
     fetchCategories();
   }, []);
+
+  // Pagination handlers
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      fetchProducts(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      fetchProducts(currentPage - 1);
+    }
+  };
 
   // Check if product name exists
   const checkProductName = (productName) => {
@@ -120,7 +139,7 @@ function AllProducts() {
       });
 
       if (response.ok) {
-        await fetchProducts();
+        await fetchProducts(currentPage);
         setShowAddForm(false);
         resetForm();
       } else {
@@ -168,7 +187,7 @@ function AllProducts() {
       });
 
       if (response.ok) {
-        await fetchProducts();
+        await fetchProducts(currentPage);
         setShowEditModal(false);
         resetForm();
       } else {
@@ -206,7 +225,16 @@ function AllProducts() {
       });
 
       if (response.ok) {
-        await fetchProducts(); // This will fetch the renumbered products
+        // Check if this was the last item on the current page
+        const isLastItemOnPage = products.length === 1;
+        
+        if (isLastItemOnPage && currentPage > 1) {
+          // If it was the last item and we're not on page 1, go to previous page
+          await fetchProducts(currentPage - 1);
+        } else {
+          // Otherwise refresh current page
+          await fetchProducts(currentPage);
+        }
         closeDeleteModal();
       } else {
         console.error('Failed to delete product');
@@ -266,13 +294,13 @@ function AllProducts() {
           {products.length === 0 ? (
             <tr>
               <td colSpan="8" style={{ textAlign: "center", color: "#888" }}>
-                No products yet.
+                {loading ? "Loading..." : "No products found."}
               </td>
             </tr>
           ) : (
             products.map((product, index) => (
               <tr key={product._id}>
-                <td>{index + 1}</td>
+                <td>{(currentPage - 1) * 10 + index + 1}</td>
                 <td>{product.product_id}</td>
                 <td>{product.product_name}</td>
                 <td>{product.category}</td>
@@ -300,6 +328,27 @@ function AllProducts() {
           )}
         </tbody>
       </table>
+
+      {/* SIMPLE PAGINATION CONTROLS */}
+      <div className="simple-pagination">
+        <button 
+          className="pagination-btn" 
+          onClick={handlePrevPage}
+          disabled={currentPage === 1 || loading}
+        >
+          Previous
+        </button>
+        <span className="page-info">
+          Page {currentPage} of {totalPages}
+        </span>
+        <button 
+          className="pagination-btn" 
+          onClick={handleNextPage}
+          disabled={currentPage === totalPages || loading}
+        >
+          Next
+        </button>
+      </div>
 
       {/* Rest of your modals remain the same */}
       {/* ADD PRODUCT MODAL */}
