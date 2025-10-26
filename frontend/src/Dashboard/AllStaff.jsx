@@ -12,30 +12,34 @@ function AllStaff() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
-    username: "", // Add username field
+    username: "",
     studentNumber: "",
     course: "",
     section: "",
-    status: "Active"
+    status: "Active",
+    password: "" // For password updates
   });
 
-  // Fetch all users and filter only staff members
-  const fetchStaffs = async () => {
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Fetch all staffs from the new staffs API
+  const fetchStaffs = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/users`);
+      const response = await fetch(`${API_BASE}/staffs?page=${page}&per_page=10`);
       if (response.ok) {
         const data = await response.json();
-        // Filter users who have "staff" in their role (case insensitive)
-        const staffMembers = data.filter(user => 
-          user.role && user.role.toLowerCase().includes("staff")
-        );
-        setStaffs(staffMembers);
+        console.log('Staffs data from API:', data);
+        setStaffs(data.staffs);
+        setCurrentPage(data.pagination.page);
+        setTotalPages(data.pagination.total_pages);
       } else {
-        console.error('Failed to fetch users');
+        console.error('Failed to fetch staffs');
       }
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('Error fetching staffs:', error);
     } finally {
       setLoading(false);
     }
@@ -44,6 +48,19 @@ function AllStaff() {
   useEffect(() => {
     fetchStaffs();
   }, []);
+
+  // Pagination handlers
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      fetchStaffs(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      fetchStaffs(currentPage - 1);
+    }
+  };
 
   // Handle input changes
   const handleInputChange = (e) => {
@@ -59,7 +76,8 @@ function AllStaff() {
       studentNumber: "",
       course: "",
       section: "",
-      status: "Active"
+      status: "Active",
+      password: ""
     });
     setSelectedStaff(null);
   };
@@ -69,11 +87,12 @@ function AllStaff() {
     setSelectedStaff(staff);
     setFormData({
       name: staff.name || "",
-      username: staff.username || "", // Include username
+      username: staff.username || "",
       studentNumber: staff.studentNumber || "",
       course: staff.course || "",
       section: staff.section || "",
-      status: staff.status || "Active"
+      status: staff.status || "Active",
+      password: "" // Don't fill password for security
     });
     setShowEditModal(true);
   };
@@ -84,23 +103,21 @@ function AllStaff() {
 
     setLoading(true);
     try {
-      // Get the current staff's role to preserve it
-      const currentStaff = staffs.find(staff => staff._id === selectedStaff._id);
-      const staffRole = currentStaff?.role || "Staff"; // Default to "Staff" if not found
-
       const staffData = {
         name: formData.name,
-        username: formData.username, // Include username
-        role: staffRole, // Preserve the role
+        username: formData.username,
         studentNumber: formData.studentNumber,
         course: formData.course,
         section: formData.section,
         status: formData.status
       };
 
-      console.log('Updating staff with data:', staffData);
+      // Only include password if provided
+      if (formData.password) {
+        staffData.password = formData.password;
+      }
 
-      const response = await fetch(`${API_BASE}/users/${selectedStaff._id}`, {
+      const response = await fetch(`${API_BASE}/staffs/user/${selectedStaff.user_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -109,10 +126,9 @@ function AllStaff() {
       });
 
       if (response.ok) {
-        await fetchStaffs(); // Refresh the staff list
+        await fetchStaffs(currentPage);
         setShowEditModal(false);
         resetForm();
-        // alert('Staff updated successfully!');
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to update staff');
@@ -143,14 +159,23 @@ function AllStaff() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/users/${staffToDelete._id}`, {
+      // Delete the user (this will cascade delete the staff record via the backend)
+      const response = await fetch(`${API_BASE}/users/${staffToDelete.user_id}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        await fetchStaffs();
+        // Check if this was the last item on the current page
+        const isLastItemOnPage = staffs.length === 1;
+        
+        if (isLastItemOnPage && currentPage > 1) {
+          // If it was the last item and we're not on page 1, go to previous page
+          await fetchStaffs(currentPage - 1);
+        } else {
+          // Otherwise refresh current page
+          await fetchStaffs(currentPage);
+        }
         closeDeleteModal();
-        // alert('Staff deleted successfully!');
       } else {
         console.error('Failed to delete staff');
         alert('Failed to delete staff');
@@ -176,8 +201,6 @@ function AllStaff() {
           <h3>ALL STAFFS</h3>
         </div>
 
-        {/* {loading && <div className="loading">Loading...</div>} */}
-
         <table>
           <thead>
             <tr>
@@ -195,13 +218,13 @@ function AllStaff() {
             {staffs.length === 0 ? (
               <tr>
                 <td colSpan="8" style={{ textAlign: "center", color: "#888" }}>
-                  No staff members yet.
+                  {loading ? "Loading..." : "No staff members found."}
                 </td>
               </tr>
             ) : (
               staffs.map((staff, index) => (
                 <tr key={staff._id}>
-                  <td>{index + 1}</td>
+                  <td>{(currentPage - 1) * 10 + index + 1}</td>
                   <td>{staff.name}</td>
                   <td>{staff.username || "—"}</td>
                   <td>{staff.studentNumber || "—"}</td>
@@ -221,6 +244,27 @@ function AllStaff() {
             )}
           </tbody>
         </table>
+
+        {/* SIMPLE PAGINATION CONTROLS */}
+        <div className="simple-pagination">
+          <button 
+            className="pagination-btn" 
+            onClick={handlePrevPage}
+            disabled={currentPage === 1 || loading}
+          >
+            Previous
+          </button>
+          <span className="page-info">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button 
+            className="pagination-btn" 
+            onClick={handleNextPage}
+            disabled={currentPage === totalPages || loading}
+          >
+            Next
+          </button>
+        </div>
       </div>
 
       {/* EDIT STAFF MODAL */}
@@ -244,6 +288,15 @@ function AllStaff() {
                 onChange={handleInputChange} 
                 placeholder="Username" 
                 required
+              />
+              
+              <label>Password</label>
+              <input 
+                type="password" 
+                name="password" 
+                value={formData.password} 
+                onChange={handleInputChange} 
+                placeholder="New Password (optional)" 
               />
               
               <label>Student Number</label>

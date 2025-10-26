@@ -10,12 +10,14 @@ users_bp = Blueprint('users', __name__)
 # MongoDB connection (will be initialized from app.py)
 users_collection = None
 groups_collection = None
+staffs_collection = None
 
-def init_users_db(mongo_users_collection, mongo_groups_collection):
+def init_users_db(mongo_users_collection, mongo_groups_collection, mongo_staffs_collection):
     """Initialize the collections from app.py"""
-    global users_collection, groups_collection
+    global users_collection, groups_collection, staffs_collection
     users_collection = mongo_users_collection
     groups_collection = mongo_groups_collection
+    staffs_collection = mongo_staffs_collection
 
 # Helper to convert ObjectId to string and format dates
 def serialize_doc(doc):
@@ -77,6 +79,22 @@ def get_users():
             else:
                 user['role'] = 'Unknown'
             
+            # For staff users, get staff details
+            if group and 'staff' in group['group_name'].lower():
+                staff = staffs_collection.find_one({'user_id': user['_id']})
+                if staff:
+                    user['studentNumber'] = staff.get('studentNumber', '')
+                    user['course'] = staff.get('course', '')
+                    user['section'] = staff.get('section', '')
+                else:
+                    user['studentNumber'] = ''
+                    user['course'] = ''
+                    user['section'] = ''
+            else:
+                user['studentNumber'] = ''
+                user['course'] = ''
+                user['section'] = ''
+            
             users.append(user)
         
         serialized_users = [serialize_doc(user) for user in users]
@@ -121,10 +139,6 @@ def create_user():
             'password': data['password'],
             'group_id': group['_id'],
             'status': data.get('status', 'Active'),
-            # Add staff-specific fields - use None (null in JSON) instead of empty strings
-            'studentNumber': data.get('studentNumber'),
-            'course': data.get('course'),
-            'section': data.get('section'),
             'last_login': None,
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
@@ -137,6 +151,20 @@ def create_user():
         
         result = users_collection.insert_one(new_user)
         new_user['_id'] = str(result.inserted_id)
+        
+        # If role is staff, create staff record
+        if 'staff' in data['role'].lower():
+            staff_data = {
+                'user_id': result.inserted_id,
+                'studentNumber': data.get('studentNumber', ''),
+                'course': data.get('course', ''),
+                'section': data.get('section', ''),
+                'created_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            }
+            
+            staffs_collection.insert_one(staff_data)
+        
         return jsonify(serialize_doc(new_user)), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -157,10 +185,6 @@ def update_user(user_id):
             'username': data['username'],
             'group_id': group['_id'],
             'status': data['status'],
-            # Add staff-specific fields - use None (null in JSON) instead of empty strings
-            'studentNumber': data.get('studentNumber'),
-            'course': data.get('course'),
-            'section': data.get('section'),
             'updated_at': datetime.utcnow()
         }
         
@@ -180,6 +204,26 @@ def update_user(user_id):
             {'_id': ObjectId(user_id)},
             {'$set': update_data}
         )
+        
+        # Handle staff record based on role
+        if 'staff' in data['role'].lower():
+            # User is staff - update or create staff record
+            staff_update_data = {
+                'studentNumber': data.get('studentNumber', ''),
+                'course': data.get('course', ''),
+                'section': data.get('section', ''),
+                'updated_at': datetime.utcnow()
+            }
+            
+            # Update existing staff record or create new one
+            staffs_collection.update_one(
+                {'user_id': ObjectId(user_id)},
+                {'$set': staff_update_data},
+                upsert=True  # Create if doesn't exist
+            )
+        else:
+            # User is not staff - remove staff record if it exists
+            staffs_collection.delete_one({'user_id': ObjectId(user_id)})
         
         if result.matched_count:
             return jsonify({'message': 'User updated successfully'})
@@ -209,6 +253,10 @@ def update_last_login(user_id):
 @users_bp.route('/api/users/<user_id>', methods=['DELETE'])
 def delete_user(user_id):
     try:
+        # Delete staff record first if it exists
+        staffs_collection.delete_one({'user_id': ObjectId(user_id)})
+        
+        # Then delete user
         result = users_collection.delete_one({'_id': ObjectId(user_id)})
         if result.deleted_count:
             return jsonify({'message': 'User deleted successfully'})
