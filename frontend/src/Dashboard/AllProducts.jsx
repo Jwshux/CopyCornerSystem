@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./AllProducts.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
+import checkmarkAnimation from "../animations/checkmark.json";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -15,6 +16,8 @@ function AllProducts() {
   const [productToDelete, setProductToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
   const [productNameError, setProductNameError] = useState("");
+  const [addSuccess, setAddSuccess] = useState(false);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
   const [formData, setFormData] = useState({
     product_name: "",
     category: "",
@@ -66,6 +69,16 @@ function AllProducts() {
     fetchProducts();
     fetchCategories();
   }, []);
+
+  // Reset success states when modals close
+  useEffect(() => {
+    if (!showAddForm) {
+      setAddSuccess(false);
+    }
+    if (!showEditModal) {
+      setUpdateSuccess(false);
+    }
+  }, [showAddForm, showEditModal]);
 
   // Pagination handlers
   const handleNextPage = () => {
@@ -142,17 +155,22 @@ function AllProducts() {
       });
 
       if (response.ok) {
-        await fetchProducts(currentPage);
-        setShowAddForm(false);
-        resetForm();
+        setAddSuccess(true);
+        // Wait for animation to complete before refreshing and closing
+        setTimeout(async () => {
+          await fetchProducts(currentPage);
+          setShowAddForm(false);
+          resetForm();
+          setLoading(false);
+        }, 1500);
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to create product');
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error creating product:', error);
       alert('Error creating product');
-    } finally {
       setLoading(false);
     }
   };
@@ -190,17 +208,22 @@ function AllProducts() {
       });
 
       if (response.ok) {
-        await fetchProducts(currentPage);
-        setShowEditModal(false);
-        resetForm();
+        setUpdateSuccess(true);
+        // Wait for animation to complete before refreshing and closing
+        setTimeout(async () => {
+          await fetchProducts(currentPage);
+          setShowEditModal(false);
+          resetForm();
+          setLoading(false);
+        }, 1500);
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to update product');
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error updating product:', error);
       alert('Error updating product');
-    } finally {
       setLoading(false);
     }
   };
@@ -280,251 +303,293 @@ function AllProducts() {
         </div>
       </div>
 
-    <div className="table-container">
-      <table className="product-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Product ID</th>
-            <th>Product Name</th>
-            <th>Category</th>
-            <th>Stock Quantity</th>
-            <th>Unit Price</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.length === 0 ? (
+      <div className="table-container">
+        <table className="product-table">
+          <thead>
             <tr>
-              <td colSpan="8" style={{ textAlign: "center", color: "#888" }}>
-                {loading ? (
-                  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
-                    <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
-                  </div>
-                ) : (
-                  "No products found."
-                )}
-              </td>
+              <th>#</th>
+              <th>Product ID</th>
+              <th>Product Name</th>
+              <th>Category</th>
+              <th>Stock Quantity</th>
+              <th>Unit Price</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
-          ) : (
-            products.map((product, index) => (
-              <tr key={product._id}>
-                <td>{(currentPage - 1) * 10 + index + 1}</td>
-                <td>{product.product_id}</td>
-                <td>{product.product_name}</td>
-                <td>{product.category}</td>
-                <td>{product.stock_quantity}</td>
-                <td>{formatPrice(product.unit_price)}</td>
-                <td>
-                  <span
-                    className={`status-tag ${
-                      product.status === "In Stock"
-                        ? "in-stock"
-                        : product.status === "Low Stock"
-                        ? "low-stock"
-                        : "out-stock"
-                    }`}
-                  >
-                    {product.status}
-                  </span>
-                </td>
-                <td>
-                  <button className="edit-btn" onClick={() => handleEditProduct(product)}>Edit</button>
-                  <button className="delete-btn" onClick={() => openDeleteModal(product)}>Delete</button>
+          </thead>
+          <tbody>
+            {products.length === 0 ? (
+              <tr>
+                <td colSpan="8" style={{ textAlign: "center", color: "#888" }}>
+                  {loading ? (
+                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                      <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                    </div>
+                  ) : (
+                    "No products found."
+                  )}
                 </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              products.map((product, index) => (
+                <tr key={product._id}>
+                  <td>{(currentPage - 1) * 10 + index + 1}</td>
+                  <td>{product.product_id}</td>
+                  <td>{product.product_name}</td>
+                  <td>{product.category}</td>
+                  <td>{product.stock_quantity}</td>
+                  <td>{formatPrice(product.unit_price)}</td>
+                  <td>
+                    <span
+                      className={`status-tag ${
+                        product.status === "In Stock"
+                          ? "in-stock"
+                          : product.status === "Low Stock"
+                          ? "low-stock"
+                          : "out-stock"
+                      }`}
+                    >
+                      {product.status}
+                    </span>
+                  </td>
+                  <td>
+                    <button className="edit-btn" onClick={() => handleEditProduct(product)}>Edit</button>
+                    <button className="delete-btn" onClick={() => openDeleteModal(product)}>Delete</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
 
-      {/* PAGINATION CONTROLS - Now inside the container */}
-      <div className="simple-pagination">
-        <button 
-          className="pagination-btn" 
-          onClick={handlePrevPage}
-          disabled={currentPage === 1 || loading}
-        >
-          Previous
-        </button>
-        <span className="page-info">
-          Page {currentPage} of {totalPages}
-        </span>
-        <button 
-          className="pagination-btn" 
-          onClick={handleNextPage}
-          disabled={currentPage === totalPages || loading}
-        >
-          Next
-        </button>
+        {/* PAGINATION CONTROLS - Now inside the container */}
+        <div className="simple-pagination">
+          <button 
+            className="pagination-btn" 
+            onClick={handlePrevPage}
+            disabled={currentPage === 1 || loading}
+          >
+            Previous
+          </button>
+          <span className="page-info">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button 
+            className="pagination-btn" 
+            onClick={handleNextPage}
+            disabled={currentPage === totalPages || loading}
+          >
+            Next
+          </button>
+        </div>
       </div>
-    </div>
 
+      {/* ADD PRODUCT MODAL */}
       {showAddForm && (
         <div className="overlay">
           <div className="add-form">
             <h3>Add New Product</h3>
-            <form onSubmit={handleAddProduct}>
-              <div className="form-field">
-                <label>Product ID</label>
-                <input
-                  type="text"
-                  placeholder="Auto-generated"
-                  value="Auto-generated"
-                  readOnly
-                />
+            
+            {/* Show only loading animation when adding, then checkmark */}
+            {loading ? (
+              <div className="form-animation-center">
+                {!addSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 350, height: 350 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={checkmarkAnimation} 
+                    loop={false}
+                    style={{ width: 350, height: 350 }}
+                  />
+                )}
               </div>
-              
-              <div className="form-field">
-                <label>Product Name</label>
-                <input
-                  type="text"
-                  name="product_name"
-                  placeholder="Product Name"
-                  value={formData.product_name}
-                  onChange={handleInputChange}
-                  className={productNameError ? "error-input" : ""}
-                  required
-                />
-                {productNameError && <div className="error-message">{productNameError}</div>}
-              </div>
-              
-              <div className="form-field">
-                <label>Category</label>
-                <select
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="" disabled hidden>Select Category</option>
-                  {categories.map((category) => (
-                    <option key={category._id} value={category.name}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="form-field">
-                <label>Stock Quantity</label>
-                <input
-                  type="number"
-                  name="stock_quantity"
-                  placeholder="Stock Quantity"
-                  value={formData.stock_quantity}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              
-              <div className="form-field">
-                <label>Unit Price</label>
-                <input
-                  type="number"
-                  name="unit_price"
-                  placeholder="Unit Price"
-                  step="0.01"
-                  value={formData.unit_price}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+            ) : (
+              <form onSubmit={handleAddProduct}>
+                <div className="form-field">
+                  <label>Product ID</label>
+                  <input
+                    type="text"
+                    placeholder="Auto-generated"
+                    value="Auto-generated"
+                    readOnly
+                  />
+                </div>
+                
+                <div className="form-field">
+                  <label>Product Name</label>
+                  <input
+                    type="text"
+                    name="product_name"
+                    placeholder="Product Name"
+                    value={formData.product_name}
+                    onChange={handleInputChange}
+                    className={productNameError ? "error-input" : ""}
+                    required
+                  />
+                  {productNameError && <div className="error-message">{productNameError}</div>}
+                </div>
+                
+                <div className="form-field">
+                  <label>Category</label>
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="" disabled hidden>Select Category</option>
+                    {categories.map((category) => (
+                      <option key={category._id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="form-field">
+                  <label>Stock Quantity</label>
+                  <input
+                    type="number"
+                    name="stock_quantity"
+                    placeholder="Stock Quantity"
+                    value={formData.stock_quantity}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                
+                <div className="form-field">
+                  <label>Unit Price</label>
+                  <input
+                    type="number"
+                    name="unit_price"
+                    placeholder="Unit Price"
+                    step="0.01"
+                    value={formData.unit_price}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
 
-              <div className="form-buttons">
-                <button type="submit" className="save-btn" disabled={loading || productNameError}>
-                  {loading ? "Saving..." : "Save"}
-                </button>
-                <button type="button" className="cancel-btn" onClick={closeModals}>
-                  Cancel
-                </button>
-              </div>
-            </form>
+                <div className="form-buttons">
+                  <button type="submit" className="save-btn" disabled={loading || productNameError}>
+                    {loading ? "Saving..." : "Save"}
+                  </button>
+                  <button type="button" className="cancel-btn" onClick={closeModals}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
 
+      {/* EDIT PRODUCT MODAL */}
       {showEditModal && (
         <div className="overlay">
           <div className="add-form">
             <h3>Edit Product</h3>
-            <form onSubmit={handleUpdateProduct}>
-              <div className="form-field">
-                <label>Product ID</label>
-                <input
-                  type="text"
-                  placeholder="Product ID"
-                  value={selectedProduct?.product_id || ""}
-                  readOnly
-                />
+            
+            {/* Show only loading animation when updating, then checkmark */}
+            {loading ? (
+              <div className="form-animation-center">
+                {!updateSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 350, height: 350 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={checkmarkAnimation} 
+                    loop={false}
+                    style={{ width: 350, height: 350 }}
+                  />
+                )}
               </div>
-              
-              <div className="form-field">
-                <label>Product Name</label>
-                <input
-                  type="text"
-                  name="product_name"
-                  placeholder="Product Name"
-                  value={formData.product_name}
-                  onChange={handleInputChange}
-                  className={productNameError ? "error-input" : ""}
-                  required
-                />
-                {productNameError && <div className="error-message">{productNameError}</div>}
-              </div>
-              
-              <div className="form-field">
-                <label>Category</label>
-                <select
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="" disabled hidden>Select Category</option>
-                  {categories.map((category) => (
-                    <option key={category._id} value={category.name}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="form-field">
-                <label>Stock Quantity</label>
-                <input
-                  type="number"
-                  name="stock_quantity"
-                  placeholder="Stock Quantity"
-                  value={formData.stock_quantity}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              
-              <div className="form-field">
-                <label>Unit Price</label>
-                <input
-                  type="number"
-                  name="unit_price"
-                  placeholder="Unit Price"
-                  step="0.01"
-                  value={formData.unit_price}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+            ) : (
+              <form onSubmit={handleUpdateProduct}>
+                <div className="form-field">
+                  <label>Product ID</label>
+                  <input
+                    type="text"
+                    placeholder="Product ID"
+                    value={selectedProduct?.product_id || ""}
+                    readOnly
+                  />
+                </div>
+                
+                <div className="form-field">
+                  <label>Product Name</label>
+                  <input
+                    type="text"
+                    name="product_name"
+                    placeholder="Product Name"
+                    value={formData.product_name}
+                    onChange={handleInputChange}
+                    className={productNameError ? "error-input" : ""}
+                    required
+                  />
+                  {productNameError && <div className="error-message">{productNameError}</div>}
+                </div>
+                
+                <div className="form-field">
+                  <label>Category</label>
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="" disabled hidden>Select Category</option>
+                    {categories.map((category) => (
+                      <option key={category._id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="form-field">
+                  <label>Stock Quantity</label>
+                  <input
+                    type="number"
+                    name="stock_quantity"
+                    placeholder="Stock Quantity"
+                    value={formData.stock_quantity}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                
+                <div className="form-field">
+                  <label>Unit Price</label>
+                  <input
+                    type="number"
+                    name="unit_price"
+                    placeholder="Unit Price"
+                    step="0.01"
+                    value={formData.unit_price}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
 
-              <div className="form-buttons">
-                <button type="submit" className="save-btn" disabled={loading || productNameError}>
-                  {loading ? "Updating..." : "Update"}
-                </button>
-                <button type="button" className="cancel-btn" onClick={closeModals}>
-                  Cancel
-                </button>
-              </div>
-            </form>
+                <div className="form-buttons">
+                  <button type="submit" className="save-btn" disabled={loading || productNameError}>
+                    {loading ? "Updating..." : "Update"}
+                  </button>
+                  <button type="button" className="cancel-btn" onClick={closeModals}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
