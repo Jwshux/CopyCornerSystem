@@ -223,32 +223,6 @@ function AdminDashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Page title based on what user is viewing
-  const getHeaderTitle = () => {
-    switch (activePage) {
-      case "Dashboard":
-        return "Welcome Admin";
-      case "All Products":
-        return "All Products";
-      case "Categories":
-        return "Categories";
-      case "All Staffs":
-        return "All Staffs";
-      case "Staffs Schedule":
-        return "Staffs Schedule";
-      case "Sales":
-        return "Sales Overview";
-      case "Manage Groups":
-        return "Group Management";
-      case "Manage Users":
-        return "User Management";
-      case "Transactions":
-        return "Transactions Overview";
-      default:
-        return "Admin Dashboard";
-    }
-  };
-
   // Display the correct component
   const renderContent = () => {
     switch (activePage) {
@@ -277,10 +251,12 @@ function AdminDashboard() {
 
   return (
     <div className="container">
-      {/* Header Section */}
+      {/* Header Section - Clean capsule structure */}
       <header className="header">
-        {/* Left side - title */}
-        <h1>{getHeaderTitle()}</h1>
+        {/* Left side - Always "Welcome" */}
+        <div className="welcome-section">
+          <h1>Welcome, </h1>
+        </div>
 
         {/* Right side - Profile */}
         <div className="profile-section" ref={profileRef}>
