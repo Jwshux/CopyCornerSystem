@@ -189,6 +189,7 @@
 // }
 
 // export default AdminDashboard;
+
 import React, { useState, useEffect, useRef } from "react";
 import "./Dashboard.css";
 import AllProducts from "./AllProducts";
@@ -203,13 +204,13 @@ import DashboardUI from "./DashboardUI";
 import userLogo from "../UserLogo.png";
 
 function AdminDashboard() {
-  // Track which page is active
   const [activePage, setActivePage] = useState("Dashboard");
-
-  // For showing / hiding profile dropdown
+  const [openSubmenus, setOpenSubmenus] = useState({
+    Products: false,
+    Staffs: false,
+    "User Management": false
+  });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-
-  // Used to detect click outside dropdown
   const profileRef = useRef(null);
 
   // When user clicks outside profile, close dropdown
@@ -222,6 +223,13 @@ function AdminDashboard() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const toggleSubmenu = (menu) => {
+    setOpenSubmenus(prev => ({
+      ...prev,
+      [menu]: !prev[menu]
+    }));
+  };
 
   // Display the correct component
   const renderContent = () => {
@@ -250,102 +258,84 @@ function AdminDashboard() {
   };
 
   return (
-    <div className="container">
-      {/* Header Section - Clean capsule structure */}
-      <header className="header">
-        {/* Left side - Always "Welcome" */}
-        <div className="welcome-section">
-          <h1>Welcome, </h1>
-        </div>
-
-        {/* Right side - Profile */}
-        <div className="profile-section" ref={profileRef}>
-          {/* Profile button */}
-          <button
-            className="profile-name"
-            onClick={() => setIsProfileOpen(!isProfileOpen)}
-          >
-            {/* Hide name if dropdown is open */}
-            {!isProfileOpen && <span>Joshua Riana</span>}
-            <img src={userLogo} alt="User Logo" />
-          </button>
-
-          {/* Dropdown when clicked */}
-          {isProfileOpen && (
-            <div className="profile-dropdown">
-              <div className="profile-info">
-                <img
-                  src={userLogo}
-                  alt="User Avatar"
-                  className="profile-avatar"
-                />
-                <div>
-                  <h3>Joshua Riana</h3>
-                  <p>admin</p>
+      <div className="container">
+        {/* Header Section */}
+        <header className="header">
+          <div className="welcome-section">
+            <h1>Welcome, </h1>
+          </div>
+          <div className="profile-section" ref={profileRef}>
+            <button
+              className="profile-name"
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+            >
+              {!isProfileOpen && <span>Joshua Riana</span>}
+              <img src={userLogo} alt="User Logo" />
+            </button>
+            {isProfileOpen && (
+              <div className="profile-dropdown">
+                <div className="profile-info">
+                  <img
+                    src={userLogo}
+                    alt="User Avatar"
+                    className="profile-avatar"
+                  />
+                  <div>
+                    <h3>Joshua Riana</h3>
+                    <p>admin</p>
+                  </div>
                 </div>
+                <button className="logout-btn">Log Out</button>
               </div>
-              <button className="logout-btn">Log Out</button>
-            </div>
-          )}
-        </div>
-      </header>
+            )}
+          </div>
+        </header>
 
-      {/* Sidebar Menu */}
-      <aside className="sidebar">
-        <h2 className="logo">Copy Corner Hub</h2>
+        {/* Sidebar Menu */}
+        <aside className="sidebar">
+          <h2 className="logo">Copy Corner Hub</h2>
 
-        <nav className="menu">
-          {[
-            "Dashboard",
-            "Products",
-            "Staffs",
-            "Sales",
-            "Transactions",
-            "User Management",
-          ].map((page) => (
-            <div key={page}>
-              <button
-                className={
-                  activePage === page ||
-                  (page === "Products" &&
+          <nav className="menu">
+            {[
+              "Dashboard",
+              "Products",
+              "Staffs",
+              "Sales",
+              "Transactions",
+              "User Management",
+            ].map((page) => (
+              <div key={page}>
+                {/* Main menu button */}
+                <button
+                  className={
+                    activePage === page ||
+                    (page === "Products" && 
                     ["All Products", "Categories"].includes(activePage)) ||
-                  (page === "Staffs" &&
+                    (page === "Staffs" && 
                     ["All Staffs", "Staffs Schedule"].includes(activePage)) ||
-                  (page === "User Management" &&
+                    (page === "User Management" && 
                     ["Manage Groups", "Manage Users"].includes(activePage))
-                    ? "active"
-                    : ""
-                }
-                onClick={() => {
-                  if (page === "Products") {
-                    setActivePage(
-                      ["All Products", "Categories"].includes(activePage)
-                        ? ""
-                        : "All Products"
-                    );
-                  } else if (page === "Staffs") {
-                    setActivePage(
-                      ["All Staffs", "Staffs Schedule"].includes(activePage)
-                        ? ""
-                        : "All Staffs"
-                    );
-                  } else if (page === "User Management") {
-                    setActivePage(
-                      ["Manage Groups", "Manage Users"].includes(activePage)
-                        ? ""
-                        : "Manage Groups"
-                    );
-                  } else {
-                    setActivePage(page);
+                      ? "active"
+                      : ""
                   }
-                }}
-              >
-                {page}
-              </button>
+                  onClick={() => {
+                    // For main pages without submenus
+                    if (["Dashboard", "Sales", "Transactions"].includes(page)) {
+                      setActivePage(page);
+                      return;
+                    }
+                    
+                    // For pages with submenus - just toggle the submenu
+                    if (["Products", "Staffs", "User Management"].includes(page)) {
+                      toggleSubmenu(page);
+                    }
+                  }}
+                >
+                  {page}
+                </button>
 
-              {/* Submenu buttons */}
-              {page === "Products" &&
-                ["All Products", "Categories"].includes(activePage) && (
+                {/* Products submenu - show based on openSubmenus state */}
+                {page === "Products" && openSubmenus.Products && (
                   <div className="submenu">
                     {["All Products", "Categories"].map((sub) => (
                       <button
@@ -359,8 +349,8 @@ function AdminDashboard() {
                   </div>
                 )}
 
-              {page === "Staffs" &&
-                ["All Staffs", "Staffs Schedule"].includes(activePage) && (
+                {/* Staffs submenu - show based on openSubmenus state */}
+                {page === "Staffs" && openSubmenus.Staffs && (
                   <div className="submenu">
                     {["All Staffs", "Staffs Schedule"].map((sub) => (
                       <button
@@ -374,8 +364,8 @@ function AdminDashboard() {
                   </div>
                 )}
 
-              {page === "User Management" &&
-                ["Manage Groups", "Manage Users"].includes(activePage) && (
+                {/* User Management submenu - show based on openSubmenus state */}
+                {page === "User Management" && openSubmenus["User Management"] && (
                   <div className="submenu">
                     {["Manage Groups", "Manage Users"].map((sub) => (
                       <button
@@ -388,20 +378,18 @@ function AdminDashboard() {
                     ))}
                   </div>
                 )}
-            </div>
-          ))}
-        </nav>
-      </aside>
+              </div>
+            ))}
+          </nav>
+        </aside>
 
-      {/* Main Page Content */}
-      <main className="main">{renderContent()}</main>
+        {/* Main Page Content */}
+        <main className="main">{renderContent()}</main>
 
-      {/* Footer (optional) */}
-      <footer className="footer">
-        <p></p>
-      </footer>
-    </div>
-  );
-}
-
+        <footer className="footer">
+          <p></p>
+        </footer>
+      </div>
+    );
+  }
 export default AdminDashboard;
