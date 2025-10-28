@@ -219,30 +219,46 @@ function AdminDashboard() {
         </div>
         
         {/* Profile Section - Icon Only */}
-        <div className="profile-section" ref={profileRef}>
-          <button
-            className="profile-icon-btn"
-            onClick={() => setIsProfileOpen(!isProfileOpen)}
-          >
-            <img src={userLogo} alt="User" className="profile-avatar-icon" />
-          </button>
+          <div className="profile-section" ref={profileRef}>
+            <button
+              className="profile-trigger"
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+            >
+              <img src={userLogo} alt="User" className="profile-avatar" />
+              <div className="profile-info">
+                <span className="profile-name">Joshua Riana</span>
+                <span className="profile-role">Administrator</span>
+              </div>
+              <span className={`dropdown-arrow ${isProfileOpen ? 'open' : ''}`}>▼</span>
+            </button>
 
-          {isProfileOpen && (
-            <div className="profile-dropdown">
-              <div className="dropdown-user-info">
-                <img src={userLogo} alt="User Avatar" className="dropdown-avatar" />
-                <div className="user-details">
-                  <h4>Joshua Riana</h4>
-                  <p>Administrator</p>
+            {isProfileOpen && (
+              <div className="profile-dropdown">
+                <div className="dropdown-header">
+                  <img src={userLogo} alt="User Avatar" className="dropdown-avatar" />
+                  <div className="dropdown-user-info">
+                    <h4>Joshua Riana</h4>
+                    <p>Administrator</p>
+                  </div>
+                </div>
+                
+                <div className="dropdown-menu">
+                  <button className="dropdown-item">
+                    My Profile
+                  </button>
+                  <button className="dropdown-item">
+                    Settings
+                  </button>
+                  <button className="dropdown-item">
+                    Help & Support
+                  </button>
+                  <button className="dropdown-item logout">
+                    Log Out
+                  </button>
                 </div>
               </div>
-              <button className="logout-btn">
-                <span className="logout-icon">🚪</span>
-                Log Out
-              </button>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
       </header>
 
       {/* Main Page Content */}
