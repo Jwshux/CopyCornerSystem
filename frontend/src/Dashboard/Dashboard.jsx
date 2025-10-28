@@ -39,6 +39,38 @@ function AdminDashboard() {
     }));
   };
 
+  // Get contextual welcome message based on current page
+  const getWelcomeMessage = () => {
+    const messages = {
+      "Dashboard": "Here's your business overview",
+      "All Products": "Manage your product inventory",
+      "Categories": "Organize product categories",
+      "Manage Groups": "Manage user groups and permissions",
+      "Manage Users": "Handle user accounts and access",
+      "All Staffs": "View and manage staff members",
+      "Staffs Schedule": "Organize staff schedules",
+      "Sales": "Track sales and revenue",
+      "Transactions": "Monitor all transactions"
+    };
+    return messages[activePage] || "Manage your business efficiently";
+  };
+
+  // Get page title based on current page
+  const getPageTitle = () => {
+    const titles = {
+      "Dashboard": "Dashboard",
+      "All Products": "Products",
+      "Categories": "Categories", 
+      "Manage Groups": "User Management",
+      "Manage Users": "User Management",
+      "All Staffs": "Staff Management",
+      "Staffs Schedule": "Staff Scheduling",
+      "Sales": "Sales Analytics",
+      "Transactions": "Transaction History"
+    };
+    return titles[activePage] || "Dashboard";
+  };
+
   // Display the correct component
   const renderContent = () => {
     switch (activePage) {
@@ -61,143 +93,169 @@ function AdminDashboard() {
       case "Transactions":
         return <Transactions />;
       default:
-        return <h2>Welcome Admin</h2>;
+        return <DashboardUI />;
     }
   };
 
   return (
-      <div className="container">
-        {/* Header Section */}
-        <header className="header">
-          <div className="welcome-section">
-            <h1>Welcome, </h1>
-          </div>
-          <div className="profile-section" ref={profileRef}>
-            <button
-              className="profile-name"
-              onClick={() => setIsProfileOpen(!isProfileOpen)}
-            >
-              {!isProfileOpen && <span>Joshua Riana</span>}
-              <img src={userLogo} alt="User Logo" />
-            </button>
-            {isProfileOpen && (
-              <div className="profile-dropdown">
-                <div className="profile-info">
-                  <img
-                    src={userLogo}
-                    alt="User Avatar"
-                    className="profile-avatar"
-                  />
-                  <div>
-                    <h3>Joshua Riana</h3>
-                    <p>admin</p>
-                  </div>
-                </div>
-                <button className="logout-btn">Log Out</button>
-              </div>
-            )}
-          </div>
-        </header>
+    <div className="container">
+      {/* Sidebar Menu */}
+      <aside className="sidebar">
+        <h2 className="logo">Copy Corner Hub</h2>
 
-        {/* Sidebar Menu */}
-        <aside className="sidebar">
-          <h2 className="logo">Copy Corner Hub</h2>
-
-          <nav className="menu">
-            {[
-              "Dashboard",
-              "Products",
-              "Staffs",
-              "Sales",
-              "Transactions",
-              "User Management",
-            ].map((page) => (
-              <div key={page}>
-                {/* Main menu button */}
-                <button
-                  className={
-                    activePage === page ||
-                    (page === "Products" && 
-                    ["All Products", "Categories"].includes(activePage)) ||
-                    (page === "Staffs" && 
-                    ["All Staffs", "Staffs Schedule"].includes(activePage)) ||
-                    (page === "User Management" && 
-                    ["Manage Groups", "Manage Users"].includes(activePage))
-                      ? "active"
-                      : ""
+        <nav className="menu">
+          {[
+            "Dashboard",
+            "Products",
+            "Staffs",
+            "Sales",
+            "Transactions",
+            "User Management",
+          ].map((page) => (
+            <div key={page}>
+              {/* Main menu button */}
+              <button
+                className={
+                  activePage === page ||
+                  (page === "Products" && 
+                  ["All Products", "Categories"].includes(activePage)) ||
+                  (page === "Staffs" && 
+                  ["All Staffs", "Staffs Schedule"].includes(activePage)) ||
+                  (page === "User Management" && 
+                  ["Manage Groups", "Manage Users"].includes(activePage))
+                    ? "active"
+                    : ""
+                }
+                onClick={() => {
+                  // For main pages without submenus
+                  if (["Dashboard", "Sales", "Transactions"].includes(page)) {
+                    setActivePage(page);
+                    return;
                   }
-                  onClick={() => {
-                    // For main pages without submenus
-                    if (["Dashboard", "Sales", "Transactions"].includes(page)) {
-                      setActivePage(page);
-                      return;
-                    }
-                    
-                    // For pages with submenus - just toggle the submenu
-                    if (["Products", "Staffs", "User Management"].includes(page)) {
-                      toggleSubmenu(page);
-                    }
-                  }}
-                >
-                  {page}
-                </button>
-
-                {/* Products submenu - show based on openSubmenus state */}
-                {page === "Products" && openSubmenus.Products && (
-                  <div className="submenu">
-                    {["All Products", "Categories"].map((sub) => (
-                      <button
-                        key={sub}
-                        className={activePage === sub ? "active-sub" : ""}
-                        onClick={() => setActivePage(sub)}
-                      >
-                        {sub}
-                      </button>
-                    ))}
-                  </div>
+                  
+                  // For pages with submenus - just toggle the submenu
+                  if (["Products", "Staffs", "User Management"].includes(page)) {
+                    toggleSubmenu(page);
+                  }
+                }}
+              >
+                <span className="menu-icon">
+                  {page === "Dashboard" && "📊"}
+                  {page === "Products" && "📦"}
+                  {page === "Staffs" && "👥"}
+                  {page === "Sales" && "💰"}
+                  {page === "Transactions" && "🧾"}
+                  {page === "User Management" && "⚙️"}
+                </span>
+                {page}
+                {(page === "Products" || page === "Staffs" || page === "User Management") && (
+                  <span className={`dropdown-arrow ${openSubmenus[page] ? 'open' : ''}`}>▼</span>
                 )}
+              </button>
 
-                {/* Staffs submenu - show based on openSubmenus state */}
-                {page === "Staffs" && openSubmenus.Staffs && (
-                  <div className="submenu">
-                    {["All Staffs", "Staffs Schedule"].map((sub) => (
-                      <button
-                        key={sub}
-                        className={activePage === sub ? "active-sub" : ""}
-                        onClick={() => setActivePage(sub)}
-                      >
-                        {sub}
-                      </button>
-                    ))}
-                  </div>
-                )}
+              {/* Products submenu */}
+              {page === "Products" && openSubmenus.Products && (
+                <div className="submenu">
+                  {["All Products", "Categories"].map((sub) => (
+                    <button
+                      key={sub}
+                      className={activePage === sub ? "active-sub" : ""}
+                      onClick={() => setActivePage(sub)}
+                    >
+                      <span className="submenu-icon">
+                        {sub === "All Products" ? "📋" : "🏷️"}
+                      </span>
+                      {sub}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-                {/* User Management submenu - show based on openSubmenus state */}
-                {page === "User Management" && openSubmenus["User Management"] && (
-                  <div className="submenu">
-                    {["Manage Groups", "Manage Users"].map((sub) => (
-                      <button
-                        key={sub}
-                        className={activePage === sub ? "active-sub" : ""}
-                        onClick={() => setActivePage(sub)}
-                      >
-                        {sub}
-                      </button>
-                    ))}
-                  </div>
-                )}
+              {/* Staffs submenu */}
+              {page === "Staffs" && openSubmenus.Staffs && (
+                <div className="submenu">
+                  {["All Staffs", "Staffs Schedule"].map((sub) => (
+                    <button
+                      key={sub}
+                      className={activePage === sub ? "active-sub" : ""}
+                      onClick={() => setActivePage(sub)}
+                    >
+                      <span className="submenu-icon">
+                        {sub === "All Staffs" ? "👨‍💼" : "📅"}
+                      </span>
+                      {sub}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* User Management submenu */}
+              {page === "User Management" && openSubmenus["User Management"] && (
+                <div className="submenu">
+                  {["Manage Groups", "Manage Users"].map((sub) => (
+                    <button
+                      key={sub}
+                      className={activePage === sub ? "active-sub" : ""}
+                      onClick={() => setActivePage(sub)}
+                    >
+                      <span className="submenu-icon">
+                        {sub === "Manage Groups" ? "👥" : "👤"}
+                      </span>
+                      {sub}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </nav>
+      </aside>
+
+      {/* Header Section */}
+      <header className="header">
+        <div className="welcome-section">
+          <h1>Welcome, Joshua</h1>
+          <p className="welcome-subtitle">{getWelcomeMessage()}</p>
+        </div>
+        
+        {/* Profile Section - Icon Only */}
+        <div className="profile-section" ref={profileRef}>
+          <button
+            className="profile-icon-btn"
+            onClick={() => setIsProfileOpen(!isProfileOpen)}
+          >
+            <img src={userLogo} alt="User" className="profile-avatar-icon" />
+          </button>
+
+          {isProfileOpen && (
+            <div className="profile-dropdown">
+              <div className="dropdown-user-info">
+                <img src={userLogo} alt="User Avatar" className="dropdown-avatar" />
+                <div className="user-details">
+                  <h4>Joshua Riana</h4>
+                  <p>Administrator</p>
+                </div>
               </div>
-            ))}
-          </nav>
-        </aside>
+              <button className="logout-btn">
+                <span className="logout-icon">🚪</span>
+                Log Out
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
 
-        {/* Main Page Content */}
-        <main className="main">{renderContent()}</main>
+      {/* Main Page Content */}
+      <main className="main">
+        <div className="page-header">
+          <h2 className="page-title">{getPageTitle()}</h2>
+        </div>
+        <div className="content-container">
+          {renderContent()}
+        </div>
+      </main>
+    </div>
+  );
+}
 
-        <footer className="footer">
-          <p></p>
-        </footer>
-      </div>
-    );
-  }
 export default AdminDashboard;
