@@ -322,11 +322,6 @@
 
 /* Content Container for all pages */
 .content-container {
-  background: white;
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 4px 20px rgba(0, 32, 91, 0.1);
-  border: 1px solid #e0e6ed;
   min-height: calc(100vh - 200px);
   overflow-y: auto;
 }
