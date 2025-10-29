@@ -7,9 +7,9 @@ const API_BASE = "http://localhost:5000/api";
 
 const Transactions = () => {
   const [allProducts, setAllProducts] = useState([]);
-  const [serviceTypes, setServiceTypes] = useState([]); // NEW: Dynamic service types
+  const [serviceTypes, setServiceTypes] = useState([]);
   const [transactions, setTransactions] = useState([]);
-  const [activeTab, setActiveTab] = useState("All");
+  const [activeTab, setActiveTab] = useState("Pending"); // Default to Pending
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -33,7 +33,7 @@ const Transactions = () => {
     price_per_unit: "",
     quantity: "",
     total_amount: "",
-    status: "Pending",
+    status: "Pending", // Always start as Pending
     date: "",
   });
 
@@ -45,10 +45,8 @@ const Transactions = () => {
   // Validation Functions
   // ==========================
 
-  // Validate customer name (letters, spaces, periods, commas, hyphens only - no numbers)
   const validateCustomerName = (name) => {
     if (!name || !name.trim()) return false;
-    // Allow letters, spaces, periods, commas, hyphens, apostrophes
     const nameRegex = /^[A-Za-z\s.,'-]+$/;
     return nameRegex.test(name);
   };
@@ -57,13 +55,10 @@ const Transactions = () => {
   // Fetch Data
   // ==========================
   
-  const fetchTransactions = async (page = 1, status = "All") => {
+  const fetchTransactions = async (page = 1, status = "Pending") => {
     setLoading(true);
     try {
-      let url = `${API_BASE}/transactions?page=${page}&per_page=10`;
-      if (status !== "All") {
-        url = `${API_BASE}/transactions/status/${status}?page=${page}&per_page=10`;
-      }
+      const url = `${API_BASE}/transactions/status/${status}?page=${page}&per_page=10`;
       
       const response = await fetch(url);
       if (response.ok) {
@@ -81,7 +76,6 @@ const Transactions = () => {
     }
   };
 
-  // Fetch all products for category-based filtering
   const fetchAllProducts = async () => {
     try {
       const response = await fetch(`${API_BASE}/products?page=1&per_page=100`);
@@ -94,13 +88,11 @@ const Transactions = () => {
     }
   };
 
-  // NEW: Fetch service types from backend
   const fetchServiceTypes = async () => {
     try {
       const response = await fetch(`${API_BASE}/service_types`);
       if (response.ok) {
         const data = await response.json();
-        // Filter only active service types
         const activeServices = data.filter(service => service.status === "Active");
         setServiceTypes(activeServices);
       }
@@ -112,7 +104,7 @@ const Transactions = () => {
   useEffect(() => {
     fetchTransactions(1, activeTab);
     fetchAllProducts();
-    fetchServiceTypes(); // NEW: Fetch service types on component mount
+    fetchServiceTypes();
   }, []);
 
   useEffect(() => {
@@ -120,17 +112,13 @@ const Transactions = () => {
   }, [activeTab]);
 
   // ==========================
-  // Service Type Logic - UPDATED TO USE DYNAMIC SERVICE TYPES
+  // Service Type Logic
   // ==========================
 
-  // Get service type options for dropdown (only active ones)
   const serviceTypeOptions = serviceTypes.map(service => service.service_name);
 
-  // Service Type to Category Mapping - UPDATED TO USE DYNAMIC CATEGORIES
   const getCategoryForService = (serviceType) => {
     if (!serviceType) return null;
-    
-    // Find the service type in our dynamic list and get its category
     const service = serviceTypes.find(s => s.service_name === serviceType);
     return service ? service.category : null;
   };
@@ -150,22 +138,17 @@ const Transactions = () => {
     return category === "Supplies";
   };
 
-  // Get products by category for dropdowns
   const getProductsByCategory = (categoryName) => {
     if (!categoryName || !allProducts || allProducts.length === 0) return [];
-    
     return allProducts.filter(product => 
       product && product.category && product.category === categoryName
     );
   };
 
-  // Get dropdown options based on service type
   const getServiceOptions = (serviceType) => {
     if (!serviceType) return [];
-    
     const category = getCategoryForService(serviceType);
     if (!category) return [];
-    
     const products = getProductsByCategory(category);
     return products.map(product => product.product_name);
   };
@@ -208,7 +191,7 @@ const Transactions = () => {
       price_per_unit: "",
       quantity: "",
       total_amount: "",
-      status: "Pending",
+      status: "Pending", // Always Pending for new transactions
       date: new Date().toISOString().split("T")[0],
     });
     setIsEditing(false);
@@ -216,6 +199,12 @@ const Transactions = () => {
   };
 
   const handleEdit = (transaction) => {
+    // Only allow editing Pending transactions
+    if (transaction.status !== "Pending") {
+      alert("Only pending transactions can be edited.");
+      return;
+    }
+
     setFormData({
       queue_number: transaction.queue_number || "",
       transaction_id: transaction.transaction_id || "",
@@ -228,7 +217,7 @@ const Transactions = () => {
       price_per_unit: transaction.price_per_unit || "",
       quantity: transaction.quantity || "",
       total_amount: transaction.total_amount || "",
-      status: transaction.status || "Pending",
+      status: transaction.status || "Pending", // Keep original status
       date: transaction.date || new Date().toISOString().split("T")[0],
     });
     setEditIndex(transaction._id);
@@ -236,80 +225,92 @@ const Transactions = () => {
     setShowFormModal(true);
   };
 
-  const handleSave = async (e) => {
-    e.preventDefault();
+const handleSave = async (e) => {
+  e.preventDefault();
+  
+  // Validate customer name
+  if (!validateCustomerName(formData.customer_name)) {
+    alert("Please enter a valid customer name (letters, spaces, periods, commas, hyphens only - no numbers or special characters)");
+    return;
+  }
+
+  // Validate service-specific fields
+  if (isPaperService(formData.service_type) && !formData.paper_type) {
+    alert("Please select a paper type for this service");
+    return;
+  }
+
+  if (isPaperService(formData.service_type) && (!formData.total_pages || formData.total_pages < 1)) {
+    alert("Please enter total pages (minimum 1)");
+    return;
+  }
+
+  if (isTshirtService(formData.service_type) && !formData.size_type) {
+    alert("Please select a size for T-shirt printing");
+    return;
+  }
+
+  if (isSuppliesService(formData.service_type) && !formData.supply_type) {
+    alert("Please select a school supply item");
+    return;
+  }
+
+  try {
+    const backendData = {
+      customer_name: formData.customer_name,
+      service_type: formData.service_type,
+      paper_type: formData.paper_type || "",
+      size_type: formData.size_type || "",
+      supply_type: formData.supply_type || "",
+      total_pages: parseInt(formData.total_pages) || 0,
+      price_per_unit: parseFloat(formData.price_per_unit) || 0,
+      quantity: parseInt(formData.quantity) || 1,
+      total_amount: parseFloat(formData.total_amount) || 0,
+      status: formData.status, // Always "Pending" for new transactions
+      date: formData.date
+    };
+
+    const url = isEditing 
+      ? `${API_BASE}/transactions/${editIndex}`
+      : `${API_BASE}/transactions`;
     
-    // Validate customer name
-    if (!validateCustomerName(formData.customer_name)) {
-      alert("Please enter a valid customer name (letters, spaces, periods, commas, hyphens only - no numbers or special characters)");
-      return;
-    }
+    const method = isEditing ? 'PUT' : 'POST';
+    
+    const response = await fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(backendData),
+    });
 
-    // Validate service-specific fields
-    if (isPaperService(formData.service_type) && !formData.paper_type) {
-      alert("Please select a paper type for this service");
-      return;
-    }
-
-    if (isPaperService(formData.service_type) && (!formData.total_pages || formData.total_pages < 1)) {
-      alert("Please enter total pages (minimum 1)");
-      return;
-    }
-
-    if (isTshirtService(formData.service_type) && !formData.size_type) {
-      alert("Please select a size for T-shirt printing");
-      return;
-    }
-
-    if (isSuppliesService(formData.service_type) && !formData.supply_type) {
-      alert("Please select a school supply item");
-      return;
-    }
-
-    try {
-      const backendData = {
-        customer_name: formData.customer_name,
-        service_type: formData.service_type,
-        paper_type: formData.paper_type || "",
-        size_type: formData.size_type || "",
-        supply_type: formData.supply_type || "",
-        total_pages: parseInt(formData.total_pages) || 0,
-        price_per_unit: parseFloat(formData.price_per_unit) || 0,
-        quantity: parseInt(formData.quantity) || 1,
-        total_amount: parseFloat(formData.total_amount) || 0,
-        status: formData.status,
-        date: formData.date
-      };
-
-      const url = isEditing 
-        ? `${API_BASE}/transactions/${editIndex}`
-        : `${API_BASE}/transactions`;
-      
-      const method = isEditing ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(backendData),
-      });
-
-      if (response.ok) {
-        await fetchTransactions(currentPage, activeTab);
-        setShowFormModal(false);
-        resetForm();
+    if (response.ok) {
+      // NEW: Switch to Pending tab after adding new transaction
+      if (!isEditing) {
+        setActiveTab("Pending");
+        await fetchTransactions(1, "Pending"); // Refresh Pending tab
       } else {
-        const error = await response.json();
-        alert(error.error || `Failed to ${isEditing ? 'update' : 'create'} transaction`);
+        await fetchTransactions(currentPage, activeTab); // Stay on current tab for edits
       }
-    } catch (error) {
-      console.error(`Error ${isEditing ? 'updating' : 'creating'} transaction:`, error);
-      alert(`Error ${isEditing ? 'updating' : 'creating'} transaction`);
+      
+      setShowFormModal(false);
+      resetForm();
+    } else {
+      const error = await response.json();
+      alert(error.error || `Failed to ${isEditing ? 'update' : 'create'} transaction`);
     }
-  };
+  } catch (error) {
+    console.error(`Error ${isEditing ? 'updating' : 'creating'} transaction:`, error);
+    alert(`Error ${isEditing ? 'updating' : 'creating'} transaction`);
+  }
+};
 
   const handleDelete = async (transaction) => {
+    // Only allow deleting Completed or Cancelled transactions
+    if (transaction.status === "Pending") {
+      alert("Pending transactions cannot be deleted. Please cancel them first.");
+      return;
+    }
     setTransactionToDelete(transaction);
     setShowDeleteModal(true);
   };
@@ -479,17 +480,16 @@ const Transactions = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          {activeTab === "All" && (
-            <button className="add-btn" onClick={handleAdd}>
-              + Add Transaction
-            </button>
-          )}
+          {/* Add button always visible - staff can add anytime */}
+          <button className="add-btn" onClick={handleAdd}>
+            + Add Transaction
+          </button>
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs - Only Pending, Completed, Cancelled */}
       <div className="transaction-tabs">
-        {["All", "Pending", "Completed", "Cancelled"].map((tab) => (
+        {["Pending", "Completed", "Cancelled"].map((tab) => (
           <button
             key={tab}
             className={`tab-btn ${activeTab === tab ? "active" : ""}`}
@@ -556,29 +556,23 @@ const Transactions = () => {
                     </span>
                   </td>
                   <td>
-                    {/* Pending tab actions */}
-                    {activeTab === "Pending" && (
+                    {/* PENDING: Can Edit, Complete, or Cancel */}
+                    {t.status === "Pending" && (
                       <>
-                        <button className="edit-btn" onClick={() => handleEdit(t)}>✏️</button>
-                        <button className="complete-btn" onClick={() => handleComplete(t)}>✅</button>
-                        <button className="cancel-btn-table" onClick={() => handleCancel(t)}>❌</button>
+                        <button className="edit-btn" onClick={() => handleEdit(t)}>✏️ Edit</button>
+                        <button className="complete-btn" onClick={() => handleComplete(t)}>✅ Complete</button>
+                        <button className="cancel-btn-table" onClick={() => handleCancel(t)}>❌ Cancel</button>
                       </>
                     )}
 
-                    {/* All tab actions */}
-                    {activeTab === "All" && (
-                      <>
-                        <button className="edit-btn" onClick={() => handleEdit(t)}>Update</button>
-                        <button className="cancel-btn-table" onClick={() => handleCancel(t)}>Cancel</button>
-                      </>
+                    {/* COMPLETED: Can only view (no actions) or Delete */}
+                    {t.status === "Completed" && (
+                      <button className="delete-btn" onClick={() => handleDelete(t)}>🗑️ Delete</button>
                     )}
 
-                    {/* Completed or Cancelled tab actions */}
-                    {(activeTab === "Completed" || activeTab === "Cancelled") && (
-                      <>
-                        <button className="edit-btn" onClick={() => handleEdit(t)}>Edit</button>
-                        <button className="delete-btn" onClick={() => handleDelete(t)}>Delete</button>
-                      </>
+                    {/* CANCELLED: Can only view (no actions) or Delete */}
+                    {t.status === "Cancelled" && (
+                      <button className="delete-btn" onClick={() => handleDelete(t)}>🗑️ Delete</button>
                     )}
                   </td>
                 </tr>
@@ -587,7 +581,7 @@ const Transactions = () => {
           ) : (
             <tr>
               <td colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
-                No transactions found.
+                No {activeTab.toLowerCase()} transactions found.
               </td>
             </tr>
           )}
@@ -615,16 +609,12 @@ const Transactions = () => {
         </button>
       </div>
 
-      {/* ADD / EDIT / UPDATE MODAL */}
+      {/* ADD / EDIT MODAL */}
       {showFormModal && (
         <div className="overlay">
           <div className="add-form">
             <h3>
-              {isEditing
-                ? activeTab === "All"
-                  ? "Update Transaction"
-                  : "Edit Transaction"
-                : "Add Transaction"}
+              {isEditing ? "Edit Transaction" : "Add Transaction"}
             </h3>
             <form onSubmit={handleSave}>
               <div className="form-row">
@@ -660,7 +650,7 @@ const Transactions = () => {
                 />
               </div>
               
-              {/* Service Type Dropdown - NOW DYNAMIC */}
+              {/* Service Type Dropdown */}
               <div className="form-group">
                 <label>Service Type:</label>
                 <select
@@ -678,7 +668,7 @@ const Transactions = () => {
                 </select>
               </div>
 
-              {/* PAPER-BASED SERVICES: Dynamic Paper Type from Category */}
+              {/* PAPER-BASED SERVICES */}
               {isPaperService(formData.service_type) && (
                 <>
                   <div className="form-group">
@@ -713,7 +703,7 @@ const Transactions = () => {
                 </>
               )}
 
-              {/* T-SHIRT PRINTING: Dynamic Sizes from Category */}
+              {/* T-SHIRT PRINTING */}
               {isTshirtService(formData.service_type) && (
                 <div className="form-group">
                   <label>Shirt Size/Type:</label>
@@ -733,7 +723,7 @@ const Transactions = () => {
                 </div>
               )}
 
-              {/* SCHOOL SUPPLIES: Dynamic Supplies from Category */}
+              {/* SCHOOL SUPPLIES */}
               {isSuppliesService(formData.service_type) && (
                 <div className="form-group">
                   <label>School Supply Item:</label>
@@ -805,22 +795,7 @@ const Transactions = () => {
                 />
               </div>
 
-              {/* Allow status editing only in All tab */}
-              {activeTab === "All" && (
-                <div className="form-group">
-                  <label>Status:</label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="Pending">Pending</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
-              )}
+              {/* Status field removed from form - always Pending for new, unchanged for edits */}
 
               <div className="form-buttons">
                 <button type="submit" className="save-btn">
