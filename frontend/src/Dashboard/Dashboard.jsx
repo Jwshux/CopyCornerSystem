@@ -10,13 +10,15 @@ import StaffSchedule from "./StaffSchedule";
 import Transactions from "./Transactions";
 import DashboardUI from "./DashboardUI";
 import userLogo from "../UserLogo.png";
+import ServiceTypes from "./ServiceTypes"; // Add this import
 
 function AdminDashboard() {
   const [activePage, setActivePage] = useState("Dashboard");
   const [openSubmenus, setOpenSubmenus] = useState({
     Products: false,
     Staffs: false,
-    "User Management": false
+    "User Management": false,
+    Transactions: false // Add Transactions to submenus
   });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef(null);
@@ -50,7 +52,8 @@ function AdminDashboard() {
       "All Staffs": "View and manage staff members",
       "Staffs Schedule": "Organize staff schedules",
       "Sales": "Track sales and revenue",
-      "Transactions": "Monitor all transactions"
+      "Transactions": "Monitor all transactions",
+      "Service Types": "Manage your service types",
     };
     return messages[activePage] || "Manage your business efficiently";
   };
@@ -66,7 +69,8 @@ function AdminDashboard() {
       "All Staffs": "Staff Management",
       "Staffs Schedule": "Staff Scheduling",
       "Sales": "Sales Analytics",
-      "Transactions": "Transaction History"
+      "Transactions": "Transaction History",
+      "Service Types": "Service Types",
     };
     return titles[activePage] || "Dashboard";
   };
@@ -92,6 +96,8 @@ function AdminDashboard() {
         return <Sales />;
       case "Transactions":
         return <Transactions />;
+      case "Service Types": // Add this case
+        return <ServiceTypes />;
       default:
         return <DashboardUI />;
     }
@@ -122,19 +128,21 @@ function AdminDashboard() {
                   (page === "Staffs" && 
                   ["All Staffs", "Staffs Schedule"].includes(activePage)) ||
                   (page === "User Management" && 
-                  ["Manage Groups", "Manage Users"].includes(activePage))
+                  ["Manage Groups", "Manage Users"].includes(activePage)) ||
+                  (page === "Transactions" && 
+                  ["Transactions", "Service Types"].includes(activePage)) // Add this condition
                     ? "active"
                     : ""
                 }
                 onClick={() => {
                   // For main pages without submenus
-                  if (["Dashboard", "Sales", "Transactions"].includes(page)) {
+                  if (["Dashboard", "Sales"].includes(page)) {
                     setActivePage(page);
                     return;
                   }
                   
                   // For pages with submenus - just toggle the submenu
-                  if (["Products", "Staffs", "User Management"].includes(page)) {
+                  if (["Products", "Staffs", "User Management", "Transactions"].includes(page)) {
                     toggleSubmenu(page);
                   }
                 }}
@@ -148,7 +156,7 @@ function AdminDashboard() {
                   {page === "User Management" && "⚙️"}
                 </span>
                 {page}
-                {(page === "Products" || page === "Staffs" || page === "User Management") && (
+                {(page === "Products" || page === "Staffs" || page === "User Management" || page === "Transactions") && (
                   <span className={`dropdown-arrow ${openSubmenus[page] ? 'open' : ''}`}>▼</span>
                 )}
               </button>
@@ -182,6 +190,24 @@ function AdminDashboard() {
                     >
                       <span className="submenu-icon">
                         {sub === "All Staffs" ? "👨‍💼" : "📅"}
+                      </span>
+                      {sub}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Transactions submenu */}
+              {page === "Transactions" && openSubmenus.Transactions && (
+                <div className="submenu">
+                  {["Transactions", "Service Types"].map((sub) => (
+                    <button
+                      key={sub}
+                      className={activePage === sub ? "active-sub" : ""}
+                      onClick={() => setActivePage(sub)}
+                    >
+                      <span className="submenu-icon">
+                        {sub === "Transactions" ? "📝" : "🔧"}
                       </span>
                       {sub}
                     </button>
