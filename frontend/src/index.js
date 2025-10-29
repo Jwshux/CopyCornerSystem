@@ -6,8 +6,6 @@ import "./Login.css";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  // Optional: store user info after login
   const [user, setUser] = useState(null);
 
   const handleLoginSuccess = (userData) => {
@@ -15,10 +13,16 @@ function App() {
     setIsLoggedIn(true);
   };
 
+  // Add logout handler
+  const handleLogout = () => {
+    setUser(null);
+    setIsLoggedIn(false);
+  };
+
   return (
     <>
       {isLoggedIn ? (
-        <AdminDashboard user={user} />
+        <AdminDashboard user={user} onLogout={handleLogout} />
       ) : (
         <Login onLoginSuccess={handleLoginSuccess} />
       )}

@@ -10,15 +10,15 @@ import StaffSchedule from "./StaffSchedule";
 import Transactions from "./Transactions";
 import DashboardUI from "./DashboardUI";
 import userLogo from "../UserLogo.png";
-import ServiceTypes from "./ServiceTypes"; // Add this import
+import ServiceTypes from "./ServiceTypes";
 
-function AdminDashboard() {
+function AdminDashboard({ user, onLogout }) { // Add onLogout prop
   const [activePage, setActivePage] = useState("Dashboard");
   const [openSubmenus, setOpenSubmenus] = useState({
     Products: false,
     Staffs: false,
     "User Management": false,
-    Transactions: false // Add Transactions to submenus
+    Transactions: false
   });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef(null);
@@ -33,6 +33,20 @@ function AdminDashboard() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Add logout function
+  const handleLogout = () => {
+    // Clear any stored user data
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("token");
+    
+    // Call the parent's logout function to go back to login
+    if (onLogout) {
+      onLogout();
+    }
+  };
 
   const toggleSubmenu = (menu) => {
     setOpenSubmenus(prev => ({
@@ -96,7 +110,7 @@ function AdminDashboard() {
         return <Sales />;
       case "Transactions":
         return <Transactions />;
-      case "Service Types": // Add this case
+      case "Service Types":
         return <ServiceTypes />;
       default:
         return <DashboardUI />;
@@ -130,7 +144,7 @@ function AdminDashboard() {
                   (page === "User Management" && 
                   ["Manage Groups", "Manage Users"].includes(activePage)) ||
                   (page === "Transactions" && 
-                  ["Transactions", "Service Types"].includes(activePage)) // Add this condition
+                  ["Transactions", "Service Types"].includes(activePage))
                     ? "active"
                     : ""
                 }
@@ -240,51 +254,52 @@ function AdminDashboard() {
       {/* Header Section */}
       <header className="header">
         <div className="welcome-section">
-          <h1>Welcome, Joshua</h1>
+          <h1>Welcome, {user?.name || "Joshua"}</h1> {/* Use actual user name */}
           <p className="welcome-subtitle">{getWelcomeMessage()}</p>
         </div>
         
-        {/* Profile Section - Icon Only */}
-          <div className="profile-section" ref={profileRef}>
-            <button
-              className="profile-trigger"
-              onClick={() => setIsProfileOpen(!isProfileOpen)}
-            >
-              <img src={userLogo} alt="User" className="profile-avatar" />
-              <div className="profile-info">
-                <span className="profile-name">Joshua Riana</span>
-                <span className="profile-role">Administrator</span>
-              </div>
-              <span className={`dropdown-arrow ${isProfileOpen ? 'open' : ''}`}>▼</span>
-            </button>
+        {/* Profile Section - Updated with logout */}
+        <div className="profile-section" ref={profileRef}>
+          <button
+            className="profile-trigger"
+            onClick={() => setIsProfileOpen(!isProfileOpen)}
+          >
+            <img src={userLogo} alt="User" className="profile-avatar" />
+            <div className="profile-info">
+              <span className="profile-name">{user?.name || "Joshua Riana"}</span>
+              <span className="profile-role">Administrator</span>
+            </div>
+            <span className={`dropdown-arrow ${isProfileOpen ? 'open' : ''}`}>▼</span>
+          </button>
 
-            {isProfileOpen && (
-              <div className="profile-dropdown">
-                <div className="dropdown-header">
-                  <img src={userLogo} alt="User Avatar" className="dropdown-avatar" />
-                  <div className="dropdown-user-info">
-                    <h4>Joshua Riana</h4>
-                    <p>Administrator</p>
-                  </div>
-                </div>
-                
-                <div className="dropdown-menu">
-                  <button className="dropdown-item">
-                    My Profile
-                  </button>
-                  <button className="dropdown-item">
-                    Settings
-                  </button>
-                  <button className="dropdown-item">
-                    Help & Support
-                  </button>
-                  <button className="dropdown-item logout">
-                    Log Out
-                  </button>
+          {isProfileOpen && (
+            <div className="profile-dropdown">
+              <div className="dropdown-header">
+                <img src={userLogo} alt="User Avatar" className="dropdown-avatar" />
+                <div className="dropdown-user-info">
+                  <h4>{user?.name || "Joshua Riana"}</h4>
+                  <p>Administrator</p>
                 </div>
               </div>
-            )}
-          </div>
+              
+              <div className="dropdown-menu">
+                <button className="dropdown-item">
+                  My Profile
+                </button>
+                <button className="dropdown-item">
+                  Settings
+                </button>
+                <button className="dropdown-item">
+                  Help & Support
+                </button>
+                {/* Updated logout button */}
+                <button className="dropdown-item logout" onClick={handleLogout}>
+                  Log Out
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </header>
 
       {/* Main Page Content */}
