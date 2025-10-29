@@ -82,11 +82,16 @@ def create_group():
         # Check if group name already exists
         existing_group = groups_collection.find_one({'group_name': data['group_name']})
         if existing_group:
-            return jsonify({'error': 'Group name already exists'}), 400
+            return jsonify({'error': 'Role name already exists'}), 400
+        
+        # Validate group level - ONLY 0 or 1
+        group_level = int(data['group_level'])
+        if group_level not in [0, 1]:
+            return jsonify({'error': 'Role level must be 0 or 1'}), 400
         
         new_group = {
             'group_name': data['group_name'],
-            'group_level': int(data['group_level']),
+            'group_level': group_level,
             'status': data.get('status', 'Active'),
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
@@ -110,11 +115,16 @@ def update_group(group_id):
             '_id': {'$ne': ObjectId(group_id)}
         })
         if existing_group:
-            return jsonify({'error': 'Group name already exists'}), 400
+            return jsonify({'error': 'Role name already exists'}), 400
+        
+        # Validate group level - ONLY 0 or 1
+        group_level = int(data['group_level'])
+        if group_level not in [0, 1]:
+            return jsonify({'error': 'Role level must be 0 or 1'}), 400
         
         update_data = {
             'group_name': data['group_name'],
-            'group_level': int(data['group_level']),
+            'group_level': group_level,
             'status': data['status'],
             'updated_at': datetime.utcnow()
         }
@@ -125,8 +135,8 @@ def update_group(group_id):
         )
         
         if result.matched_count:
-            return jsonify({'message': 'Group updated successfully'})
-        return jsonify({'error': 'Group not found'}), 404
+            return jsonify({'message': 'Role updated successfully'})
+        return jsonify({'error': 'Role not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -136,7 +146,7 @@ def delete_group(group_id):
     try:
         result = groups_collection.delete_one({'_id': ObjectId(group_id)})
         if result.deleted_count:
-            return jsonify({'message': 'Group deleted successfully'})
-        return jsonify({'error': 'Group not found'}), 404
+            return jsonify({'message': 'Role deleted successfully'})
+        return jsonify({'error': 'Role not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -61,7 +61,7 @@ function AdminDashboard({ user, onLogout }) {
       "Dashboard": "Here's your business overview",
       "All Products": "Manage your product inventory",
       "Categories": "Organize product categories",
-      "Manage Groups": "Manage user groups and permissions",
+      "Manage Roles": "Manage user Roles and permissions",
       "Manage Users": "Handle user accounts and access",
       "All Staffs": "View and manage staff members",
       "Staffs Schedule": "Organize staff schedules",
@@ -78,7 +78,7 @@ function AdminDashboard({ user, onLogout }) {
       "Dashboard": "Dashboard",
       "All Products": "Products",
       "Categories": "Categories", 
-      "Manage Groups": "User Management",
+      "Manage Roles": "User Roles Management",
       "Manage Users": "User Management",
       "All Staffs": "Staff Management",
       "Staffs Schedule": "Staff Scheduling",
@@ -98,7 +98,7 @@ function AdminDashboard({ user, onLogout }) {
         return <AllProducts />;
       case "Categories":
         return <Categories />;
-      case "Manage Groups":
+      case "Manage Roles":
         return <ManageGroup />;
       case "Manage Users":
         return <ManageUsers />;
@@ -142,7 +142,7 @@ function AdminDashboard({ user, onLogout }) {
                   (page === "Staffs" && 
                   ["All Staffs", "Staffs Schedule"].includes(activePage)) ||
                   (page === "User Management" && 
-                  ["Manage Groups", "Manage Users"].includes(activePage)) ||
+                  ["Manage Roles", "Manage Users"].includes(activePage)) ||
                   (page === "Transactions" && 
                   ["Transactions", "Service Types"].includes(activePage))
                     ? "active"
@@ -232,14 +232,14 @@ function AdminDashboard({ user, onLogout }) {
               {/* User Management submenu */}
               {page === "User Management" && openSubmenus["User Management"] && (
                 <div className="submenu">
-                  {["Manage Groups", "Manage Users"].map((sub) => (
+                  {["Manage Roles", "Manage Users"].map((sub) => (
                     <button
                       key={sub}
                       className={activePage === sub ? "active-sub" : ""}
                       onClick={() => setActivePage(sub)}
                     >
                       <span className="submenu-icon">
-                        {sub === "Manage Groups" ? "👥" : "👤"}
+                        {sub === "Manage Roles" ? "👥" : "👤"}
                       </span>
                       {sub}
                     </button>

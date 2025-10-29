@@ -3,7 +3,7 @@ import "./ManageGroup.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
-import deleteAnimation from "../animations/delete.json"; // Add this import
+import deleteAnimation from "../animations/delete.json";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -15,20 +15,34 @@ function ManageGroup() {
   const [currentGroup, setCurrentGroup] = useState({
     _id: null,
     group_name: "",
-    group_level: "",
+    group_level: "1", // Default to level 1 (Staff)
     status: "Active",
   });
   const [groupToDelete, setGroupToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false); // New state for delete animation
-  const [deleteSuccess, setDeleteSuccess] = useState(false); // New state for delete success
+  const [deleting, setDeleting] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [groupNameError, setGroupNameError] = useState("");
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Role levels with descriptions - ONLY 2 LEVELS
+  const roleLevels = [
+    { 
+      value: "0", 
+      label: "Level 0 - Administrator", 
+      description: "Full system access - Can manage everything including users and roles" 
+    },
+    { 
+      value: "1", 
+      label: "Level 1 - Staff", 
+      description: "Limited access - Cannot access User Management, Manage Roles, and All Staff" 
+    }
+  ];
 
   // Fetch groups from backend
   const fetchGroups = async (page = 1) => {
@@ -94,7 +108,7 @@ function ManageGroup() {
     );
 
     if (existingGroup) {
-      setGroupNameError("Group name already exists");
+      setGroupNameError("Role name already exists");
     } else {
       setGroupNameError("");
     }
@@ -111,12 +125,24 @@ function ManageGroup() {
     }
   };
 
+  // Get level description
+  const getLevelDescription = (level) => {
+    const levelObj = roleLevels.find(l => l.value === level.toString());
+    return levelObj ? levelObj.description : "Unknown level";
+  };
+
+  // Get level label
+  const getLevelLabel = (level) => {
+    const levelObj = roleLevels.find(l => l.value === level.toString());
+    return levelObj ? levelObj.label.split(" - ")[1] : `Level ${level}`;
+  };
+
   // Handle Add or Edit (Save/Update)
   const handleSave = async (e) => {
     e.preventDefault();
     
     if (groupNameError) {
-      alert("Please fix the group name error before saving.");
+      alert("Please fix the role name error before saving.");
       return;
     }
 
@@ -132,14 +158,13 @@ function ManageGroup() {
           },
           body: JSON.stringify({
             group_name: currentGroup.group_name,
-            group_level: currentGroup.group_level,
+            group_level: parseInt(currentGroup.group_level),
             status: currentGroup.status
           }),
         });
 
         if (response.ok) {
           setSaveSuccess(true);
-          // Wait for animation to complete before closing
           setTimeout(async () => {
             await fetchGroups(currentPage);
             handleCloseForm();
@@ -147,7 +172,7 @@ function ManageGroup() {
           }, 1500);
         } else {
           const error = await response.json();
-          alert(error.error || 'Failed to update group');
+          alert(error.error || 'Failed to update role');
           setSaving(false);
         }
       } else {
@@ -159,14 +184,13 @@ function ManageGroup() {
           },
           body: JSON.stringify({
             group_name: currentGroup.group_name,
-            group_level: currentGroup.group_level,
+            group_level: parseInt(currentGroup.group_level),
             status: currentGroup.status
           }),
         });
 
         if (response.ok) {
           setSaveSuccess(true);
-          // Wait for animation to complete before closing
           setTimeout(async () => {
             await fetchGroups(currentPage);
             handleCloseForm();
@@ -174,13 +198,13 @@ function ManageGroup() {
           }, 1500);
         } else {
           const error = await response.json();
-          alert(error.error || 'Failed to create group');
+          alert(error.error || 'Failed to create role');
           setSaving(false);
         }
       }
     } catch (error) {
-      console.error('Error saving group:', error);
-      alert('Error saving group');
+      console.error('Error saving role:', error);
+      alert('Error saving role');
       setSaving(false);
     }
   };
@@ -189,7 +213,7 @@ function ManageGroup() {
     setCurrentGroup({
       _id: group._id,
       group_name: group.group_name,
-      group_level: group.group_level,
+      group_level: group.group_level.toString(),
       status: group.status
     });
     setGroupNameError("");
@@ -224,29 +248,25 @@ function ManageGroup() {
 
       if (response.ok) {
         setDeleteSuccess(true);
-        // Wait for animation to complete before closing and refreshing
         setTimeout(async () => {
-          // Check if this was the last item on the current page
           const isLastItemOnPage = groups.length === 1;
           
           if (isLastItemOnPage && currentPage > 1) {
-            // If it was the last item and we're not on page 1, go to previous page
             await fetchGroups(currentPage - 1);
           } else {
-            // Otherwise refresh current page (backend will handle empty pages)
             await fetchGroups(currentPage);
           }
           closeDeleteModal();
           setDeleting(false);
         }, 1500);
       } else {
-        console.error('Failed to delete group');
-        alert('Failed to delete group');
+        console.error('Failed to delete role');
+        alert('Failed to delete role');
         setDeleting(false);
       }
     } catch (error) {
-      console.error('Error deleting group:', error);
-      alert('Error deleting group');
+      console.error('Error deleting role:', error);
+      alert('Error deleting role');
       setDeleting(false);
     }
   };
@@ -256,7 +276,7 @@ function ManageGroup() {
     setCurrentGroup({
       _id: null,
       group_name: "",
-      group_level: "",
+      group_level: "1", // Default to Staff level
       status: "Active"
     });
     setGroupNameError("");
@@ -269,7 +289,7 @@ function ManageGroup() {
     setCurrentGroup({
       _id: null,
       group_name: "",
-      group_level: "",
+      group_level: "1",
       status: "Active"
     });
     setGroupNameError("");
@@ -278,9 +298,9 @@ function ManageGroup() {
   return (
     <div className="manage-group-page">
       <div className="header-section">
-        <h2>GROUPS</h2>
+        <h2>MANAGE ROLES</h2>
         <button className="add-btn" onClick={handleAddNewGroup}>
-          ADD NEW GROUP
+          ADD NEW ROLE
         </button>
       </div>
 
@@ -288,8 +308,9 @@ function ManageGroup() {
         <thead>
           <tr>
             <th>#</th>
-            <th>Group Name</th>
-            <th>Group Level</th>
+            <th>Role Name</th>
+            <th>Role Level</th>
+            <th>Access Level</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -297,22 +318,23 @@ function ManageGroup() {
         <tbody>
           {groups.length === 0 ? (
             <tr>
-                <td colSpan="5" style={{ textAlign: "center", color: "#888" }}>
-                    {loading ? (
-                      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
-                        <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
-                      </div>
-                    ) : (
-                      "No groups found."
-                    )}
-                  </td>
-                </tr>
-              ) : (
+              <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
+                {loading ? (
+                  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                    <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                  </div>
+                ) : (
+                  "No roles found."
+                )}
+              </td>
+            </tr>
+          ) : (
             groups.map((group, index) => (
               <tr key={group._id}>
                 <td>{(currentPage - 1) * 10 + index + 1}</td>
                 <td>{group.group_name}</td>
-                <td>{group.group_level}</td>
+                <td>Level {group.group_level}</td>
+                <td>{getLevelDescription(group.group_level)}</td>
                 <td>
                   <span className={`status ${group.status.toLowerCase()}`}>
                     {group.status}
@@ -332,7 +354,7 @@ function ManageGroup() {
         </tbody>
       </table>
 
-      {/* SIMPLE PAGINATION CONTROLS - ALWAYS VISIBLE */}
+      {/* PAGINATION CONTROLS */}
       <div className="simple-pagination">
         <button 
           className="pagination-btn" 
@@ -357,9 +379,8 @@ function ManageGroup() {
       {showForm && (
         <div className="overlay">
           <div className="form-container">
-            <h3>{isEditing ? "Edit Group" : "Add New User Group"}</h3>
+            <h3>{isEditing ? "Edit Role" : "Add New Role"}</h3>
             
-            {/* Show only loading animation when saving, then checkmark */}
             {saving ? (
               <div className="form-animation-center">
                 {!saveSuccess ? (
@@ -378,25 +399,34 @@ function ManageGroup() {
               </div>
             ) : (
               <form onSubmit={handleSave}>
-                <label>Group Name</label>
+                <label>Role Name</label>
                 <input 
                   type="text" 
                   name="group_name"
                   value={currentGroup.group_name}
                   onChange={handleInputChange}
                   className={groupNameError ? "error-input" : ""}
+                  placeholder="e.g., Administrator, Staff Member"
                   required 
                 />
                 {groupNameError && <div className="error-message">{groupNameError}</div>}
                 
-                <label>Group Level</label>
-                <input 
-                  type="number" 
+                <label>Role Level</label>
+                <select 
                   name="group_level"
                   value={currentGroup.group_level}
                   onChange={handleInputChange}
-                  required 
-                />
+                  required
+                >
+                  {roleLevels.map(level => (
+                    <option key={level.value} value={level.value}>
+                      {level.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="level-description">
+                  {getLevelDescription(currentGroup.group_level)}
+                </div>
                 
                 <label>Status</label>
                 <select 
@@ -426,7 +456,6 @@ function ManageGroup() {
       {showDeleteModal && groupToDelete && (
         <div className="overlay">
           <div className="form-container delete-confirmation">
-            {/* Show delete animation when deleting, otherwise show normal content */}
             {deleting ? (
               <div className="delete-animation-center">
                 {!deleteSuccess ? (
@@ -443,14 +472,14 @@ function ManageGroup() {
                   />
                 )}
                 <p style={{ marginTop: '20px', color: '#666' }}>
-                  {!deleteSuccess ? "Deleting group..." : "Group deleted successfully!"}
+                  {!deleteSuccess ? "Deleting role..." : "Role deleted successfully!"}
                 </p>
               </div>
             ) : (
               <>
                 <div className="delete-icon">🗑️</div>
-                <h3>Delete Group</h3>
-                <p>Are you sure you want to delete group <strong>"{groupToDelete.group_name}"</strong>?</p>
+                <h3>Delete Role</h3>
+                <p>Are you sure you want to delete role <strong>"{groupToDelete.group_name}"</strong>?</p>
                 <p className="delete-warning">This action cannot be undone.</p>
                 
                 <div className="form-buttons">
