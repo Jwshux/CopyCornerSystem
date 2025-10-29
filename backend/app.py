@@ -14,6 +14,7 @@ from schedule_api import schedules_bp, init_schedules_db
 from staffs_api import staffs_bp, init_staffs_db
 from transactions_api import transactions_bp, init_transactions_db
 from services_api import service_types_bp, init_service_types_db
+from sales_api import sales_bp, init_sales_db
 
 # -----------------------------
 # Load environment variables
@@ -53,6 +54,7 @@ try:
     init_staffs_db(staffs_collection, users_collection, groups_collection)
     init_transactions_db(transactions_collection, products_collection)
     init_service_types_db(service_types_collection, transactions_collection)
+    init_sales_db(transactions_collection, service_types_collection)
     
     client.admin.command("ping")
     print("✅ Connected to MongoDB Atlas!")
@@ -71,6 +73,7 @@ app.register_blueprint(schedules_bp)
 app.register_blueprint(staffs_bp)
 app.register_blueprint(transactions_bp)
 app.register_blueprint(service_types_bp)
+app.register_blueprint(sales_bp)
 
 # -----------------------------
 # Routes

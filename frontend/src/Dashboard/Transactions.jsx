@@ -179,6 +179,11 @@ const Transactions = () => {
   };
 
   const handleAdd = () => {
+    // Get current date in YYYY-MM-DD format for Philippine time
+    const today = new Date();
+    const phDate = new Date(today.getTime() + (8 * 60 * 60 * 1000)); // UTC+8
+    const dateString = phDate.toISOString().split('T')[0];
+    
     setFormData({
       queue_number: "",
       transaction_id: "",
@@ -191,8 +196,8 @@ const Transactions = () => {
       price_per_unit: "",
       quantity: "",
       total_amount: "",
-      status: "Pending", // Always Pending for new transactions
-      date: new Date().toISOString().split("T")[0],
+      status: "Pending",
+      date: dateString, // Auto-set to current PH date
     });
     setIsEditing(false);
     setShowFormModal(true);
@@ -784,7 +789,7 @@ const handleSave = async (e) => {
                 />
               </div>
 
-              <div className="form-group">
+              {/* <div className="form-group">
                 <label>Date:</label>
                 <input
                   type="date"
@@ -793,7 +798,7 @@ const handleSave = async (e) => {
                   onChange={handleChange}
                   required
                 />
-              </div>
+              </div> */}
 
               {/* Status field removed from form - always Pending for new, unchanged for edits */}
 

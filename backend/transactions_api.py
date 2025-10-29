@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from pymongo import MongoClient
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 
 # Create Blueprint for transactions routes
@@ -22,6 +22,13 @@ def serialize_doc(doc):
     if doc:
         doc['_id'] = str(doc['_id'])
     return doc
+
+# Get Philippine time (UTC+8)
+def get_ph_time():
+    # Philippine time is UTC+8
+    utc_now = datetime.utcnow()
+    ph_time = utc_now + timedelta(hours=8)
+    return ph_time
 
 # Generate sequential transaction ID
 def generate_transaction_id():
@@ -158,6 +165,12 @@ def create_transaction():
         quantity = int(data.get('quantity', 1))
         total_amount = float(data.get('total_amount', price_per_unit * quantity))
         
+        # FIXED: Use Philippine time for date automatically
+        ph_now = get_ph_time()
+        auto_date = ph_now.strftime('%Y-%m-%d')
+        
+        print(f"Using Philippine date: {auto_date}")
+        
         new_transaction = {
             'queue_number': queue_number,
             'transaction_id': transaction_id,
@@ -170,7 +183,7 @@ def create_transaction():
             'price_per_unit': price_per_unit,
             'quantity': quantity,
             'total_amount': total_amount,
-            'date': data.get('date', datetime.utcnow().strftime('%Y-%m-%d')),
+            'date': auto_date,  # AUTO Philippine date
             'status': data.get('status', 'Pending'),
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
@@ -227,7 +240,7 @@ def update_transaction(transaction_id):
             'price_per_unit': price_per_unit,
             'quantity': quantity,
             'total_amount': total_amount,
-            'date': data.get('date', current_transaction.get('date')),
+            'date': data.get('date', current_transaction.get('date')),  # Keep existing date for edits
             'status': data.get('status', current_transaction.get('status')),
             'updated_at': datetime.utcnow()
         }
