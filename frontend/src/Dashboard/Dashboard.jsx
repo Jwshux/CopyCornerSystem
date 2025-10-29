@@ -12,7 +12,7 @@ import DashboardUI from "./DashboardUI";
 import userLogo from "../UserLogo.png";
 import ServiceTypes from "./ServiceTypes";
 
-function AdminDashboard({ user, onLogout }) { // Add onLogout prop
+function AdminDashboard({ user, onLogout }) {
   const [activePage, setActivePage] = useState("Dashboard");
   const [openSubmenus, setOpenSubmenus] = useState({
     Products: false,
@@ -254,11 +254,11 @@ function AdminDashboard({ user, onLogout }) { // Add onLogout prop
       {/* Header Section */}
       <header className="header">
         <div className="welcome-section">
-          <h1>Welcome, {user?.name || "Joshua"}</h1> {/* Use actual user name */}
+          <h1>Welcome, {user?.name || "User"}</h1>
           <p className="welcome-subtitle">{getWelcomeMessage()}</p>
         </div>
         
-        {/* Profile Section - Updated with logout */}
+        {/* Profile Section - Updated with dynamic user data */}
         <div className="profile-section" ref={profileRef}>
           <button
             className="profile-trigger"
@@ -266,8 +266,8 @@ function AdminDashboard({ user, onLogout }) { // Add onLogout prop
           >
             <img src={userLogo} alt="User" className="profile-avatar" />
             <div className="profile-info">
-              <span className="profile-name">{user?.name || "Joshua Riana"}</span>
-              <span className="profile-role">Administrator</span>
+              <span className="profile-name">{user?.name || "User"}</span>
+              <span className="profile-role">{user?.role || "User"}</span>
             </div>
             <span className={`dropdown-arrow ${isProfileOpen ? 'open' : ''}`}>▼</span>
           </button>
@@ -277,8 +277,8 @@ function AdminDashboard({ user, onLogout }) { // Add onLogout prop
               <div className="dropdown-header">
                 <img src={userLogo} alt="User Avatar" className="dropdown-avatar" />
                 <div className="dropdown-user-info">
-                  <h4>{user?.name || "Joshua Riana"}</h4>
-                  <p>Administrator</p>
+                  <h4>{user?.name || "User"}</h4>
+                  <p>{user?.role || "User"}</p>
                 </div>
               </div>
               
@@ -292,7 +292,6 @@ function AdminDashboard({ user, onLogout }) { // Add onLogout prop
                 <button className="dropdown-item">
                   Help & Support
                 </button>
-                {/* Updated logout button */}
                 <button className="dropdown-item logout" onClick={handleLogout}>
                   Log Out
                 </button>

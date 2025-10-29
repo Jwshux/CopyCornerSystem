@@ -25,6 +25,8 @@ function Login({ onLoginSuccess }) {
 
       if (response.ok) {
         setSuccess(true);
+        // Store user data in localStorage
+        localStorage.setItem("user", JSON.stringify(data.user));
         setTimeout(() => {
           onLoginSuccess(data.user);
         }, 1800);

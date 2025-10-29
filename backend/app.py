@@ -118,7 +118,8 @@ def login():
             "user": {
                 "username": user["username"],
                 "name": user.get("name", ""),
-                "id": str(user["_id"])
+                "id": str(user["_id"]),
+                "role": group["group_name"] if group else "User"  # Add role here
             }
         }), 200
     else:
