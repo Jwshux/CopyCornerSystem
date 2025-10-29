@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Transactions.css";
+
+const API_BASE = "http://localhost:5000/api";
 
 const Transactions = () => {
   // Service type options for dropdown
@@ -8,80 +10,15 @@ const Transactions = () => {
     "Photocopying", 
     "Tshirt Printing",
     "Thesis Hardbound",
-    "Softbind"
+    "Softbind",
+    "School Supplies"
   ];
 
-  const [transactions, setTransactions] = useState([
-    {
-      queueNumber: "001",
-      transactionId: "T-001",
-      customerName: "J. Dela Cruz",
-      serviceType: "Photocopying",
-      pricePerUnit: "20",
-      quantity: "1",
-      totalAmount: "20.00",
-      status: "Pending",
-      date: "2025-10-20",
-    },
-    {
-      queueNumber: "002",
-      transactionId: "T-002",
-      customerName: "M. Santos",
-      serviceType: "Printing",
-      pricePerUnit: "10",
-      quantity: "10",
-      totalAmount: "100.00",
-      status: "Pending",
-      date: "2025-10-21",
-    },
-    {
-      queueNumber: "003",
-      transactionId: "T-003",
-      customerName: "P. Ramirez",
-      serviceType: "Thesis Hardbound",
-      pricePerUnit: "400",
-      quantity: "1",
-      totalAmount: "400.00",
-      status: "Completed",
-      date: "2025-10-18",
-    },
-    {
-      queueNumber: "004",
-      transactionId: "T-004",
-      customerName: "A. Fuentes",
-      serviceType: "Photocopying",
-      pricePerUnit: "1",
-      quantity: "50",
-      totalAmount: "50.00",
-      status: "Completed",
-      date: "2025-10-19",
-    },
-    {
-      queueNumber: "005",
-      transactionId: "T-005",
-      customerName: "C. Garcia",
-      serviceType: "Photocopying",
-      pricePerUnit: "1",
-      quantity: "5",
-      totalAmount: "5.00",
-      status: "Cancelled",
-      date: "2025-10-17",
-    },
-    {
-      queueNumber: "006",
-      transactionId: "T-006",
-      customerName: "S. Reyes",
-      serviceType: "Tshirt Printing",
-      pricePerUnit: "200",
-      quantity: "5",
-      totalAmount: "1000.00",
-      status: "Cancelled",
-      date: "2025-10-16",
-    },
-  ]);
-
+  const [allProducts, setAllProducts] = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const [activeTab, setActiveTab] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(false);
 
   // === Modal states ===
   const [showFormModal, setShowFormModal] = useState(false);
@@ -92,16 +29,137 @@ const Transactions = () => {
 
   // === Form Data ===
   const [formData, setFormData] = useState({
-    queueNumber: "",
-    transactionId: "",
-    customerName: "",
-    serviceType: "",
-    pricePerUnit: "",
+    queue_number: "",
+    transaction_id: "",
+    customer_name: "",
+    service_type: "",
+    paper_type: "",
+    size_type: "",
+    supply_type: "",
+    total_pages: "",
+    price_per_unit: "",
     quantity: "",
-    totalAmount: "",
+    total_amount: "",
     status: "Pending",
     date: "",
   });
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // ==========================
+  // Validation Functions
+  // ==========================
+
+  // Validate customer name (letters, spaces, periods, commas, hyphens only - no numbers)
+  const validateCustomerName = (name) => {
+    if (!name || !name.trim()) return false;
+    // Allow letters, spaces, periods, commas, hyphens, apostrophes
+    const nameRegex = /^[A-Za-z\s.,'-]+$/;
+    return nameRegex.test(name);
+  };
+
+  // ==========================
+  // Fetch Data
+  // ==========================
+  
+  const fetchTransactions = async (page = 1, status = "All") => {
+    setLoading(true);
+    try {
+      let url = `${API_BASE}/transactions?page=${page}&per_page=10`;
+      if (status !== "All") {
+        url = `${API_BASE}/transactions/status/${status}?page=${page}&per_page=10`;
+      }
+      
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        setTransactions(data.transactions);
+        setCurrentPage(data.pagination.page);
+        setTotalPages(data.pagination.total_pages);
+      } else {
+        console.error('Failed to fetch transactions');
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch all products for category-based filtering
+  const fetchAllProducts = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/products?page=1&per_page=100`);
+      if (response.ok) {
+        const data = await response.json();
+        setAllProducts(data.products);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchTransactions(1, activeTab);
+    fetchAllProducts();
+  }, []);
+
+  useEffect(() => {
+    fetchTransactions(1, activeTab);
+  }, [activeTab]);
+
+  // ==========================
+  // Service Type Logic - FIXED
+  // ==========================
+
+  const isPaperService = (serviceType) => {
+    return ["Printing", "Photocopying", "Thesis Hardbound", "Softbind"].includes(serviceType);
+  };
+
+  const isTshirtService = (serviceType) => {
+    return serviceType === "Tshirt Printing";
+  };
+
+  const isSuppliesService = (serviceType) => {
+    return serviceType === "School Supplies";
+  };
+
+  // Service Type to Category Mapping - FIXED
+  const getCategoryForService = (serviceType) => {
+    if (!serviceType) return null;
+    
+    const serviceCategoryMap = {
+      'Printing': 'Paper',
+      'Photocopying': 'Paper',
+      'Thesis Hardbound': 'Paper', 
+      'Softbind': 'Paper',
+      'Tshirt Printing': 'T-shirt',
+      'School Supplies': 'Supplies'
+    };
+    return serviceCategoryMap[serviceType] || null;
+  };
+
+  // Get products by category for dropdowns - FIXED
+  const getProductsByCategory = (categoryName) => {
+    if (!categoryName || !allProducts || allProducts.length === 0) return [];
+    
+    return allProducts.filter(product => 
+      product && product.category && product.category === categoryName
+    );
+  };
+
+  // Get dropdown options based on service type - FIXED
+  const getServiceOptions = (serviceType) => {
+    if (!serviceType) return [];
+    
+    const category = getCategoryForService(serviceType);
+    if (!category) return [];
+    
+    const products = getProductsByCategory(category);
+    return products.map(product => product.product_name);
+  };
 
   // ==========================
   // Handlers
@@ -110,34 +168,37 @@ const Transactions = () => {
     const { name, value } = e.target;
     let updated = { ...formData, [name]: value };
 
-    if (name === "pricePerUnit" || name === "quantity") {
-      const price = parseFloat(updated.pricePerUnit) || 0;
+    // Auto-calculate total amount when price or quantity changes
+    if (name === "price_per_unit" || name === "quantity") {
+      const price = parseFloat(updated.price_per_unit) || 0;
       const qty = parseFloat(updated.quantity) || 0;
-      updated.totalAmount = (price * qty).toFixed(2);
+      updated.total_amount = (price * qty).toFixed(2);
+    }
+
+    // Reset service-specific fields when service type changes
+    if (name === "service_type") {
+      updated.paper_type = "";
+      updated.size_type = "";
+      updated.supply_type = "";
+      updated.total_pages = "";
     }
 
     setFormData(updated);
   };
 
-  const getNextQueueNumber = () => {
-    if (transactions.length === 0) return "001";
-    
-    const lastQueueNumber = Math.max(
-      ...transactions.map(t => parseInt(t.queueNumber))
-    );
-    return String(lastQueueNumber + 1).padStart(3, "0");
-  };
-
   const handleAdd = () => {
-    const nextQueue = getNextQueueNumber();
     setFormData({
-      queueNumber: nextQueue,
-      transactionId: `T-${nextQueue}`,
-      customerName: "",
-      serviceType: "",
-      pricePerUnit: "",
+      queue_number: "",
+      transaction_id: "",
+      customer_name: "",
+      service_type: "",
+      paper_type: "",
+      size_type: "",
+      supply_type: "",
+      total_pages: "",
+      price_per_unit: "",
       quantity: "",
-      totalAmount: "",
+      total_amount: "",
       status: "Pending",
       date: new Date().toISOString().split("T")[0],
     });
@@ -145,48 +206,224 @@ const Transactions = () => {
     setShowFormModal(true);
   };
 
-  const handleEdit = (index) => {
-    setFormData(transactions[index]);
-    setEditIndex(index);
+  const handleEdit = (transaction) => {
+    setFormData({
+      queue_number: transaction.queue_number || "",
+      transaction_id: transaction.transaction_id || "",
+      customer_name: transaction.customer_name || "",
+      service_type: transaction.service_type || "",
+      paper_type: transaction.paper_type || "",
+      size_type: transaction.size_type || "",
+      supply_type: transaction.supply_type || "",
+      total_pages: transaction.total_pages || "",
+      price_per_unit: transaction.price_per_unit || "",
+      quantity: transaction.quantity || "",
+      total_amount: transaction.total_amount || "",
+      status: transaction.status || "Pending",
+      date: transaction.date || new Date().toISOString().split("T")[0],
+    });
+    setEditIndex(transaction._id);
     setIsEditing(true);
     setShowFormModal(true);
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (isEditing && editIndex !== null) {
-      const updated = [...transactions];
-      updated[editIndex] = formData;
-      setTransactions(updated);
-    } else {
-      setTransactions([...transactions, formData]);
+    
+    // Validate customer name
+    if (!validateCustomerName(formData.customer_name)) {
+      alert("Please enter a valid customer name (letters, spaces, periods, commas, hyphens only - no numbers or special characters)");
+      return;
     }
-    setShowFormModal(false);
+
+    // Validate service-specific fields
+    if (isPaperService(formData.service_type) && !formData.paper_type) {
+      alert("Please select a paper type for this service");
+      return;
+    }
+
+    if (isPaperService(formData.service_type) && (!formData.total_pages || formData.total_pages < 1)) {
+      alert("Please enter total pages (minimum 1)");
+      return;
+    }
+
+    if (isTshirtService(formData.service_type) && !formData.size_type) {
+      alert("Please select a size for T-shirt printing");
+      return;
+    }
+
+    if (isSuppliesService(formData.service_type) && !formData.supply_type) {
+      alert("Please select a school supply item");
+      return;
+    }
+
+    try {
+      const backendData = {
+        customer_name: formData.customer_name,
+        service_type: formData.service_type,
+        paper_type: formData.paper_type || "",
+        size_type: formData.size_type || "",
+        supply_type: formData.supply_type || "",
+        total_pages: parseInt(formData.total_pages) || 0,
+        price_per_unit: parseFloat(formData.price_per_unit) || 0,
+        quantity: parseInt(formData.quantity) || 1,
+        total_amount: parseFloat(formData.total_amount) || 0,
+        status: formData.status,
+        date: formData.date
+      };
+
+      const url = isEditing 
+        ? `${API_BASE}/transactions/${editIndex}`
+        : `${API_BASE}/transactions`;
+      
+      const method = isEditing ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(backendData),
+      });
+
+      if (response.ok) {
+        await fetchTransactions(currentPage, activeTab);
+        setShowFormModal(false);
+        resetForm();
+      } else {
+        const error = await response.json();
+        alert(error.error || `Failed to ${isEditing ? 'update' : 'create'} transaction`);
+      }
+    } catch (error) {
+      console.error(`Error ${isEditing ? 'updating' : 'creating'} transaction:`, error);
+      alert(`Error ${isEditing ? 'updating' : 'creating'} transaction`);
+    }
   };
 
-  const handleDelete = (index) => {
-    setTransactionToDelete(transactions[index]);
+  const handleDelete = async (transaction) => {
+    setTransactionToDelete(transaction);
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = () => {
-    setTransactions((prev) =>
-      prev.filter((t) => t.transactionId !== transactionToDelete.transactionId)
-    );
-    setShowDeleteModal(false);
-    setTransactionToDelete(null);
+  const confirmDelete = async () => {
+    if (!transactionToDelete) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/transactions/${transactionToDelete._id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        await fetchTransactions(currentPage, activeTab);
+        setShowDeleteModal(false);
+        setTransactionToDelete(null);
+      } else {
+        console.error('Failed to delete transaction');
+        alert('Failed to delete transaction');
+      }
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      alert('Error deleting transaction');
+    }
   };
 
-  const handleComplete = (index) => {
-    const updated = [...transactions];
-    updated[index].status = "Completed";
-    setTransactions(updated);
+  const handleComplete = async (transaction) => {
+    try {
+      const response = await fetch(`${API_BASE}/transactions/${transaction._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customer_name: transaction.customer_name,
+          service_type: transaction.service_type,
+          paper_type: transaction.paper_type,
+          size_type: transaction.size_type,
+          supply_type: transaction.supply_type,
+          total_pages: transaction.total_pages,
+          price_per_unit: transaction.price_per_unit,
+          quantity: transaction.quantity,
+          total_amount: transaction.total_amount,
+          date: transaction.date,
+          status: "Completed"
+        }),
+      });
+
+      if (response.ok) {
+        await fetchTransactions(currentPage, activeTab);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to complete transaction');
+      }
+    } catch (error) {
+      console.error('Error completing transaction:', error);
+      alert('Error completing transaction');
+    }
   };
 
-  const handleCancel = (index) => {
-    const updated = [...transactions];
-    updated[index].status = "Cancelled";
-    setTransactions(updated);
+  const handleCancel = async (transaction) => {
+    try {
+      const response = await fetch(`${API_BASE}/transactions/${transaction._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customer_name: transaction.customer_name,
+          service_type: transaction.service_type,
+          paper_type: transaction.paper_type,
+          size_type: transaction.size_type,
+          supply_type: transaction.supply_type,
+          total_pages: transaction.total_pages,
+          price_per_unit: transaction.price_per_unit,
+          quantity: transaction.quantity,
+          total_amount: transaction.total_amount,
+          date: transaction.date,
+          status: "Cancelled"
+        }),
+      });
+
+      if (response.ok) {
+        await fetchTransactions(currentPage, activeTab);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to cancel transaction');
+      }
+    } catch (error) {
+      console.error('Error cancelling transaction:', error);
+      alert('Error cancelling transaction');
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      queue_number: "",
+      transaction_id: "",
+      customer_name: "",
+      service_type: "",
+      paper_type: "",
+      size_type: "",
+      supply_type: "",
+      total_pages: "",
+      price_per_unit: "",
+      quantity: "",
+      total_amount: "",
+      status: "Pending",
+      date: "",
+    });
+    setEditIndex(null);
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      fetchTransactions(currentPage + 1, activeTab);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      fetchTransactions(currentPage - 1, activeTab);
+    }
   };
 
   const formatPeso = (amount) =>
@@ -194,18 +431,32 @@ const Transactions = () => {
       minimumFractionDigits: 2,
     })}`;
 
-  // Filter logic
-  const filteredByTab = transactions.filter((t) => {
-    if (activeTab === "All") return true;
-    if (activeTab === "Pending") return t.status === "Pending";
-    return t.status === activeTab;
-  });
+  const getServiceSpecificInfo = (transaction) => {
+    if (isPaperService(transaction.service_type)) {
+      return {
+        type: transaction.paper_type || "—",
+        details: transaction.total_pages ? `${transaction.total_pages} pages` : "—"
+      };
+    } else if (isTshirtService(transaction.service_type)) {
+      return {
+        type: transaction.size_type || "—",
+        details: transaction.quantity ? `${transaction.quantity} shirts` : "—"
+      };
+    } else if (isSuppliesService(transaction.service_type)) {
+      return {
+        type: transaction.supply_type || "—",
+        details: transaction.quantity ? `${transaction.quantity} items` : "—"
+      };
+    } else {
+      return { type: "—", details: "—" };
+    }
+  };
 
-  const filteredTransactions = filteredByTab.filter(
+  const filteredTransactions = transactions.filter(
     (t) =>
-      t.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.queueNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.transactionId.toLowerCase().includes(searchTerm.toLowerCase())
+      (t.customer_name && t.customer_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (t.queue_number && t.queue_number.includes(searchTerm)) ||
+      (t.transaction_id && t.transaction_id.includes(searchTerm))
   );
 
   return (
@@ -248,6 +499,8 @@ const Transactions = () => {
             <th>Transaction ID</th>
             <th>Customer</th>
             <th>Service Type</th>
+            <th>Type/Size</th>
+            <th>Details</th>
             <th>Price</th>
             <th>Qty</th>
             <th>Total</th>
@@ -257,102 +510,99 @@ const Transactions = () => {
           </tr>
         </thead>
         <tbody>
-          {filteredTransactions.length > 0 ? (
-            filteredTransactions.map((t, index) => (
-              <tr key={t.transactionId}>
-                <td className="queue-number">{t.queueNumber}</td>
-                <td>{t.transactionId}</td>
-                <td>{t.customerName}</td>
-                <td>{t.serviceType}</td>
-                <td>{formatPeso(t.pricePerUnit)}</td>
-                <td>{t.quantity}</td>
-                <td>{formatPeso(t.totalAmount)}</td>
-                <td>{t.date}</td>
-                <td>
-                  <span
-                    className={`status-tag ${
-                      t.status === "Completed"
-                        ? "completed"
-                        : t.status === "Cancelled"
-                        ? "cancelled"
-                        : "pending"
-                    }`}
-                  >
-                    {t.status}
-                  </span>
-                </td>
-                <td>
-                  {/* Pending tab actions */}
-                  {activeTab === "Pending" && (
-                    <>
-                      <button
-                        className="edit-btn"
-                        onClick={() => handleEdit(transactions.indexOf(t))}
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        className="complete-btn"
-                        onClick={() => handleComplete(transactions.indexOf(t))}
-                      >
-                        ✅
-                      </button>
-                      <button
-                        className="cancel-btn-table"
-                        onClick={() => handleCancel(transactions.indexOf(t))}
-                      >
-                        ❌
-                      </button>
-                    </>
-                  )}
+          {loading ? (
+            <tr>
+              <td colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
+                Loading transactions...
+              </td>
+            </tr>
+          ) : filteredTransactions.length > 0 ? (
+            filteredTransactions.map((t, index) => {
+              const serviceInfo = getServiceSpecificInfo(t);
+              return (
+                <tr key={t._id}>
+                  <td className="queue-number">{t.queue_number}</td>
+                  <td>{t.transaction_id}</td>
+                  <td>{t.customer_name}</td>
+                  <td>{t.service_type}</td>
+                  <td>{serviceInfo.type}</td>
+                  <td>{serviceInfo.details}</td>
+                  <td>{formatPeso(t.price_per_unit)}</td>
+                  <td>{t.quantity}</td>
+                  <td>{formatPeso(t.total_amount)}</td>
+                  <td>{t.date}</td>
+                  <td>
+                    <span
+                      className={`status-tag ${
+                        t.status === "Completed"
+                          ? "completed"
+                          : t.status === "Cancelled"
+                          ? "cancelled"
+                          : "pending"
+                      }`}
+                    >
+                      {t.status}
+                    </span>
+                  </td>
+                  <td>
+                    {/* Pending tab actions */}
+                    {activeTab === "Pending" && (
+                      <>
+                        <button className="edit-btn" onClick={() => handleEdit(t)}>✏️</button>
+                        <button className="complete-btn" onClick={() => handleComplete(t)}>✅</button>
+                        <button className="cancel-btn-table" onClick={() => handleCancel(t)}>❌</button>
+                      </>
+                    )}
 
-                  {/* All tab actions */}
-                  {activeTab === "All" && (
-                    <>
-                      <button
-                        className="edit-btn"
-                        onClick={() => handleEdit(transactions.indexOf(t))}
-                      >
-                        Update
-                      </button>
-                      <button
-                        className="cancel-btn-table"
-                        onClick={() => handleCancel(transactions.indexOf(t))}
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  )}
+                    {/* All tab actions */}
+                    {activeTab === "All" && (
+                      <>
+                        <button className="edit-btn" onClick={() => handleEdit(t)}>Update</button>
+                        <button className="cancel-btn-table" onClick={() => handleCancel(t)}>Cancel</button>
+                      </>
+                    )}
 
-                  {/* Completed or Cancelled tab actions */}
-                  {(activeTab === "Completed" || activeTab === "Cancelled") && (
-                    <>
-                      <button
-                        className="edit-btn"
-                        onClick={() => handleEdit(transactions.indexOf(t))}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="delete-btn"
-                        onClick={() => handleDelete(transactions.indexOf(t))}
-                      >
-                        Delete
-                      </button>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))
+                    {/* Completed or Cancelled tab actions */}
+                    {(activeTab === "Completed" || activeTab === "Cancelled") && (
+                      <>
+                        <button className="edit-btn" onClick={() => handleEdit(t)}>Edit</button>
+                        <button className="delete-btn" onClick={() => handleDelete(t)}>Delete</button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              );
+            })
           ) : (
             <tr>
-              <td colSpan="10" style={{ textAlign: "center", padding: "20px" }}>
+              <td colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
                 No transactions found.
               </td>
             </tr>
           )}
         </tbody>
       </table>
+
+      {/* PAGINATION CONTROLS */}
+      <div className="simple-pagination">
+        <button 
+          className="pagination-btn" 
+          onClick={handlePrevPage}
+          disabled={currentPage === 1 || loading}
+        >
+          Previous
+        </button>
+        <span className="page-info">
+          Page {currentPage} of {totalPages}
+        </span>
+        <button 
+          className="pagination-btn" 
+          onClick={handleNextPage}
+          disabled={currentPage === totalPages || loading}
+        >
+          Next
+        </button>
+      </div>
 
       {/* ADD / EDIT / UPDATE MODAL */}
       {showFormModal && (
@@ -371,7 +621,7 @@ const Transactions = () => {
                   <label>Queue Number:</label>
                   <input
                     type="text"
-                    value={formData.queueNumber}
+                    value={formData.queue_number || "Auto-generated"}
                     readOnly
                     className="readonly-field"
                   />
@@ -380,45 +630,127 @@ const Transactions = () => {
                   <label>Transaction ID:</label>
                   <input
                     type="text"
-                    value={formData.transactionId}
+                    value={formData.transaction_id || "Auto-generated"}
                     readOnly
                     className="readonly-field"
                   />
                 </div>
               </div>
               
-              <input
-                type="text"
-                name="customerName"
-                placeholder="Customer Name (e.g., J. Dela Cruz)"
-                value={formData.customerName}
-                onChange={handleChange}
-                required
-              />
+              <div className="form-group">
+                <label>Customer Name:</label>
+                <input
+                  type="text"
+                  name="customer_name"
+                  placeholder="Customer Name (e.g., Juan Dela Cruz)"
+                  value={formData.customer_name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
               
               {/* Service Type Dropdown */}
-              <select
-                name="serviceType"
-                value={formData.serviceType}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Select Service Type</option>
-                {serviceTypeOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+              <div className="form-group">
+                <label>Service Type:</label>
+                <select
+                  name="service_type"
+                  value={formData.service_type}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Select Service Type</option>
+                  {serviceTypeOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* PAPER-BASED SERVICES: Dynamic Paper Type from Category */}
+              {isPaperService(formData.service_type) && (
+                <>
+                  <div className="form-group">
+                    <label>Paper Type:</label>
+                    <select
+                      name="paper_type"
+                      value={formData.paper_type}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Select Paper Type</option>
+                      {getServiceOptions(formData.service_type).map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Total Pages:</label>
+                    <input
+                      type="number"
+                      name="total_pages"
+                      placeholder="Number of pages"
+                      value={formData.total_pages}
+                      onChange={handleChange}
+                      required
+                      min="1"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* T-SHIRT PRINTING: Dynamic Sizes from Category */}
+              {isTshirtService(formData.service_type) && (
+                <div className="form-group">
+                  <label>Shirt Size/Type:</label>
+                  <select
+                    name="size_type"
+                    value={formData.size_type}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select Size/Type</option>
+                    {getServiceOptions(formData.service_type).map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* SCHOOL SUPPLIES: Dynamic Supplies from Category */}
+              {isSuppliesService(formData.service_type) && (
+                <div className="form-group">
+                  <label>School Supply Item:</label>
+                  <select
+                    name="supply_type"
+                    value={formData.supply_type}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select Supply Item</option>
+                    {getServiceOptions(formData.service_type).map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="form-row">
                 <div className="form-group">
                   <label>Price per Unit:</label>
                   <input
                     type="number"
-                    name="pricePerUnit"
+                    name="price_per_unit"
                     placeholder="0.00"
-                    value={formData.pricePerUnit}
+                    step="0.01"
+                    value={formData.price_per_unit}
                     onChange={handleChange}
                     required
                   />
@@ -428,10 +760,15 @@ const Transactions = () => {
                   <input
                     type="number"
                     name="quantity"
-                    placeholder="0"
+                    placeholder={
+                      isTshirtService(formData.service_type) ? "Number of shirts" :
+                      isSuppliesService(formData.service_type) ? "Number of items" :
+                      "Number of copies"
+                    }
                     value={formData.quantity}
                     onChange={handleChange}
                     required
+                    min="1"
                   />
                 </div>
               </div>
@@ -440,37 +777,43 @@ const Transactions = () => {
                 <label>Total Amount:</label>
                 <input
                   type="text"
-                  value={formatPeso(formData.totalAmount)}
+                  value={formatPeso(formData.total_amount || 0)}
                   readOnly
                   className="readonly-field total-amount"
                 />
               </div>
 
-              <input
-                type="date"
-                name="date"
-                value={formData.date}
-                onChange={handleChange}
-                required
-              />
+              <div className="form-group">
+                <label>Date:</label>
+                <input
+                  type="date"
+                  name="date"
+                  value={formData.date}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
 
               {/* Allow status editing only in All tab */}
               {activeTab === "All" && (
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="Pending">Pending</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
+                <div className="form-group">
+                  <label>Status:</label>
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </div>
               )}
 
               <div className="form-buttons">
                 <button type="submit" className="save-btn">
-                  Save
+                  {isEditing ? "Update" : "Save"}
                 </button>
                 <button
                   type="button"
@@ -493,8 +836,8 @@ const Transactions = () => {
             <h3>Delete Transaction</h3>
             <p>
               Are you sure you want to delete transaction{" "}
-              <strong>Queue #{transactionToDelete.queueNumber}</strong> for{" "}
-              <strong>{transactionToDelete.customerName}</strong>?
+              <strong>Queue #{transactionToDelete.queue_number}</strong> for{" "}
+              <strong>{transactionToDelete.customer_name}</strong>?
             </p>
             <p className="delete-warning">This action cannot be undone.</p>
 

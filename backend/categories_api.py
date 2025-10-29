@@ -9,11 +9,13 @@ categories_bp = Blueprint('categories', __name__)
 
 # MongoDB connection (will be initialized from app.py)
 categories_collection = None
+products_collection = None
 
-def init_categories_db(mongo_collection):
+def init_categories_db(mongo_collection, products_coll):
     """Initialize the categories collection from app.py"""
-    global categories_collection
+    global categories_collection, products_collection
     categories_collection = mongo_collection
+    products_collection = products_coll
 
 # Helper to convert ObjectId to string
 def serialize_doc(doc):
@@ -107,11 +109,25 @@ def create_category():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Update category
+# Update category - MODIFIED TO PREVENT RENAMING IF PRODUCTS EXIST
 @categories_bp.route('/api/categories/<category_id>', methods=['PUT'])
 def update_category(category_id):
     try:
         data = request.json
+        
+        # Get current category first to know the old name
+        current_category = categories_collection.find_one({'_id': ObjectId(category_id)})
+        if not current_category:
+            return jsonify({'error': 'Category not found'}), 404
+        
+        # Check if category name is being changed
+        if data['name'] != current_category['name']:
+            # Check if any products are using this category
+            product_count = products_collection.count_documents({'category': current_category['name']})
+            if product_count > 0:
+                return jsonify({
+                    'error': f'Cannot rename category "{current_category["name"]}". {product_count} product(s) are using this category. Please reassign products first.'
+                }), 400
         
         # Check if category name already exists (excluding current category)
         existing_category = categories_collection.find_one({
@@ -138,10 +154,22 @@ def update_category(category_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Delete category
+# Delete category - MODIFIED TO PREVENT DELETION IF PRODUCTS EXIST
 @categories_bp.route('/api/categories/<category_id>', methods=['DELETE'])
 def delete_category(category_id):
     try:
+        # Get category first to check if it has products
+        category = categories_collection.find_one({'_id': ObjectId(category_id)})
+        if not category:
+            return jsonify({'error': 'Category not found'}), 404
+        
+        # Check if any products are using this category
+        product_count = products_collection.count_documents({'category': category['name']})
+        if product_count > 0:
+            return jsonify({
+                'error': f'Cannot delete category "{category["name"]}". {product_count} product(s) are using this category. Please delete or reassign products first.'
+            }), 400
+        
         result = categories_collection.delete_one({'_id': ObjectId(category_id)})
         if result.deleted_count:
             return jsonify({'message': 'Category deleted successfully'})

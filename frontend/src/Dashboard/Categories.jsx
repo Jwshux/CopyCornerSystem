@@ -3,7 +3,7 @@ import "./Categories.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
-import deleteAnimation from "../animations/delete.json"; // Add this import
+import deleteAnimation from "../animations/delete.json";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -24,13 +24,17 @@ const Categories = () => {
   // Separate loading states for different actions
   const [addingLoading, setAddingLoading] = useState(false);
   const [updatingLoading, setUpdatingLoading] = useState(false);
-  const [deleting, setDeleting] = useState(false); // Changed for delete animation
-  const [deleteSuccess, setDeleteSuccess] = useState(false); // New state for delete success
+  const [deleting, setDeleting] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
   
   // Category name errors
   const [categoryNameError, setCategoryNameError] = useState("");
   const [editCategoryNameError, setEditCategoryNameError] = useState("");
+  
+  // NEW: Error modal state
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   // Fetch categories from backend - UPDATED FOR PAGINATION
   const fetchCategories = async (page = 1) => {
@@ -140,6 +144,18 @@ const Categories = () => {
     setSelectedCategory(null);
   };
 
+  // Show error modal
+  const showError = (message) => {
+    setErrorMessage(message);
+    setShowErrorModal(true);
+  };
+
+  // Close error modal
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorMessage("");
+  };
+
   // Add category
   const handleAddCategory = async (e) => {
     e.preventDefault();
@@ -166,11 +182,11 @@ const Categories = () => {
         resetForm();
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to create category');
+        showError(error.error || 'Failed to create category');
       }
     } catch (error) {
       console.error('Error creating category:', error);
-      alert('Error creating category');
+      showError('Error creating category');
     } finally {
       setAddingLoading(false);
     }
@@ -230,12 +246,12 @@ const Categories = () => {
         }, 1500);
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to update category');
+        showError(error.error || 'Failed to update category');
         setUpdatingLoading(false);
       }
     } catch (error) {
       console.error('Error updating category:', error);
-      alert('Error updating category');
+      showError('Error updating category');
       setUpdatingLoading(false);
     }
   };
@@ -281,13 +297,13 @@ const Categories = () => {
           closeDeleteModal();
         }, 1500);
       } else {
-        console.error('Failed to delete category');
-        alert('Failed to delete category');
+        const error = await response.json();
+        showError(error.error || 'Failed to delete category');
         setDeleting(false);
       }
     } catch (error) {
       console.error('Error deleting category:', error);
-      alert('Error deleting category');
+      showError('Error deleting category');
       setDeleting(false);
     }
   };
@@ -513,6 +529,22 @@ const Categories = () => {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ERROR MODAL */}
+      {showErrorModal && (
+        <div className="overlay">
+          <div className="modal-content error-modal">
+            <div className="error-icon">⚠️</div>
+            <h3>Operation Failed</h3>
+            <p className="error-message-text">{errorMessage}</p>
+            <div className="form-buttons">
+              <button className="cancel-btn" onClick={closeErrorModal}>
+                OK
+              </button>
+            </div>
           </div>
         </div>
       )}
