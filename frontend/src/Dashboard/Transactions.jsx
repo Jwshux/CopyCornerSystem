@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./Transactions.css";
+import Lottie from "lottie-react";
+import loadingAnimation from "../animations/loading.json";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -520,7 +522,9 @@ const Transactions = () => {
           {loading ? (
             <tr>
               <td colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
-                Loading transactions...
+                <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                  <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                </div>
               </td>
             </tr>
           ) : filteredTransactions.length > 0 ? (

@@ -9,11 +9,13 @@ service_types_bp = Blueprint('service_types', __name__)
 
 # MongoDB connection (will be initialized from app.py)
 service_types_collection = None
+transactions_collection = None  # NEW: Add transactions collection
 
-def init_service_types_db(mongo_collection):
+def init_service_types_db(mongo_collection, transactions_coll):
     """Initialize the service_types collection from app.py"""
-    global service_types_collection
+    global service_types_collection, transactions_collection
     service_types_collection = mongo_collection
+    transactions_collection = transactions_coll  # NEW: Initialize transactions collection
 
 # Helper to convert ObjectId to string
 def serialize_doc(doc):
@@ -119,11 +121,25 @@ def create_service_type():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Update service type
+# Update service type - MODIFIED TO PREVENT UPDATES IF USED IN TRANSACTIONS
 @service_types_bp.route('/api/service_types/<service_type_id>', methods=['PUT'])
 def update_service_type(service_type_id):
     try:
         data = request.json
+        
+        # Get current service type first to know the old name
+        current_service = service_types_collection.find_one({'_id': ObjectId(service_type_id)})
+        if not current_service:
+            return jsonify({'error': 'Service type not found'}), 404
+        
+        # Check if service name is being changed
+        if data['service_name'] != current_service['service_name']:
+            # Check if any transactions are using this service type
+            transaction_count = transactions_collection.count_documents({'service_type': current_service['service_name']})
+            if transaction_count > 0:
+                return jsonify({
+                    'error': f'Cannot rename service type "{current_service["service_name"]}". {transaction_count} transaction(s) are using this service type. Please update transactions first.'
+                }), 400
         
         # Check if service name already exists (excluding current service)
         existing_service = service_types_collection.find_one({
@@ -151,10 +167,22 @@ def update_service_type(service_type_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Delete service type
+# Delete service type - MODIFIED TO PREVENT DELETION IF USED IN TRANSACTIONS
 @service_types_bp.route('/api/service_types/<service_type_id>', methods=['DELETE'])
 def delete_service_type(service_type_id):
     try:
+        # Get service type first to check if it has transactions
+        service_type = service_types_collection.find_one({'_id': ObjectId(service_type_id)})
+        if not service_type:
+            return jsonify({'error': 'Service type not found'}), 404
+        
+        # Check if any transactions are using this service type
+        transaction_count = transactions_collection.count_documents({'service_type': service_type['service_name']})
+        if transaction_count > 0:
+            return jsonify({
+                'error': f'Cannot delete service type "{service_type["service_name"]}". {transaction_count} transaction(s) are using this service type. Please delete or update transactions first.'
+            }), 400
+        
         result = service_types_collection.delete_one({'_id': ObjectId(service_type_id)})
         if result.deleted_count:
             return jsonify({'message': 'Service type deleted successfully'})

@@ -52,7 +52,7 @@ try:
     init_schedules_db(schedule_collection, users_collection, groups_collection)
     init_staffs_db(staffs_collection, users_collection, groups_collection)
     init_transactions_db(transactions_collection, products_collection)
-    init_service_types_db(service_types_collection)
+    init_service_types_db(service_types_collection, transactions_collection)
     
     client.admin.command("ping")
     print("✅ Connected to MongoDB Atlas!")

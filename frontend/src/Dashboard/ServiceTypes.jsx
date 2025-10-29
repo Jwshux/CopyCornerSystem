@@ -12,7 +12,7 @@ function ServiceTypes() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [serviceTypes, setServiceTypes] = useState([]);
-  const [categories, setCategories] = useState([]); // NEW: Dynamic categories from backend
+  const [categories, setCategories] = useState([]);
   const [selectedServiceType, setSelectedServiceType] = useState(null);
   const [serviceTypeToDelete, setServiceTypeToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -22,9 +22,13 @@ function ServiceTypes() {
   const [deleting, setDeleting] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
   
+  // NEW: Error modal state
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  
   const [formData, setFormData] = useState({
     service_name: "",
-    category: "", // Will be set dynamically from categories
+    category: "",
     status: "Active"
   });
 
@@ -52,7 +56,7 @@ function ServiceTypes() {
     }
   };
 
-  // NEW: Fetch categories from backend
+  // Fetch categories from backend
   const fetchCategories = async () => {
     try {
       const response = await fetch(`${API_BASE}/categories`);
@@ -71,7 +75,7 @@ function ServiceTypes() {
 
   useEffect(() => {
     fetchServiceTypes();
-    fetchCategories(); // Fetch categories on component mount
+    fetchCategories();
   }, []);
 
   // Reset success states when modals close
@@ -145,11 +149,23 @@ function ServiceTypes() {
   const resetForm = () => {
     setFormData({
       service_name: "",
-      category: categories.length > 0 ? categories[0].name : "", // Set to first category
+      category: categories.length > 0 ? categories[0].name : "",
       status: "Active"
     });
     setSelectedServiceType(null);
     setServiceNameError("");
+  };
+
+  // NEW: Show error modal
+  const showError = (message) => {
+    setErrorMessage(message);
+    setShowErrorModal(true);
+  };
+
+  // NEW: Close error modal
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorMessage("");
   };
 
   // Add service type
@@ -157,7 +173,7 @@ function ServiceTypes() {
     e.preventDefault();
     
     if (serviceNameError) {
-      alert("Please fix the service name error before saving.");
+      showError("Please fix the service name error before saving.");
       return;
     }
 
@@ -183,12 +199,12 @@ function ServiceTypes() {
         }, 1500);
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to create service type');
+        showError(error.error || 'Failed to create service type');
         setLoading(false);
       }
     } catch (error) {
       console.error('Error creating service type:', error);
-      alert('Error creating service type');
+      showError('Error creating service type');
       setLoading(false);
     }
   };
@@ -210,7 +226,7 @@ function ServiceTypes() {
     e.preventDefault();
     
     if (serviceNameError) {
-      alert("Please fix the service name error before updating.");
+      showError("Please fix the service name error before updating.");
       return;
     }
 
@@ -236,12 +252,12 @@ function ServiceTypes() {
         }, 1500);
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to update service type');
+        showError(error.error || 'Failed to update service type');
         setLoading(false);
       }
     } catch (error) {
       console.error('Error updating service type:', error);
-      alert('Error updating service type');
+      showError('Error updating service type');
       setLoading(false);
     }
   };
@@ -280,12 +296,12 @@ function ServiceTypes() {
         }, 1500);
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to delete service type');
+        showError(error.error || 'Failed to delete service type');
         setDeleting(false);
       }
     } catch (error) {
       console.error('Error deleting service type:', error);
-      alert('Error deleting service type');
+      showError('Error deleting service type');
       setDeleting(false);
     }
   };
@@ -614,6 +630,22 @@ function ServiceTypes() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ERROR MODAL */}
+      {showErrorModal && (
+        <div className="overlay">
+          <div className="add-form error-modal">
+            <div className="error-icon">⚠️</div>
+            <h3>Operation Failed</h3>
+            <p className="error-message-text">{errorMessage}</p>
+            <div className="form-buttons">
+              <button className="cancel-btn" onClick={closeErrorModal}>
+                OK
+              </button>
+            </div>
           </div>
         </div>
       )}
