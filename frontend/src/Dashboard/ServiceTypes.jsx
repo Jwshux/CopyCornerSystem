@@ -5,23 +5,14 @@ import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
 import deleteAnimation from "../animations/delete.json";
 
-function ServiceTypes() {
-  // Demo sample data
-  const demoServiceTypes = [
-    { _id: "1", service_id: "ST-001", service_name: "Printing", status: "Active" },
-    { _id: "2", service_id: "ST-002", service_name: "Photocopying", status: "Active" },
-    { _id: "3", service_id: "ST-003", service_name: "Tshirt Printing", status: "Active" },
-    { _id: "4", service_id: "ST-004", service_name: "Thesis Hardbound", status: "Active" },
-    { _id: "5", service_id: "ST-005", service_name: "Softbind", status: "Active" },
-    { _id: "6", service_id: "ST-006", service_name: "Lamination", status: "Inactive" },
-    { _id: "7", service_id: "ST-007", service_name: "Scanning", status: "Active" },
-    { _id: "8", service_id: "ST-008", service_name: "Document Binding", status: "Active" }
-  ];
+const API_BASE = "http://localhost:5000/api";
 
+function ServiceTypes() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [serviceTypes, setServiceTypes] = useState([]);
+  const [categories, setCategories] = useState([]); // NEW: Dynamic categories from backend
   const [selectedServiceType, setSelectedServiceType] = useState(null);
   const [serviceTypeToDelete, setServiceTypeToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -30,28 +21,58 @@ function ServiceTypes() {
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
+  
   const [formData, setFormData] = useState({
     service_name: "",
+    category: "", // Will be set dynamically from categories
     status: "Active"
   });
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const itemsPerPage = 10;
 
-  // Initialize with demo data
-  useEffect(() => {
-    setServiceTypes(demoServiceTypes);
-    setTotalPages(Math.ceil(demoServiceTypes.length / itemsPerPage));
-  }, []);
-
-  // Get current page items
-  const getCurrentPageItems = () => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return serviceTypes.slice(startIndex, endIndex);
+  // Fetch service types from backend
+  const fetchServiceTypes = async (page = 1) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/service_types?page=${page}&per_page=10`);
+      if (response.ok) {
+        const data = await response.json();
+        setServiceTypes(data.service_types);
+        setCurrentPage(data.pagination.page);
+        setTotalPages(data.pagination.total_pages);
+      } else {
+        console.error('Failed to fetch service types');
+      }
+    } catch (error) {
+      console.error('Error fetching service types:', error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // NEW: Fetch categories from backend
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/categories`);
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data);
+        // Set default category to first category if available
+        if (data.length > 0 && !formData.category) {
+          setFormData(prev => ({ ...prev, category: data[0].name }));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchServiceTypes();
+    fetchCategories(); // Fetch categories on component mount
+  }, []);
 
   // Reset success states when modals close
   useEffect(() => {
@@ -73,32 +94,39 @@ function ServiceTypes() {
   // Pagination handlers
   const handleNextPage = () => {
     if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
+      fetchServiceTypes(currentPage + 1);
     }
   };
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+      fetchServiceTypes(currentPage - 1);
     }
   };
 
   // Check if service name exists
-  const checkServiceName = (serviceName) => {
+  const checkServiceName = async (serviceName) => {
     if (!serviceName) {
       setServiceNameError("");
       return;
     }
 
-    const existingService = serviceTypes.find(service => 
-      service.service_name.toLowerCase() === serviceName.toLowerCase() &&
-      (!selectedServiceType || service._id !== selectedServiceType._id)
-    );
+    try {
+      const response = await fetch(`${API_BASE}/service_types`);
+      const allServices = await response.json();
+      
+      const existingService = allServices.find(service => 
+        service.service_name.toLowerCase() === serviceName.toLowerCase() &&
+        (!selectedServiceType || service._id !== selectedServiceType._id)
+      );
 
-    if (existingService) {
-      setServiceNameError("Service type name already exists");
-    } else {
-      setServiceNameError("");
+      if (existingService) {
+        setServiceNameError("Service type name already exists");
+      } else {
+        setServiceNameError("");
+      }
+    } catch (error) {
+      console.error('Error checking service name:', error);
     }
   };
 
@@ -117,19 +145,11 @@ function ServiceTypes() {
   const resetForm = () => {
     setFormData({
       service_name: "",
+      category: categories.length > 0 ? categories[0].name : "", // Set to first category
       status: "Active"
     });
     setSelectedServiceType(null);
     setServiceNameError("");
-  };
-
-  // Generate new service ID
-  const generateServiceId = () => {
-    const highestId = serviceTypes.reduce((max, service) => {
-      const idNum = parseInt(service.service_id.split('-')[1]);
-      return idNum > max ? idNum : max;
-    }, 0);
-    return `ST-${String(highestId + 1).padStart(3, '0')}`;
   };
 
   // Add service type
@@ -143,26 +163,34 @@ function ServiceTypes() {
 
     setLoading(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
-      const newServiceType = {
-        _id: Date.now().toString(),
-        service_id: generateServiceId(),
-        service_name: formData.service_name,
-        status: formData.status
-      };
+    try {
+      const response = await fetch(`${API_BASE}/service_types`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
-      setAddSuccess(true);
-      
-      // Wait for animation to complete before refreshing and closing
-      setTimeout(() => {
-        setServiceTypes(prev => [newServiceType, ...prev]);
-        setTotalPages(Math.ceil((serviceTypes.length + 1) / itemsPerPage));
-        setShowAddForm(false);
-        resetForm();
+      if (response.ok) {
+        setAddSuccess(true);
+        // Wait for animation to complete before refreshing and closing
+        setTimeout(async () => {
+          await fetchServiceTypes(currentPage);
+          setShowAddForm(false);
+          resetForm();
+          setLoading(false);
+        }, 1500);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to create service type');
         setLoading(false);
-      }, 1500);
-    }, 1000);
+      }
+    } catch (error) {
+      console.error('Error creating service type:', error);
+      alert('Error creating service type');
+      setLoading(false);
+    }
   };
 
   // Edit service type - fills form for editing
@@ -170,6 +198,7 @@ function ServiceTypes() {
     setSelectedServiceType(serviceType);
     setFormData({
       service_name: serviceType.service_name,
+      category: serviceType.category,
       status: serviceType.status
     });
     setServiceNameError("");
@@ -187,24 +216,34 @@ function ServiceTypes() {
 
     setLoading(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
-      setUpdateSuccess(true);
-      
-      // Wait for animation to complete before refreshing and closing
-      setTimeout(() => {
-        setServiceTypes(prev => 
-          prev.map(service => 
-            service._id === selectedServiceType._id 
-              ? { ...service, service_name: formData.service_name, status: formData.status }
-              : service
-          )
-        );
-        setShowEditModal(false);
-        resetForm();
+    try {
+      const response = await fetch(`${API_BASE}/service_types/${selectedServiceType._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        setUpdateSuccess(true);
+        // Wait for animation to complete before refreshing and closing
+        setTimeout(async () => {
+          await fetchServiceTypes(currentPage);
+          setShowEditModal(false);
+          resetForm();
+          setLoading(false);
+        }, 1500);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to update service type');
         setLoading(false);
-      }, 1500);
-    }, 1000);
+      }
+    } catch (error) {
+      console.error('Error updating service type:', error);
+      alert('Error updating service type');
+      setLoading(false);
+    }
   };
 
   // Open delete confirmation modal
@@ -227,24 +266,28 @@ function ServiceTypes() {
 
     setDeleting(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
-      setDeleteSuccess(true);
-      
-      // Wait for animation to complete before closing and refreshing
-      setTimeout(() => {
-        const newServiceTypes = serviceTypes.filter(service => service._id !== serviceTypeToDelete._id);
-        setServiceTypes(newServiceTypes);
-        setTotalPages(Math.ceil(newServiceTypes.length / itemsPerPage));
-        
-        // Adjust current page if needed
-        if (getCurrentPageItems().length === 1 && currentPage > 1) {
-          setCurrentPage(currentPage - 1);
-        }
-        
-        closeDeleteModal();
-      }, 1500);
-    }, 1000);
+    try {
+      const response = await fetch(`${API_BASE}/service_types/${serviceTypeToDelete._id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setDeleteSuccess(true);
+        // Wait for animation to complete before closing and refreshing
+        setTimeout(async () => {
+          await fetchServiceTypes(currentPage);
+          closeDeleteModal();
+        }, 1500);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to delete service type');
+        setDeleting(false);
+      }
+    } catch (error) {
+      console.error('Error deleting service type:', error);
+      alert('Error deleting service type');
+      setDeleting(false);
+    }
   };
 
   // Open "Add New Service Type" modal
@@ -259,8 +302,6 @@ function ServiceTypes() {
     setShowEditModal(false);
     resetForm();
   };
-
-  const currentItems = getCurrentPageItems();
 
   return (
     <div className="service-types-page">
@@ -280,14 +321,15 @@ function ServiceTypes() {
               <th>#</th>
               <th>Service ID</th>
               <th>Service Name</th>
+              <th>Category</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {currentItems.length === 0 ? (
+            {serviceTypes.length === 0 ? (
               <tr>
-                <td colSpan="5" style={{ textAlign: "center", color: "#888" }}>
+                <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
                   {loading ? (
                     <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
                       <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
@@ -298,11 +340,12 @@ function ServiceTypes() {
                 </td>
               </tr>
             ) : (
-              currentItems.map((serviceType, index) => (
+              serviceTypes.map((serviceType, index) => (
                 <tr key={serviceType._id}>
-                  <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                  <td>{(currentPage - 1) * 10 + index + 1}</td>
                   <td>{serviceType.service_id}</td>
                   <td>{serviceType.service_name}</td>
+                  <td>{serviceType.category}</td>
                   <td>
                     <span
                       className={`status-tag ${
@@ -394,6 +437,23 @@ function ServiceTypes() {
                   />
                   {serviceNameError && <div className="error-message">{serviceNameError}</div>}
                 </div>
+
+                <div className="form-field">
+                  <label>Category</label>
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map(category => (
+                      <option key={category._id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 
                 <div className="form-field">
                   <label>Status</label>
@@ -469,6 +529,23 @@ function ServiceTypes() {
                     required
                   />
                   {serviceNameError && <div className="error-message">{serviceNameError}</div>}
+                </div>
+
+                <div className="form-field">
+                  <label>Category</label>
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map(category => (
+                      <option key={category._id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div className="form-field">

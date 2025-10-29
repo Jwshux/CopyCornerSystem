@@ -4,17 +4,8 @@ import "./Transactions.css";
 const API_BASE = "http://localhost:5000/api";
 
 const Transactions = () => {
-  // Service type options for dropdown
-  const serviceTypeOptions = [
-    "Printing",
-    "Photocopying", 
-    "Tshirt Printing",
-    "Thesis Hardbound",
-    "Softbind",
-    "School Supplies"
-  ];
-
   const [allProducts, setAllProducts] = useState([]);
+  const [serviceTypes, setServiceTypes] = useState([]); // NEW: Dynamic service types
   const [transactions, setTransactions] = useState([]);
   const [activeTab, setActiveTab] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
@@ -101,9 +92,25 @@ const Transactions = () => {
     }
   };
 
+  // NEW: Fetch service types from backend
+  const fetchServiceTypes = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/service_types`);
+      if (response.ok) {
+        const data = await response.json();
+        // Filter only active service types
+        const activeServices = data.filter(service => service.status === "Active");
+        setServiceTypes(activeServices);
+      }
+    } catch (error) {
+      console.error('Error fetching service types:', error);
+    }
+  };
+
   useEffect(() => {
     fetchTransactions(1, activeTab);
     fetchAllProducts();
+    fetchServiceTypes(); // NEW: Fetch service types on component mount
   }, []);
 
   useEffect(() => {
@@ -111,37 +118,37 @@ const Transactions = () => {
   }, [activeTab]);
 
   // ==========================
-  // Service Type Logic - FIXED
+  // Service Type Logic - UPDATED TO USE DYNAMIC SERVICE TYPES
   // ==========================
 
-  const isPaperService = (serviceType) => {
-    return ["Printing", "Photocopying", "Thesis Hardbound", "Softbind"].includes(serviceType);
-  };
+  // Get service type options for dropdown (only active ones)
+  const serviceTypeOptions = serviceTypes.map(service => service.service_name);
 
-  const isTshirtService = (serviceType) => {
-    return serviceType === "Tshirt Printing";
-  };
-
-  const isSuppliesService = (serviceType) => {
-    return serviceType === "School Supplies";
-  };
-
-  // Service Type to Category Mapping - FIXED
+  // Service Type to Category Mapping - UPDATED TO USE DYNAMIC CATEGORIES
   const getCategoryForService = (serviceType) => {
     if (!serviceType) return null;
     
-    const serviceCategoryMap = {
-      'Printing': 'Paper',
-      'Photocopying': 'Paper',
-      'Thesis Hardbound': 'Paper', 
-      'Softbind': 'Paper',
-      'Tshirt Printing': 'T-shirt',
-      'School Supplies': 'Supplies'
-    };
-    return serviceCategoryMap[serviceType] || null;
+    // Find the service type in our dynamic list and get its category
+    const service = serviceTypes.find(s => s.service_name === serviceType);
+    return service ? service.category : null;
   };
 
-  // Get products by category for dropdowns - FIXED
+  const isPaperService = (serviceType) => {
+    const category = getCategoryForService(serviceType);
+    return category === "Paper";
+  };
+
+  const isTshirtService = (serviceType) => {
+    const category = getCategoryForService(serviceType);
+    return category === "T-shirt";
+  };
+
+  const isSuppliesService = (serviceType) => {
+    const category = getCategoryForService(serviceType);
+    return category === "Supplies";
+  };
+
+  // Get products by category for dropdowns
   const getProductsByCategory = (categoryName) => {
     if (!categoryName || !allProducts || allProducts.length === 0) return [];
     
@@ -150,7 +157,7 @@ const Transactions = () => {
     );
   };
 
-  // Get dropdown options based on service type - FIXED
+  // Get dropdown options based on service type
   const getServiceOptions = (serviceType) => {
     if (!serviceType) return [];
     
@@ -649,7 +656,7 @@ const Transactions = () => {
                 />
               </div>
               
-              {/* Service Type Dropdown */}
+              {/* Service Type Dropdown - NOW DYNAMIC */}
               <div className="form-group">
                 <label>Service Type:</label>
                 <select
