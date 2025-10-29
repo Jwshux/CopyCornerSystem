@@ -21,12 +21,14 @@ def serialize_doc(doc):
         doc['_id'] = str(doc['_id'])
     return doc
 
-# Calculate stock status based on quantity
-def get_stock_status(stock_quantity):
+# Calculate stock status based on quantity AND minimum_stock
+def get_stock_status(stock_quantity, minimum_stock):
     stock_num = int(stock_quantity)
+    min_stock = int(minimum_stock)
+    
     if stock_num <= 0:
         return "Out of Stock"
-    elif stock_num <= 5:
+    elif stock_num <= min_stock:
         return "Low Stock"
     else:
         return "In Stock"
@@ -112,7 +114,7 @@ def get_product(product_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Create new product
+# Create new product - UPDATED WITH MINIMUM_STOCK
 @products_bp.route('/api/products', methods=['POST'])
 def create_product():
     try:
@@ -126,14 +128,15 @@ def create_product():
         # Generate sequential product ID
         product_id = generate_product_id()
         
-        # Calculate status based on stock
-        status = get_stock_status(data['stock_quantity'])
+        # Calculate status based on stock and minimum_stock
+        status = get_stock_status(data['stock_quantity'], data['minimum_stock'])
         
         new_product = {
             'product_id': product_id,
             'product_name': data['product_name'],
             'category': data['category'],
             'stock_quantity': int(data['stock_quantity']),
+            'minimum_stock': int(data['minimum_stock']),  # NEW FIELD
             'unit_price': float(data['unit_price']),
             'status': status,
             'created_at': datetime.utcnow(),
@@ -146,7 +149,7 @@ def create_product():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Update product
+# Update product - UPDATED WITH MINIMUM_STOCK
 @products_bp.route('/api/products/<product_id>', methods=['PUT'])
 def update_product(product_id):
     try:
@@ -160,13 +163,14 @@ def update_product(product_id):
         if existing_product:
             return jsonify({'error': 'Product name already exists'}), 400
         
-        # Calculate status based on stock
-        status = get_stock_status(data['stock_quantity'])
+        # Calculate status based on stock and minimum_stock
+        status = get_stock_status(data['stock_quantity'], data['minimum_stock'])
         
         update_data = {
             'product_name': data['product_name'],
             'category': data['category'],
             'stock_quantity': int(data['stock_quantity']),
+            'minimum_stock': int(data['minimum_stock']),  # NEW FIELD
             'unit_price': float(data['unit_price']),
             'status': status,
             'updated_at': datetime.utcnow()

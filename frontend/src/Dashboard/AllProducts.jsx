@@ -3,7 +3,7 @@ import "./AllProducts.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
-import deleteAnimation from "../animations/delete.json"; // Add this import
+import deleteAnimation from "../animations/delete.json";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -19,12 +19,15 @@ function AllProducts() {
   const [productNameError, setProductNameError] = useState("");
   const [addSuccess, setAddSuccess] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
-  const [deleting, setDeleting] = useState(false); // New state for delete animation
-  const [deleteSuccess, setDeleteSuccess] = useState(false); // New state for delete success
+  const [deleting, setDeleting] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
+  
+  // UPDATED: Added minimum_stock field
   const [formData, setFormData] = useState({
     product_name: "",
     category: "",
     stock_quantity: "",
+    minimum_stock: "", // NEW FIELD
     unit_price: ""
   });
 
@@ -55,11 +58,10 @@ function AllProducts() {
   // Fetch categories from backend
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${API_BASE}/categories?page=1&per_page=100`); // Get all categories
+      const response = await fetch(`${API_BASE}/categories?page=1&per_page=100`);
       if (response.ok) {
         const data = await response.json();
-        // Extract categories from the paginated response
-        setCategories(data.categories || data); // Handle both old and new response formats
+        setCategories(data.categories || data);
       } else {
         console.error('Failed to fetch categories');
       }
@@ -139,6 +141,7 @@ function AllProducts() {
       product_name: "",
       category: "",
       stock_quantity: "",
+      minimum_stock: "", // NEW FIELD
       unit_price: ""
     });
     setSelectedProduct(null);
@@ -151,6 +154,12 @@ function AllProducts() {
     
     if (productNameError) {
       alert("Please fix the product name error before saving.");
+      return;
+    }
+
+    // Validate minimum stock is not greater than current stock
+    if (parseInt(formData.minimum_stock) > parseInt(formData.stock_quantity)) {
+      alert("Minimum stock cannot be greater than current stock quantity.");
       return;
     }
 
@@ -192,6 +201,7 @@ function AllProducts() {
       product_name: product.product_name,
       category: product.category,
       stock_quantity: product.stock_quantity,
+      minimum_stock: product.minimum_stock || 5, // NEW FIELD - default to 5 if not set
       unit_price: product.unit_price
     });
     setProductNameError("");
@@ -204,6 +214,12 @@ function AllProducts() {
     
     if (productNameError) {
       alert("Please fix the product name error before updating.");
+      return;
+    }
+
+    // Validate minimum stock is not greater than current stock
+    if (parseInt(formData.minimum_stock) > parseInt(formData.stock_quantity)) {
+      alert("Minimum stock cannot be greater than current stock quantity.");
       return;
     }
 
@@ -328,6 +344,7 @@ function AllProducts() {
               <th>Product Name</th>
               <th>Category</th>
               <th>Stock Quantity</th>
+              <th>Min Stock</th> {/* NEW COLUMN */}
               <th>Unit Price</th>
               <th>Status</th>
               <th>Actions</th>
@@ -336,7 +353,7 @@ function AllProducts() {
           <tbody>
             {products.length === 0 ? (
               <tr>
-                <td colSpan="8" style={{ textAlign: "center", color: "#888" }}>
+                <td colSpan="9" style={{ textAlign: "center", color: "#888" }}>
                   {loading ? (
                     <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
                       <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
@@ -354,6 +371,7 @@ function AllProducts() {
                   <td>{product.product_name}</td>
                   <td>{product.category}</td>
                   <td>{product.stock_quantity}</td>
+                  <td>{product.minimum_stock || 5}</td> {/* NEW COLUMN */}
                   <td>{formatPrice(product.unit_price)}</td>
                   <td>
                     <span
@@ -378,7 +396,7 @@ function AllProducts() {
           </tbody>
         </table>
 
-        {/* PAGINATION CONTROLS - Now inside the container */}
+        {/* PAGINATION CONTROLS */}
         <div className="simple-pagination">
           <button 
             className="pagination-btn" 
@@ -471,11 +489,29 @@ function AllProducts() {
                   <input
                     type="number"
                     name="stock_quantity"
-                    placeholder="Stock Quantity"
+                    placeholder="Current stock quantity"
                     value={formData.stock_quantity}
                     onChange={handleInputChange}
                     required
+                    min="0"
                   />
+                </div>
+                
+                {/* NEW FIELD: Minimum Stock */}
+                <div className="form-field">
+                  <label>Minimum Stock Level</label>
+                  <input
+                    type="number"
+                    name="minimum_stock"
+                    placeholder="Low stock alert level"
+                    value={formData.minimum_stock}
+                    onChange={handleInputChange}
+                    required
+                    min="0"
+                  />
+                  <small style={{color: '#666', fontSize: '12px', marginTop: '5px'}}>
+                    Product will show "Low Stock" when quantity reaches this level
+                  </small>
                 </div>
                 
                 <div className="form-field">
@@ -576,11 +612,29 @@ function AllProducts() {
                   <input
                     type="number"
                     name="stock_quantity"
-                    placeholder="Stock Quantity"
+                    placeholder="Current stock quantity"
                     value={formData.stock_quantity}
                     onChange={handleInputChange}
                     required
+                    min="0"
                   />
+                </div>
+                
+                {/* NEW FIELD: Minimum Stock */}
+                <div className="form-field">
+                  <label>Minimum Stock Level</label>
+                  <input
+                    type="number"
+                    name="minimum_stock"
+                    placeholder="Low stock alert level"
+                    value={formData.minimum_stock}
+                    onChange={handleInputChange}
+                    required
+                    min="0"
+                  />
+                  <small style={{color: '#666', fontSize: '12px', marginTop: '5px'}}>
+                    Product will show "Low Stock" when quantity reaches this level
+                  </small>
                 </div>
                 
                 <div className="form-field">
