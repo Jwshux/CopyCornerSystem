@@ -284,13 +284,13 @@ function AdminDashboard({ user, onLogout }) {
               
               <div className="dropdown-menu">
                 <button className="dropdown-item">
-                  My Profile
+                  My Activity
                 </button>
                 <button className="dropdown-item">
-                  Settings
+                  System Logs
                 </button>
                 <button className="dropdown-item">
-                  Help & Support
+                  About
                 </button>
                 <button className="dropdown-item logout" onClick={handleLogout}>
                   Log Out
