@@ -27,6 +27,7 @@ const Transactions = () => {
     paper_type: "",
     size_type: "",
     supply_type: "",
+    product_type: "", // NEW: Unified product field
     total_pages: "",
     price_per_unit: "",
     quantity: "",
@@ -44,7 +45,7 @@ const Transactions = () => {
     return nameRegex.test(name);
   };
 
-  // FIXED: Better transactions fetch with error handling
+  // Fetch transactions
   const fetchTransactions = async (page = 1, status = "Pending") => {
     setLoading(true);
     try {
@@ -71,7 +72,7 @@ const Transactions = () => {
     }
   };
 
-  // FIXED: Better products fetch
+  // Fetch products
   const fetchAllProducts = async () => {
     try {
       const response = await fetch(`${API_BASE}/products?page=1&per_page=100`);
@@ -92,7 +93,7 @@ const Transactions = () => {
     }
   };
 
-  // FIXED: Better service types fetch
+  // Fetch service types
   const fetchServiceTypes = async () => {
     try {
       const response = await fetch(`${API_BASE}/service_types`);
@@ -125,8 +126,8 @@ const Transactions = () => {
     fetchTransactions(1, activeTab);
   }, [activeTab]);
 
-  // FIXED: Better category detection
-  const getCategoryForService = (serviceType) => {
+  // DYNAMIC: Get category for service type
+  const getServiceCategory = (serviceType) => {
     if (!serviceType) return null;
     const service = serviceTypes.find(s => s.service_name === serviceType);
     if (!service) return null;
@@ -141,22 +142,7 @@ const Transactions = () => {
     return null;
   };
 
-  const isPaperService = (serviceType) => {
-    const category = getCategoryForService(serviceType);
-    return category === "Paper";
-  };
-
-  const isTshirtService = (serviceType) => {
-    const category = getCategoryForService(serviceType);
-    return category === "T-shirt";
-  };
-
-  const isSuppliesService = (serviceType) => {
-    const category = getCategoryForService(serviceType);
-    return category === "Supplies";
-  };
-
-  // FIXED: Better product filtering
+  // DYNAMIC: Get products by category
   const getProductsByCategory = (categoryName) => {
     if (!categoryName || !allProducts || allProducts.length === 0) return [];
     return allProducts.filter(product => {
@@ -176,12 +162,33 @@ const Transactions = () => {
     });
   };
 
+  // DYNAMIC: Get product options for service type
   const getServiceOptions = (serviceType) => {
     if (!serviceType) return [];
-    const category = getCategoryForService(serviceType);
+    const category = getServiceCategory(serviceType);
     if (!category) return [];
     const products = getProductsByCategory(category);
     return products.map(product => product.product_name);
+  };
+
+  // DYNAMIC: Check if service has products
+  const hasProductsForService = (serviceType) => {
+    const category = getServiceCategory(serviceType);
+    if (!category) return false;
+    
+    const products = getProductsByCategory(category);
+    return products && products.length > 0;
+  };
+
+  // DYNAMIC: Get quantity placeholder based on service category
+  const getQuantityPlaceholder = (serviceType) => {
+    const category = getServiceCategory(serviceType);
+    switch(category) {
+      case "T-shirt": return "Number of shirts";
+      case "Supplies": return "Number of items";
+      case "Paper": return "Number of copies";
+      default: return "Quantity";
+    }
   };
 
   const handleChange = (e) => {
@@ -195,9 +202,11 @@ const Transactions = () => {
     }
 
     if (name === "service_type") {
+      // Reset all product-related fields when service type changes
       updated.paper_type = "";
       updated.size_type = "";
       updated.supply_type = "";
+      updated.product_type = "";
       updated.total_pages = "";
     }
 
@@ -217,6 +226,7 @@ const Transactions = () => {
       paper_type: "",
       size_type: "",
       supply_type: "",
+      product_type: "", // NEW
       total_pages: "",
       price_per_unit: "",
       quantity: "",
@@ -234,6 +244,20 @@ const Transactions = () => {
       return;
     }
 
+    // Determine which product field to use based on service category
+    const serviceCategory = getServiceCategory(transaction.service_type);
+    let productType = "";
+    if (serviceCategory === "Paper") {
+      productType = transaction.paper_type || "";
+    } else if (serviceCategory === "T-shirt") {
+      productType = transaction.size_type || "";
+    } else if (serviceCategory === "Supplies") {
+      productType = transaction.supply_type || "";
+    } else {
+      // For new categories, use any available product field
+      productType = transaction.paper_type || transaction.size_type || transaction.supply_type || "";
+    }
+
     setFormData({
       queue_number: transaction.queue_number || "",
       transaction_id: transaction.transaction_id || "",
@@ -242,6 +266,7 @@ const Transactions = () => {
       paper_type: transaction.paper_type || "",
       size_type: transaction.size_type || "",
       supply_type: transaction.supply_type || "",
+      product_type: productType, // NEW
       total_pages: transaction.total_pages || "",
       price_per_unit: transaction.price_per_unit || "",
       quantity: transaction.quantity || "",
@@ -262,33 +287,28 @@ const Transactions = () => {
       return;
     }
 
-    if (isPaperService(formData.service_type) && !formData.paper_type) {
-      alert("Please select a paper type for this service");
+    // DYNAMIC: Validate product selection for services that have products
+    if (hasProductsForService(formData.service_type) && !formData.product_type) {
+      alert(`Please select a product for ${formData.service_type} service`);
       return;
     }
 
-    if (isPaperService(formData.service_type) && (!formData.total_pages || formData.total_pages < 1)) {
+    // DYNAMIC: Paper-specific validation
+    const serviceCategory = getServiceCategory(formData.service_type);
+    if (serviceCategory === "Paper" && (!formData.total_pages || formData.total_pages < 1)) {
       alert("Please enter total pages (minimum 1)");
       return;
     }
 
-    if (isTshirtService(formData.service_type) && !formData.size_type) {
-      alert("Please select a size for T-shirt printing");
-      return;
-    }
-
-    if (isSuppliesService(formData.service_type) && !formData.supply_type) {
-      alert("Please select a school supply item");
-      return;
-    }
-
     try {
-      const backendData = {
+      // DYNAMIC: Set the appropriate product field based on service category for backend compatibility
+      const serviceCategory = getServiceCategory(formData.service_type);
+      let backendData = {
         customer_name: formData.customer_name,
         service_type: formData.service_type,
-        paper_type: formData.paper_type || "",
-        size_type: formData.size_type || "",
-        supply_type: formData.supply_type || "",
+        paper_type: "",
+        size_type: "",
+        supply_type: "",
         total_pages: parseInt(formData.total_pages) || 0,
         price_per_unit: parseFloat(formData.price_per_unit) || 0,
         quantity: parseInt(formData.quantity) || 1,
@@ -296,6 +316,18 @@ const Transactions = () => {
         status: formData.status,
         date: formData.date
       };
+
+      // Set the appropriate field based on service category
+      if (serviceCategory === "Paper") {
+        backendData.paper_type = formData.product_type;
+      } else if (serviceCategory === "T-shirt") {
+        backendData.size_type = formData.product_type;
+      } else if (serviceCategory === "Supplies") {
+        backendData.supply_type = formData.product_type;
+      } else {
+        // For new categories, use paper_type as default
+        backendData.paper_type = formData.product_type;
+      }
 
       const url = isEditing 
         ? `${API_BASE}/transactions/${editIndex}`
@@ -439,6 +471,7 @@ const Transactions = () => {
       paper_type: "",
       size_type: "",
       supply_type: "",
+      product_type: "", // NEW
       total_pages: "",
       price_per_unit: "",
       quantity: "",
@@ -466,24 +499,32 @@ const Transactions = () => {
       minimumFractionDigits: 2,
     })}`;
 
+  // DYNAMIC: Get service-specific information for display
   const getServiceSpecificInfo = (transaction) => {
-    if (isPaperService(transaction.service_type)) {
+    const serviceCategory = getServiceCategory(transaction.service_type);
+    
+    if (serviceCategory === "Paper") {
       return {
         type: transaction.paper_type || "—",
         details: transaction.total_pages ? `${transaction.total_pages} pages` : "—"
       };
-    } else if (isTshirtService(transaction.service_type)) {
+    } else if (serviceCategory === "T-shirt") {
       return {
         type: transaction.size_type || "—",
         details: transaction.quantity ? `${transaction.quantity} shirts` : "—"
       };
-    } else if (isSuppliesService(transaction.service_type)) {
+    } else if (serviceCategory === "Supplies") {
       return {
         type: transaction.supply_type || "—",
         details: transaction.quantity ? `${transaction.quantity} items` : "—"
       };
     } else {
-      return { type: "—", details: "—" };
+      // For new categories like "Flower" - use any available product field
+      const productType = transaction.paper_type || transaction.size_type || transaction.supply_type || "—";
+      return {
+        type: productType,
+        details: transaction.quantity ? `${transaction.quantity} items` : "—"
+      };
     }
   };
 
@@ -532,7 +573,7 @@ const Transactions = () => {
             <th>Transaction ID</th>
             <th>Customer</th>
             <th>Service Type</th>
-            <th>Type/Size</th>
+            <th>Product</th>
             <th>Details</th>
             <th>Price</th>
             <th>Qty</th>
@@ -687,50 +728,23 @@ const Transactions = () => {
                 </select>
               </div>
 
-              {isPaperService(formData.service_type) && (
-                <>
-                  <div className="form-group">
-                    <label>Paper Type:</label>
-                    <select
-                      name="paper_type"
-                      value={formData.paper_type}
-                      onChange={handleChange}
-                      required
-                    >
-                      <option value="">Select Paper Type</option>
-                      {getServiceOptions(formData.service_type).map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Total Pages:</label>
-                    <input
-                      type="number"
-                      name="total_pages"
-                      placeholder="Number of pages"
-                      value={formData.total_pages}
-                      onChange={handleChange}
-                      required
-                      min="1"
-                    />
-                  </div>
-                </>
-              )}
-
-              {isTshirtService(formData.service_type) && (
+              {/* DYNAMIC PRODUCT SELECTION - WORKS FOR ALL CATEGORIES */}
+              {hasProductsForService(formData.service_type) && (
                 <div className="form-group">
-                  <label>Shirt Size/Type:</label>
+                  <label>Select Product:</label>
                   <select
-                    name="size_type"
-                    value={formData.size_type}
-                    onChange={handleChange}
+                    name="product_type"
+                    value={formData.product_type || ""}
+                    onChange={(e) => {
+                      const productName = e.target.value;
+                      setFormData(prev => ({
+                        ...prev, 
+                        product_type: productName
+                      }));
+                    }}
                     required
                   >
-                    <option value="">Select Size/Type</option>
+                    <option value="">Select Product</option>
                     {getServiceOptions(formData.service_type).map((option) => (
                       <option key={option} value={option}>
                         {option}
@@ -740,22 +754,19 @@ const Transactions = () => {
                 </div>
               )}
 
-              {isSuppliesService(formData.service_type) && (
+              {/* PAPER-SPECIFIC FIELD (Total Pages) */}
+              {getServiceCategory(formData.service_type) === "Paper" && (
                 <div className="form-group">
-                  <label>School Supply Item:</label>
-                  <select
-                    name="supply_type"
-                    value={formData.supply_type}
+                  <label>Total Pages:</label>
+                  <input
+                    type="number"
+                    name="total_pages"
+                    placeholder="Number of pages"
+                    value={formData.total_pages}
                     onChange={handleChange}
                     required
-                  >
-                    <option value="">Select Supply Item</option>
-                    {getServiceOptions(formData.service_type).map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
+                    min="1"
+                  />
                 </div>
               )}
 
@@ -777,11 +788,7 @@ const Transactions = () => {
                   <input
                     type="number"
                     name="quantity"
-                    placeholder={
-                      isTshirtService(formData.service_type) ? "Number of shirts" :
-                      isSuppliesService(formData.service_type) ? "Number of items" :
-                      "Number of copies"
-                    }
+                    placeholder={getQuantityPlaceholder(formData.service_type)}
                     value={formData.quantity}
                     onChange={handleChange}
                     required
