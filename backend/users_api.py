@@ -11,13 +11,15 @@ users_bp = Blueprint('users', __name__)
 users_collection = None
 groups_collection = None
 staffs_collection = None
+schedules_collection = None  # ADD THIS
 
-def init_users_db(mongo_users_collection, mongo_groups_collection, mongo_staffs_collection):
+def init_users_db(mongo_users_collection, mongo_groups_collection, mongo_staffs_collection, mongo_schedules_collection):  # UPDATE THIS
     """Initialize the collections from app.py"""
-    global users_collection, groups_collection, staffs_collection
+    global users_collection, groups_collection, staffs_collection, schedules_collection  # UPDATE THIS
     users_collection = mongo_users_collection
     groups_collection = mongo_groups_collection
     staffs_collection = mongo_staffs_collection
+    schedules_collection = mongo_schedules_collection  # ADD THIS
 
 # Helper to convert ObjectId to string and format dates
 def serialize_doc(doc):
@@ -180,6 +182,40 @@ def update_user(user_id):
         if not group:
             return jsonify({'error': 'Invalid role selected'}), 400
         
+        # Get current user data
+        current_user = users_collection.find_one({'_id': ObjectId(user_id)})
+        if not current_user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # CHECK: If changing status to Inactive AND user is staff, verify no active schedules
+        if (data.get('status') == 'Inactive' and current_user.get('status') == 'Active' and 
+            'staff' in data['role'].lower()):
+            
+            # Check if staff has any active schedules
+            active_schedule_count = schedules_collection.count_documents({
+                'staff_id': ObjectId(user_id)
+            })
+            
+            if active_schedule_count > 0:
+                # Get schedule details for the error message
+                active_schedules = schedules_collection.find({
+                    'staff_id': ObjectId(user_id)
+                })
+                
+                schedule_details = []
+                for schedule in active_schedules:
+                    schedule_details.append({
+                        'day': schedule.get('day', 'Unknown'),
+                        'start_time': schedule.get('start_time', ''),
+                        'end_time': schedule.get('end_time', '')
+                    })
+                
+                return jsonify({
+                    'error': f'Cannot set staff to inactive. {active_schedule_count} schedule(s) are using this staff member.',
+                    'schedule_count': active_schedule_count,
+                    'schedules': schedule_details
+                }), 400
+        
         update_data = {
             'name': data['name'],
             'username': data['username'],
@@ -253,6 +289,36 @@ def update_last_login(user_id):
 @users_bp.route('/api/users/<user_id>', methods=['DELETE'])
 def delete_user(user_id):
     try:
+        # Check if user has any active schedules (if they are staff)
+        user = users_collection.find_one({'_id': ObjectId(user_id)})
+        if user:
+            group = groups_collection.find_one({'_id': user['group_id']})
+            if group and 'staff' in group['group_name'].lower():
+                # Check if staff has any active schedules
+                active_schedule_count = schedules_collection.count_documents({
+                    'staff_id': ObjectId(user_id)
+                })
+                
+                if active_schedule_count > 0:
+                    # Get schedule details for the error message
+                    active_schedules = schedules_collection.find({
+                        'staff_id': ObjectId(user_id)
+                    })
+                    
+                    schedule_details = []
+                    for schedule in active_schedules:
+                        schedule_details.append({
+                            'day': schedule.get('day', 'Unknown'),
+                            'start_time': schedule.get('start_time', ''),
+                            'end_time': schedule.get('end_time', '')
+                        })
+                    
+                    return jsonify({
+                        'error': f'Cannot delete staff. {active_schedule_count} schedule(s) are assigned to this staff member.',
+                        'schedule_count': active_schedule_count,
+                        'schedules': schedule_details
+                    }), 400
+        
         # Delete staff record first if it exists
         staffs_collection.delete_one({'user_id': ObjectId(user_id)})
         

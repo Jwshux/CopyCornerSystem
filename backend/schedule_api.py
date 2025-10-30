@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from pymongo import MongoClient
 from bson import ObjectId
 from datetime import datetime
+import re
 import os
 
 # Create Blueprint for schedules routes
@@ -150,48 +151,67 @@ def delete_schedule(schedule_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Get available staff (users with staff role)
+# Get available staff (users with staff role) - FIXED VERSION
 @schedules_bp.route('/api/schedules/staff', methods=['GET'])
 def get_available_staff():
     try:
-        # First, let's debug what groups exist
-        all_groups = list(groups_collection.find({}, {'group_name': 1}))
-        print("🔍 All groups in database:", [group['group_name'] for group in all_groups])
+        print("🔍 Looking for staff groups from Manage Roles...")
         
-        # Find the staff group - try different possible names
-        staff_group = None
-        possible_staff_names = ['Staff', 'staff', 'STAFF', 'Employee', 'employee', 'EMPLOYEE']
+        # Get ALL groups from the database to see what we have
+        all_groups = list(groups_collection.find({}, {'group_name': 1, 'group_level': 1}))
+        print("📋 All available roles:", [(group['group_name'], f"Level {group.get('group_level')}") for group in all_groups])
         
-        for name in possible_staff_names:
-            staff_group = groups_collection.find_one({'group_name': name})
-            if staff_group:
-                print(f"✅ Found staff group: {staff_group['group_name']}")
-                break
+        # Define which role names should be considered "staff" for scheduling
+        # These are the role names that can be assigned to schedules
+        staff_role_names = [
+            'staff', 'employee', 'worker', 'crew', 'assistant', 'cashier',
+            'Staff Member', 'Staff', 'Employee', 'Worker', 'Crew', 'Assistant', 'Cashier'
+        ]
         
-        if not staff_group:
-            # If still no staff group found, get the first group as fallback
-            staff_group = groups_collection.find_one({})
-            if staff_group:
-                print(f"⚠️ No staff group found, using first group: {staff_group['group_name']}")
-            else:
-                print("❌ No groups found in database")
-                return jsonify({'error': 'No groups found in database'}), 404
+        # Find groups that match staff role names (case insensitive)
+        staff_groups = []
+        for group in all_groups:
+            group_name_lower = group['group_name'].lower()
+            if any(staff_name.lower() in group_name_lower for staff_name in staff_role_names):
+                staff_groups.append(group)
         
-        # Find users who belong to the staff group and are active
+        # If no specific staff roles found, use level 1 as fallback
+        if not staff_groups:
+            print("⚠️ No specific staff roles found, using level 1 groups as fallback")
+            staff_groups = list(groups_collection.find({'group_level': 1}))
+        
+        if not staff_groups:
+            print("❌ No staff groups found at all")
+            return jsonify({'error': 'No staff groups found'}), 404
+        
+        print(f"✅ Found {len(staff_groups)} staff group(s):", [group['group_name'] for group in staff_groups])
+        
+        # Get group IDs for staff groups
+        staff_group_ids = [group['_id'] for group in staff_groups]
+        
+        # Find users who belong to staff groups and are active
         staff_users = users_collection.find({
-            'group_id': staff_group['_id'],
+            'group_id': {'$in': staff_group_ids},
             'status': 'Active'
-        }, {'name': 1, 'username': 1})
+        }, {'name': 1, 'username': 1, 'group_id': 1})
         
         staff_list = []
         for user in staff_users:
+            # Get group name for this user
+            group = groups_collection.find_one({'_id': user['group_id']})
+            group_name = group['group_name'] if group else 'Unknown'
+            
             staff_list.append({
                 '_id': str(user['_id']),
                 'name': user.get('name', ''),
-                'username': user.get('username', '')
+                'username': user.get('username', ''),
+                'role': group_name
             })
         
-        print(f"📋 Found {len(staff_list)} staff users")
+        print(f"📋 Found {len(staff_list)} staff users for scheduling:")
+        for staff in staff_list:
+            print(f"   - {staff['name']} ({staff['role']})")
+        
         return jsonify(staff_list)
         
     except Exception as e:

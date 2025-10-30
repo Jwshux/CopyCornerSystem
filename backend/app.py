@@ -39,11 +39,11 @@ try:
 
     # Initialize databases
     init_groups_db(groups_collection)
-    init_users_db(users_collection, groups_collection, staffs_collection)
+    init_users_db(users_collection, groups_collection, staffs_collection, schedule_collection)
     init_products_db(products_collection)
     init_categories_db(categories_collection, products_collection, service_types_collection)
     init_schedules_db(schedule_collection, users_collection, groups_collection)
-    init_staffs_db(staffs_collection, users_collection, groups_collection)
+    init_staffs_db(staffs_collection, users_collection, groups_collection, schedule_collection)  # UPDATE THIS LINE
     init_transactions_db(transactions_collection, products_collection)
     init_service_types_db(service_types_collection, transactions_collection)
     init_sales_db(transactions_collection, service_types_collection)
@@ -107,7 +107,7 @@ def login():
                 "name": user.get("name", ""),
                 "id": str(user["_id"]),
                 "role": group["group_name"] if group else "User",
-                "role_level": group.get("group_level", 1)  # ← ADD THIS LINE
+                "role_level": group.get("group_level", 1)
             }
         }), 200
     else:

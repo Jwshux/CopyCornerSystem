@@ -11,6 +11,7 @@ function AllStaff() {
   const [staffs, setStaffs] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [staffToDelete, setStaffToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -18,6 +19,7 @@ function AllStaff() {
   const [deleting, setDeleting] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     username: "",
@@ -157,13 +159,33 @@ function AllStaff() {
           setUpdating(false);
         }, 1500);
       } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to update staff');
+        const errorData = await response.json();
+        
+        // Handle the case where staff has active schedules
+        if (errorData.error && errorData.error.includes('schedule(s) are using this staff member')) {
+          // Create a detailed error message
+          let errorMessage = errorData.error;
+          
+          if (errorData.schedules && errorData.schedules.length > 0) {
+            errorMessage += '\n\nActive Schedules:';
+            errorData.schedules.forEach((schedule, index) => {
+              errorMessage += `\n${index + 1}. ${schedule.day}: ${schedule.start_time} - ${schedule.end_time}`;
+            });
+            errorMessage += '\n\nPlease remove or reassign these schedules first.';
+          }
+          
+          setErrorMessage(errorMessage);
+          setShowErrorModal(true);
+        } else {
+          setErrorMessage(errorData.error || 'Failed to update staff');
+          setShowErrorModal(true);
+        }
         setUpdating(false);
       }
     } catch (error) {
       console.error('Error updating staff:', error);
-      alert('Error updating staff');
+      setErrorMessage('Error updating staff');
+      setShowErrorModal(true);
       setUpdating(false);
     }
   };
@@ -182,14 +204,14 @@ function AllStaff() {
     setDeleteSuccess(false);
   };
 
-  // Delete staff
+  // Delete staff - UPDATED WITH VALIDATION
   const handleDeleteStaff = async () => {
     if (!staffToDelete) return;
 
     setDeleting(true);
     try {
-      // Delete the user (this will cascade delete the staff record via the backend)
-      const response = await fetch(`${API_BASE}/users/${staffToDelete.user_id}`, {
+      // Use the staffs API endpoint for deletion (which has validation)
+      const response = await fetch(`${API_BASE}/staffs/user/${staffToDelete.user_id}`, {
         method: 'DELETE',
       });
 
@@ -211,13 +233,33 @@ function AllStaff() {
           closeDeleteModal();
         }, 1500);
       } else {
-        console.error('Failed to delete staff');
-        alert('Failed to delete staff');
+        const errorData = await response.json();
+        
+        // Handle the case where staff has active schedules
+        if (errorData.error && errorData.error.includes('schedule(s) are assigned to this staff member')) {
+          // Create a detailed error message
+          let errorMessage = errorData.error;
+          
+          if (errorData.schedules && errorData.schedules.length > 0) {
+            errorMessage += '\n\nActive Schedules:';
+            errorData.schedules.forEach((schedule, index) => {
+              errorMessage += `\n${index + 1}. ${schedule.day}: ${schedule.start_time} - ${schedule.end_time}`;
+            });
+            errorMessage += '\n\nPlease remove or reassign these schedules first.';
+          }
+          
+          setErrorMessage(errorMessage);
+          setShowErrorModal(true);
+        } else {
+          setErrorMessage(errorData.error || 'Failed to delete staff');
+          setShowErrorModal(true);
+        }
         setDeleting(false);
       }
     } catch (error) {
       console.error('Error deleting staff:', error);
-      alert('Error deleting staff');
+      setErrorMessage('Error deleting staff');
+      setShowErrorModal(true);
       setDeleting(false);
     }
   };
@@ -226,6 +268,12 @@ function AllStaff() {
   const closeModals = () => {
     setShowEditModal(false);
     resetForm();
+  };
+
+  // Close error modal
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorMessage("");
   };
 
   return (
@@ -441,6 +489,41 @@ function AllStaff() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ERROR MODAL - Same as Categories */}
+      {showErrorModal && (
+        <div className="error-modal-overlay">
+          <div className="error-modal-content">
+            <div className="error-modal-header">Operation Failed</div>
+            <div className="error-modal-title">
+              {errorMessage.includes('delete') ? 'Cannot delete staff member' : 'Cannot set staff to inactive'}
+            </div>
+            <div className="error-modal-message">
+              {errorMessage.split('\n\n')[0]}
+              {errorMessage.includes('Active Schedules:') && (
+                <div className="error-modal-schedules">
+                  {errorMessage.split('Active Schedules:')[1]?.split('\n\n')[0]?.split('\n').map((schedule, index) => (
+                    <div key={index} className="error-schedule-item">
+                      {schedule.trim()}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {errorMessage.split('\n\n')[1] && (
+                <div style={{ marginTop: '15px', color: '#d9534f', fontWeight: 'bold' }}>
+                  {errorMessage.split('\n\n')[1]}
+                </div>
+              )}
+            </div>
+            <button 
+              className="error-modal-ok-btn" 
+              onClick={closeErrorModal}
+            >
+              OK
+            </button>
           </div>
         </div>
       )}

@@ -11,13 +11,15 @@ staffs_bp = Blueprint('staffs', __name__)
 staffs_collection = None
 users_collection = None
 groups_collection = None
+schedules_collection = None  # ADD THIS
 
-def init_staffs_db(mongo_staffs_collection, mongo_users_collection, mongo_groups_collection):
+def init_staffs_db(mongo_staffs_collection, mongo_users_collection, mongo_groups_collection, mongo_schedules_collection):  # UPDATE THIS
     """Initialize the collections from app.py"""
-    global staffs_collection, users_collection, groups_collection
+    global staffs_collection, users_collection, groups_collection, schedules_collection  # UPDATE THIS
     staffs_collection = mongo_staffs_collection
     users_collection = mongo_users_collection
     groups_collection = mongo_groups_collection
+    schedules_collection = mongo_schedules_collection  # ADD THIS
 
 # Helper to convert ObjectId to string and format dates
 def serialize_doc(doc):
@@ -157,6 +159,41 @@ def update_staff(user_id):
         if not group or 'staff' not in group['group_name'].lower():
             return jsonify({'error': 'User is not a staff member'}), 400
         
+        # CHECK: If changing status to Inactive, verify no active schedules
+        if data.get('status') == 'Inactive' and user.get('status') == 'Active':
+            # Check if staff has any active schedules
+            active_schedule_count = schedules_collection.count_documents({
+                'staff_id': ObjectId(user_id)
+            })
+            
+            if active_schedule_count > 0:
+                # Get schedule details for the error message
+                active_schedules = schedules_collection.find({
+                    'staff_id': ObjectId(user_id)
+                })
+                
+                schedule_details = []
+                for schedule in active_schedules:
+                    schedule_details.append({
+                        'day': schedule.get('day', 'Unknown'),
+                        'start_time': schedule.get('start_time', ''),
+                        'end_time': schedule.get('end_time', '')
+                    })
+                
+                return jsonify({
+                    'error': f'Cannot set staff to inactive. {active_schedule_count} schedule(s) are using this staff member.',
+                    'schedule_count': active_schedule_count,
+                    'schedules': schedule_details
+                }), 400
+        
+        # Check if username already exists (excluding current user)
+        existing_user = users_collection.find_one({
+            'username': data['username'],
+            '_id': {'$ne': ObjectId(user_id)}
+        })
+        if existing_user:
+            return jsonify({'error': 'Username already exists'}), 400
+        
         # Update user details
         user_update_data = {
             'name': data['name'],
@@ -168,14 +205,6 @@ def update_staff(user_id):
         # Update password if provided
         if data.get('password'):
             user_update_data['password'] = data['password']
-        
-        # Check if username already exists (excluding current user)
-        existing_user = users_collection.find_one({
-            'username': data['username'],
-            '_id': {'$ne': ObjectId(user_id)}
-        })
-        if existing_user:
-            return jsonify({'error': 'Username already exists'}), 400
         
         # Update user
         users_collection.update_one(
@@ -198,5 +227,46 @@ def update_staff(user_id):
         )
         
         return jsonify({'message': 'Staff updated successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Delete staff (DELETE FROM STAFFS COLLECTION)
+@staffs_bp.route('/api/staffs/user/<user_id>', methods=['DELETE'])
+def delete_staff(user_id):
+    try:
+        # Check if staff has any active schedules
+        active_schedule_count = schedules_collection.count_documents({
+            'staff_id': ObjectId(user_id)
+        })
+        
+        if active_schedule_count > 0:
+            # Get schedule details for the error message
+            active_schedules = schedules_collection.find({
+                'staff_id': ObjectId(user_id)
+            })
+            
+            schedule_details = []
+            for schedule in active_schedules:
+                schedule_details.append({
+                    'day': schedule.get('day', 'Unknown'),
+                    'start_time': schedule.get('start_time', ''),
+                    'end_time': schedule.get('end_time', '')
+                })
+            
+            return jsonify({
+                'error': f'Cannot delete staff. {active_schedule_count} schedule(s) are assigned to this staff member.',
+                'schedule_count': active_schedule_count,
+                'schedules': schedule_details
+            }), 400
+        
+        # Delete from staffs collection
+        staff_result = staffs_collection.delete_one({'user_id': ObjectId(user_id)})
+        
+        # Also delete from users collection
+        user_result = users_collection.delete_one({'_id': ObjectId(user_id)})
+        
+        if user_result.deleted_count:
+            return jsonify({'message': 'Staff deleted successfully'})
+        return jsonify({'error': 'Staff not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -3,7 +3,7 @@ import "./ManageUsers.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
-import deleteAnimation from "../animations/delete.json"; // Add this import
+import deleteAnimation from "../animations/delete.json";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -13,13 +13,15 @@ function ManageUsers() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userToDelete, setUserToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false); // New state for delete animation
-  const [deleteSuccess, setDeleteSuccess] = useState(false); // New state for delete success
+  const [deleting, setDeleting] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     username: "",
@@ -160,21 +162,25 @@ function ManageUsers() {
     if (e) e.preventDefault();
     
     if (usernameError) {
-      alert("Please fix the username error before saving.");
+      setErrorMessage("Please fix the username error before saving.");
+      setShowErrorModal(true);
       return;
     }
 
     if (isStaffRole()) {
       if (!formData.studentNumber) {
-        alert("Please enter student number for staff member.");
+        setErrorMessage("Please enter student number for staff member.");
+        setShowErrorModal(true);
         return;
       }
       if (!formData.course) {
-        alert("Please enter course for staff member.");
+        setErrorMessage("Please enter course for staff member.");
+        setShowErrorModal(true);
         return;
       }
       if (!formData.section) {
-        alert("Please enter section for staff member.");
+        setErrorMessage("Please enter section for staff member.");
+        setShowErrorModal(true);
         return;
       }
     }
@@ -211,12 +217,14 @@ function ManageUsers() {
         }, 1500);
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to create user');
+        setErrorMessage(error.error || 'Failed to create user');
+        setShowErrorModal(true);
         setSaving(false);
       }
     } catch (error) {
       console.error('Error creating user:', error);
-      alert('Error creating user');
+      setErrorMessage('Error creating user');
+      setShowErrorModal(true);
       setSaving(false);
     }
   };
@@ -241,21 +249,25 @@ function ManageUsers() {
     if (e) e.preventDefault();
     
     if (usernameError) {
-      alert("Please fix the username error before updating.");
+      setErrorMessage("Please fix the username error before updating.");
+      setShowErrorModal(true);
       return;
     }
 
     if (isStaffRole()) {
       if (!formData.studentNumber) {
-        alert("Please enter student number for staff member.");
+        setErrorMessage("Please enter student number for staff member.");
+        setShowErrorModal(true);
         return;
       }
       if (!formData.course) {
-        alert("Please enter course for staff member.");
+        setErrorMessage("Please enter course for staff member.");
+        setShowErrorModal(true);
         return;
       }
       if (!formData.section) {
-        alert("Please enter section for staff member.");
+        setErrorMessage("Please enter section for staff member.");
+        setShowErrorModal(true);
         return;
       }
     }
@@ -294,13 +306,33 @@ function ManageUsers() {
           setSaving(false);
         }, 1500);
       } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to update user');
+        const errorData = await response.json();
+        
+        // Handle the case where staff has active schedules
+        if (errorData.error && errorData.error.includes('schedule(s) are using this staff member')) {
+          // Create a detailed error message
+          let errorMessage = errorData.error;
+          
+          if (errorData.schedules && errorData.schedules.length > 0) {
+            errorMessage += '\n\nActive Schedules:';
+            errorData.schedules.forEach((schedule, index) => {
+              errorMessage += `\n${index + 1}. ${schedule.day}: ${schedule.start_time} - ${schedule.end_time}`;
+            });
+            errorMessage += '\n\nPlease remove or reassign these schedules first.';
+          }
+          
+          setErrorMessage(errorMessage);
+          setShowErrorModal(true);
+        } else {
+          setErrorMessage(errorData.error || 'Failed to update user');
+          setShowErrorModal(true);
+        }
         setSaving(false);
       }
     } catch (error) {
       console.error('Error updating user:', error);
-      alert('Error updating user');
+      setErrorMessage('Error updating user');
+      setShowErrorModal(true);
       setSaving(false);
     }
   };
@@ -342,13 +374,33 @@ function ManageUsers() {
           setDeleting(false);
         }, 1500);
       } else {
-        console.error('Failed to delete user');
-        alert('Failed to delete user');
+        const errorData = await response.json();
+        
+        // Handle the case where staff has active schedules
+        if (errorData.error && errorData.error.includes('schedule(s) are assigned to this staff member')) {
+          // Create a detailed error message
+          let errorMessage = errorData.error;
+          
+          if (errorData.schedules && errorData.schedules.length > 0) {
+            errorMessage += '\n\nActive Schedules:';
+            errorData.schedules.forEach((schedule, index) => {
+              errorMessage += `\n${index + 1}. ${schedule.day}: ${schedule.start_time} - ${schedule.end_time}`;
+            });
+            errorMessage += '\n\nPlease remove or reassign these schedules first.';
+          }
+          
+          setErrorMessage(errorMessage);
+          setShowErrorModal(true);
+        } else {
+          setErrorMessage(errorData.error || 'Failed to delete user');
+          setShowErrorModal(true);
+        }
         setDeleting(false);
       }
     } catch (error) {
       console.error('Error deleting user:', error);
-      alert('Error deleting user');
+      setErrorMessage('Error deleting user');
+      setShowErrorModal(true);
       setDeleting(false);
     }
   };
@@ -362,6 +414,11 @@ function ManageUsers() {
     setShowAddModal(false);
     setShowEditModal(false);
     resetForm();
+  };
+
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorMessage("");
   };
 
   const formatDate = (dateString) => {
@@ -734,6 +791,43 @@ function ManageUsers() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ERROR MODAL - Same as Categories */}
+      {showErrorModal && (
+        <div className="error-modal-overlay">
+          <div className="error-modal-content">
+            <div className="error-modal-header">Operation Failed</div>
+            <div className="error-modal-title">
+              {errorMessage.includes('delete') ? 'Cannot delete user' : 
+               errorMessage.includes('create') ? 'Cannot create user' : 
+               errorMessage.includes('update') ? 'Cannot update user' : 'Operation failed'}
+            </div>
+            <div className="error-modal-message">
+              {errorMessage.split('\n\n')[0]}
+              {errorMessage.includes('Active Schedules:') && (
+                <div className="error-modal-schedules">
+                  {errorMessage.split('Active Schedules:')[1]?.split('\n\n')[0]?.split('\n').map((schedule, index) => (
+                    <div key={index} className="error-schedule-item">
+                      {schedule.trim()}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {errorMessage.split('\n\n')[1] && (
+                <div style={{ marginTop: '15px', color: '#d9534f', fontWeight: 'bold' }}>
+                  {errorMessage.split('\n\n')[1]}
+                </div>
+              )}
+            </div>
+            <button 
+              className="error-modal-ok-btn" 
+              onClick={closeErrorModal}
+            >
+              OK
+            </button>
           </div>
         </div>
       )}
