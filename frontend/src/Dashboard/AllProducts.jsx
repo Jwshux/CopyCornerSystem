@@ -21,47 +21,76 @@ function AllProducts() {
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   
-  // UPDATED: Added minimum_stock field
   const [formData, setFormData] = useState({
     product_name: "",
-    category: "",
+    category_id: "",
     stock_quantity: "",
-    minimum_stock: "", // NEW FIELD
+    minimum_stock: "",
     unit_price: ""
   });
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Fetch products from backend
+  // FIXED: Better API handling with error handling
   const fetchProducts = async (page = 1) => {
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/products?page=${page}&per_page=10`);
       if (response.ok) {
         const data = await response.json();
-        setProducts(data.products);
-        setCurrentPage(data.pagination.page);
-        setTotalPages(data.pagination.total_pages);
+        console.log('Products API Response:', data);
+        
+        // Handle both array and paginated response formats
+        if (Array.isArray(data)) {
+          setProducts(data);
+          setCurrentPage(1);
+          setTotalPages(1);
+        } else if (data.products) {
+          setProducts(data.products || []);
+          setCurrentPage(data.pagination?.page || 1);
+          setTotalPages(data.pagination?.total_pages || 1);
+        } else {
+          setProducts([]);
+        }
       } else {
         console.error('Failed to fetch products');
+        showError('Failed to load products');
       }
     } catch (error) {
       console.error('Error fetching products:', error);
+      showError('Error loading products');
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch categories from backend
+  // FIXED: Better categories fetch
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${API_BASE}/categories?page=1&per_page=100`);
+      const response = await fetch(`${API_BASE}/categories`);
       if (response.ok) {
         const data = await response.json();
-        setCategories(data.categories || data);
+        console.log('Categories API Response:', data);
+        
+        // Handle both array and object response formats
+        let categoriesData = [];
+        if (Array.isArray(data)) {
+          categoriesData = data;
+        } else if (data.categories && Array.isArray(data.categories)) {
+          categoriesData = data.categories;
+        } else if (Array.isArray(data)) {
+          categoriesData = data;
+        }
+        
+        setCategories(categoriesData);
+        
+        if (categoriesData.length > 0 && !formData.category_id) {
+          setFormData(prev => ({ ...prev, category_id: categoriesData[0]._id }));
+        }
       } else {
         console.error('Failed to fetch categories');
       }
@@ -75,7 +104,6 @@ function AllProducts() {
     fetchCategories();
   }, []);
 
-  // Reset success states when modals close
   useEffect(() => {
     if (!showAddForm) {
       setAddSuccess(false);
@@ -85,14 +113,12 @@ function AllProducts() {
     }
   }, [showAddForm, showEditModal]);
 
-  // Reset delete success state when delete modal closes
   useEffect(() => {
     if (!showDeleteModal) {
       setDeleteSuccess(false);
     }
   }, [showDeleteModal]);
 
-  // Pagination handlers
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       fetchProducts(currentPage + 1);
@@ -105,7 +131,6 @@ function AllProducts() {
     }
   };
 
-  // Check if product name exists
   const checkProductName = (productName) => {
     if (!productName) {
       setProductNameError("");
@@ -124,42 +149,47 @@ function AllProducts() {
     }
   };
 
-  // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
 
-    // Check product name availability in real-time
     if (name === "product_name") {
       checkProductName(value);
     }
   };
 
-  // Reset form state
   const resetForm = () => {
     setFormData({
       product_name: "",
-      category: "",
+      category_id: categories.length > 0 ? categories[0]._id : "",
       stock_quantity: "",
-      minimum_stock: "", // NEW FIELD
+      minimum_stock: "",
       unit_price: ""
     });
     setSelectedProduct(null);
     setProductNameError("");
   };
 
-  // Add product
+  const showError = (message) => {
+    setErrorMessage(message);
+    setShowErrorModal(true);
+  };
+
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorMessage("");
+  };
+
   const handleAddProduct = async (e) => {
     e.preventDefault();
     
     if (productNameError) {
-      alert("Please fix the product name error before saving.");
+      showError("Please fix the product name error before saving.");
       return;
     }
 
-    // Validate minimum stock is not greater than current stock
     if (parseInt(formData.minimum_stock) > parseInt(formData.stock_quantity)) {
-      alert("Minimum stock cannot be greater than current stock quantity.");
+      showError("Minimum stock cannot be greater than current stock quantity.");
       return;
     }
 
@@ -175,7 +205,6 @@ function AllProducts() {
 
       if (response.ok) {
         setAddSuccess(true);
-        // Wait for animation to complete before refreshing and closing
         setTimeout(async () => {
           await fetchProducts(currentPage);
           setShowAddForm(false);
@@ -184,42 +213,39 @@ function AllProducts() {
         }, 1500);
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to create product');
+        showError(error.error || 'Failed to create product');
         setLoading(false);
       }
     } catch (error) {
       console.error('Error creating product:', error);
-      alert('Error creating product');
+      showError('Error creating product');
       setLoading(false);
     }
   };
 
-  // Edit product - fills form for editing
   const handleEditProduct = (product) => {
     setSelectedProduct(product);
     setFormData({
       product_name: product.product_name,
-      category: product.category,
+      category_id: product.category_id || (product.category ? product.category._id : ""),
       stock_quantity: product.stock_quantity,
-      minimum_stock: product.minimum_stock || 5, // NEW FIELD - default to 5 if not set
+      minimum_stock: product.minimum_stock || 5,
       unit_price: product.unit_price
     });
     setProductNameError("");
     setShowEditModal(true);
   };
 
-  // Update product
   const handleUpdateProduct = async (e) => {
     e.preventDefault();
     
     if (productNameError) {
-      alert("Please fix the product name error before updating.");
+      showError("Please fix the product name error before updating.");
       return;
     }
 
-    // Validate minimum stock is not greater than current stock
     if (parseInt(formData.minimum_stock) > parseInt(formData.stock_quantity)) {
-      alert("Minimum stock cannot be greater than current stock quantity.");
+      showError("Minimum stock cannot be greater than current stock quantity.");
       return;
     }
 
@@ -235,7 +261,6 @@ function AllProducts() {
 
       if (response.ok) {
         setUpdateSuccess(true);
-        // Wait for animation to complete before refreshing and closing
         setTimeout(async () => {
           await fetchProducts(currentPage);
           setShowEditModal(false);
@@ -244,23 +269,21 @@ function AllProducts() {
         }, 1500);
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to update product');
+        showError(error.error || 'Failed to update product');
         setLoading(false);
       }
     } catch (error) {
       console.error('Error updating product:', error);
-      alert('Error updating product');
+      showError('Error updating product');
       setLoading(false);
     }
   };
 
-  // Open delete confirmation modal
   const openDeleteModal = (product) => {
     setProductToDelete(product);
     setShowDeleteModal(true);
   };
 
-  // Close delete confirmation modal
   const closeDeleteModal = () => {
     setShowDeleteModal(false);
     setProductToDelete(null);
@@ -268,7 +291,6 @@ function AllProducts() {
     setDeleteSuccess(false);
   };
 
-  // Delete product
   const handleDeleteProduct = async () => {
     if (!productToDelete) return;
 
@@ -280,48 +302,58 @@ function AllProducts() {
 
       if (response.ok) {
         setDeleteSuccess(true);
-        // Wait for animation to complete before closing and refreshing
         setTimeout(async () => {
-          // Check if this was the last item on the current page
           const isLastItemOnPage = products.length === 1;
           
           if (isLastItemOnPage && currentPage > 1) {
-            // If it was the last item and we're not on page 1, go to previous page
             await fetchProducts(currentPage - 1);
           } else {
-            // Otherwise refresh current page
             await fetchProducts(currentPage);
           }
           closeDeleteModal();
         }, 1500);
       } else {
-        console.error('Failed to delete product');
-        alert('Failed to delete product');
+        const error = await response.json();
+        showError(error.error || 'Failed to delete product');
         setDeleting(false);
       }
     } catch (error) {
       console.error('Error deleting product:', error);
-      alert('Error deleting product');
+      showError('Error deleting product');
       setDeleting(false);
     }
   };
 
-  // Open "Add New Product" modal
   const openAddModal = () => {
     resetForm();
     setShowAddForm(true);
   };
 
-  // Close modals
   const closeModals = () => {
     setShowAddForm(false);
     setShowEditModal(false);
     resetForm();
   };
 
-  // Format price for display
   const formatPrice = (price) => {
     return `₱${parseFloat(price).toFixed(2)}`;
+  };
+
+  // Helper function to get category name for display
+  const getCategoryName = (product) => {
+    if (product.category_name) return product.category_name;
+    if (product.category && typeof product.category === 'object') {
+      return product.category.name || 'Unknown';
+    }
+    if (product.category) return product.category;
+    
+    // Find category by ID if we have categories data
+    if (product.category_id && categories.length > 0) {
+      const category = categories.find(cat => cat._id === product.category_id);
+      return category ? category.name : 'Unknown';
+    }
+    
+    return 'Uncategorized';
   };
 
   return (
@@ -344,7 +376,7 @@ function AllProducts() {
               <th>Product Name</th>
               <th>Category</th>
               <th>Stock Quantity</th>
-              <th>Min Stock</th> {/* NEW COLUMN */}
+              <th>Min Stock</th>
               <th>Unit Price</th>
               <th>Status</th>
               <th>Actions</th>
@@ -369,9 +401,9 @@ function AllProducts() {
                   <td>{(currentPage - 1) * 10 + index + 1}</td>
                   <td>{product.product_id}</td>
                   <td>{product.product_name}</td>
-                  <td>{product.category}</td>
+                  <td>{getCategoryName(product)}</td>
                   <td>{product.stock_quantity}</td>
-                  <td>{product.minimum_stock || 5}</td> {/* NEW COLUMN */}
+                  <td>{product.minimum_stock || 5}</td>
                   <td>{formatPrice(product.unit_price)}</td>
                   <td>
                     <span
@@ -396,7 +428,6 @@ function AllProducts() {
           </tbody>
         </table>
 
-        {/* PAGINATION CONTROLS */}
         <div className="simple-pagination">
           <button 
             className="pagination-btn" 
@@ -424,7 +455,6 @@ function AllProducts() {
           <div className="add-form">
             <h3>Add New Product</h3>
             
-            {/* Show only loading animation when adding, then checkmark */}
             {loading ? (
               <div className="form-animation-center">
                 {!addSuccess ? (
@@ -470,14 +500,14 @@ function AllProducts() {
                 <div className="form-field">
                   <label>Category</label>
                   <select
-                    name="category"
-                    value={formData.category}
+                    name="category_id"
+                    value={formData.category_id}
                     onChange={handleInputChange}
                     required
                   >
                     <option value="" disabled hidden>Select Category</option>
                     {categories.map((category) => (
-                      <option key={category._id} value={category.name}>
+                      <option key={category._id} value={category._id}>
                         {category.name}
                       </option>
                     ))}
@@ -497,7 +527,6 @@ function AllProducts() {
                   />
                 </div>
                 
-                {/* NEW FIELD: Minimum Stock */}
                 <div className="form-field">
                   <label>Minimum Stock Level</label>
                   <input
@@ -547,7 +576,6 @@ function AllProducts() {
           <div className="add-form">
             <h3>Edit Product</h3>
             
-            {/* Show only loading animation when updating, then checkmark */}
             {loading ? (
               <div className="form-animation-center">
                 {!updateSuccess ? (
@@ -593,14 +621,14 @@ function AllProducts() {
                 <div className="form-field">
                   <label>Category</label>
                   <select
-                    name="category"
-                    value={formData.category}
+                    name="category_id"
+                    value={formData.category_id}
                     onChange={handleInputChange}
                     required
                   >
                     <option value="" disabled hidden>Select Category</option>
                     {categories.map((category) => (
-                      <option key={category._id} value={category.name}>
+                      <option key={category._id} value={category._id}>
                         {category.name}
                       </option>
                     ))}
@@ -620,7 +648,6 @@ function AllProducts() {
                   />
                 </div>
                 
-                {/* NEW FIELD: Minimum Stock */}
                 <div className="form-field">
                   <label>Minimum Stock Level</label>
                   <input
@@ -668,7 +695,6 @@ function AllProducts() {
       {showDeleteModal && productToDelete && (
         <div className="overlay">
           <div className="add-form delete-confirmation">
-            {/* Show delete animation when deleting, otherwise show normal content */}
             {deleting ? (
               <div className="delete-animation-center">
                 {!deleteSuccess ? (
@@ -703,6 +729,22 @@ function AllProducts() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ERROR MODAL */}
+      {showErrorModal && (
+        <div className="overlay">
+          <div className="add-form error-modal">
+            <div className="error-icon">⚠️</div>
+            <h3>Operation Failed</h3>
+            <p className="error-message-text">{errorMessage}</p>
+            <div className="form-buttons">
+              <button className="cancel-btn" onClick={closeErrorModal}>
+                OK
+              </button>
+            </div>
           </div>
         </div>
       )}

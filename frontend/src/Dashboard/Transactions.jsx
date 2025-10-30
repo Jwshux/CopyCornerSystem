@@ -9,18 +9,16 @@ const Transactions = () => {
   const [allProducts, setAllProducts] = useState([]);
   const [serviceTypes, setServiceTypes] = useState([]);
   const [transactions, setTransactions] = useState([]);
-  const [activeTab, setActiveTab] = useState("Pending"); // Default to Pending
+  const [activeTab, setActiveTab] = useState("Pending");
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // === Modal states ===
   const [showFormModal, setShowFormModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editIndex, setEditIndex] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState(null);
 
-  // === Form Data ===
   const [formData, setFormData] = useState({
     queue_number: "",
     transaction_id: "",
@@ -33,17 +31,12 @@ const Transactions = () => {
     price_per_unit: "",
     quantity: "",
     total_amount: "",
-    status: "Pending", // Always start as Pending
+    status: "Pending",
     date: "",
   });
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-
-  // ==========================
-  // Validation Functions
-  // ==========================
 
   const validateCustomerName = (name) => {
     if (!name || !name.trim()) return false;
@@ -51,21 +44,23 @@ const Transactions = () => {
     return nameRegex.test(name);
   };
 
-  // ==========================
-  // Fetch Data
-  // ==========================
-  
+  // FIXED: Better transactions fetch with error handling
   const fetchTransactions = async (page = 1, status = "Pending") => {
     setLoading(true);
     try {
       const url = `${API_BASE}/transactions/status/${status}?page=${page}&per_page=10`;
-      
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        setTransactions(data.transactions);
-        setCurrentPage(data.pagination.page);
-        setTotalPages(data.pagination.total_pages);
+        console.log('Transactions API Response:', data);
+        
+        if (data.transactions) {
+          setTransactions(data.transactions);
+          setCurrentPage(data.pagination?.page || 1);
+          setTotalPages(data.pagination?.total_pages || 1);
+        } else {
+          setTransactions([]);
+        }
       } else {
         console.error('Failed to fetch transactions');
       }
@@ -76,24 +71,43 @@ const Transactions = () => {
     }
   };
 
+  // FIXED: Better products fetch
   const fetchAllProducts = async () => {
     try {
       const response = await fetch(`${API_BASE}/products?page=1&per_page=100`);
       if (response.ok) {
         const data = await response.json();
-        setAllProducts(data.products);
+        console.log('Products API Response:', data);
+        
+        if (data.products && Array.isArray(data.products)) {
+          setAllProducts(data.products);
+        } else if (Array.isArray(data)) {
+          setAllProducts(data);
+        } else {
+          setAllProducts([]);
+        }
       }
     } catch (error) {
       console.error('Error fetching products:', error);
     }
   };
 
+  // FIXED: Better service types fetch
   const fetchServiceTypes = async () => {
     try {
       const response = await fetch(`${API_BASE}/service_types`);
       if (response.ok) {
         const data = await response.json();
-        const activeServices = data.filter(service => service.status === "Active");
+        console.log('Service Types API Response:', data);
+        
+        let servicesData = [];
+        if (Array.isArray(data)) {
+          servicesData = data;
+        } else if (data.service_types && Array.isArray(data.service_types)) {
+          servicesData = data.service_types;
+        }
+        
+        const activeServices = servicesData.filter(service => service.status === "Active");
         setServiceTypes(activeServices);
       }
     } catch (error) {
@@ -111,16 +125,20 @@ const Transactions = () => {
     fetchTransactions(1, activeTab);
   }, [activeTab]);
 
-  // ==========================
-  // Service Type Logic
-  // ==========================
-
-  const serviceTypeOptions = serviceTypes.map(service => service.service_name);
-
+  // FIXED: Better category detection
   const getCategoryForService = (serviceType) => {
     if (!serviceType) return null;
     const service = serviceTypes.find(s => s.service_name === serviceType);
-    return service ? service.category : null;
+    if (!service) return null;
+    
+    // Handle different data structures
+    if (service.category_name) return service.category_name;
+    if (service.category && typeof service.category === 'object') {
+      return service.category.name;
+    }
+    if (service.category) return service.category;
+    
+    return null;
   };
 
   const isPaperService = (serviceType) => {
@@ -138,11 +156,24 @@ const Transactions = () => {
     return category === "Supplies";
   };
 
+  // FIXED: Better product filtering
   const getProductsByCategory = (categoryName) => {
     if (!categoryName || !allProducts || allProducts.length === 0) return [];
-    return allProducts.filter(product => 
-      product && product.category && product.category === categoryName
-    );
+    return allProducts.filter(product => {
+      if (!product) return false;
+      
+      // Support both category_name (new) and category (old)
+      let productCategory = '';
+      if (product.category_name) {
+        productCategory = product.category_name;
+      } else if (product.category && typeof product.category === 'object') {
+        productCategory = product.category.name || '';
+      } else if (product.category) {
+        productCategory = product.category;
+      }
+      
+      return productCategory === categoryName;
+    });
   };
 
   const getServiceOptions = (serviceType) => {
@@ -153,21 +184,16 @@ const Transactions = () => {
     return products.map(product => product.product_name);
   };
 
-  // ==========================
-  // Handlers
-  // ==========================
   const handleChange = (e) => {
     const { name, value } = e.target;
     let updated = { ...formData, [name]: value };
 
-    // Auto-calculate total amount when price or quantity changes
     if (name === "price_per_unit" || name === "quantity") {
       const price = parseFloat(updated.price_per_unit) || 0;
       const qty = parseFloat(updated.quantity) || 0;
       updated.total_amount = (price * qty).toFixed(2);
     }
 
-    // Reset service-specific fields when service type changes
     if (name === "service_type") {
       updated.paper_type = "";
       updated.size_type = "";
@@ -179,9 +205,8 @@ const Transactions = () => {
   };
 
   const handleAdd = () => {
-    // Get current date in YYYY-MM-DD format for Philippine time
     const today = new Date();
-    const phDate = new Date(today.getTime() + (8 * 60 * 60 * 1000)); // UTC+8
+    const phDate = new Date(today.getTime() + (8 * 60 * 60 * 1000));
     const dateString = phDate.toISOString().split('T')[0];
     
     setFormData({
@@ -197,14 +222,13 @@ const Transactions = () => {
       quantity: "",
       total_amount: "",
       status: "Pending",
-      date: dateString, // Auto-set to current PH date
+      date: dateString,
     });
     setIsEditing(false);
     setShowFormModal(true);
   };
 
   const handleEdit = (transaction) => {
-    // Only allow editing Pending transactions
     if (transaction.status !== "Pending") {
       alert("Only pending transactions can be edited.");
       return;
@@ -222,7 +246,7 @@ const Transactions = () => {
       price_per_unit: transaction.price_per_unit || "",
       quantity: transaction.quantity || "",
       total_amount: transaction.total_amount || "",
-      status: transaction.status || "Pending", // Keep original status
+      status: transaction.status || "Pending",
       date: transaction.date || new Date().toISOString().split("T")[0],
     });
     setEditIndex(transaction._id);
@@ -230,88 +254,84 @@ const Transactions = () => {
     setShowFormModal(true);
   };
 
-const handleSave = async (e) => {
-  e.preventDefault();
-  
-  // Validate customer name
-  if (!validateCustomerName(formData.customer_name)) {
-    alert("Please enter a valid customer name (letters, spaces, periods, commas, hyphens only - no numbers or special characters)");
-    return;
-  }
-
-  // Validate service-specific fields
-  if (isPaperService(formData.service_type) && !formData.paper_type) {
-    alert("Please select a paper type for this service");
-    return;
-  }
-
-  if (isPaperService(formData.service_type) && (!formData.total_pages || formData.total_pages < 1)) {
-    alert("Please enter total pages (minimum 1)");
-    return;
-  }
-
-  if (isTshirtService(formData.service_type) && !formData.size_type) {
-    alert("Please select a size for T-shirt printing");
-    return;
-  }
-
-  if (isSuppliesService(formData.service_type) && !formData.supply_type) {
-    alert("Please select a school supply item");
-    return;
-  }
-
-  try {
-    const backendData = {
-      customer_name: formData.customer_name,
-      service_type: formData.service_type,
-      paper_type: formData.paper_type || "",
-      size_type: formData.size_type || "",
-      supply_type: formData.supply_type || "",
-      total_pages: parseInt(formData.total_pages) || 0,
-      price_per_unit: parseFloat(formData.price_per_unit) || 0,
-      quantity: parseInt(formData.quantity) || 1,
-      total_amount: parseFloat(formData.total_amount) || 0,
-      status: formData.status, // Always "Pending" for new transactions
-      date: formData.date
-    };
-
-    const url = isEditing 
-      ? `${API_BASE}/transactions/${editIndex}`
-      : `${API_BASE}/transactions`;
+  const handleSave = async (e) => {
+    e.preventDefault();
     
-    const method = isEditing ? 'PUT' : 'POST';
-    
-    const response = await fetch(url, {
-      method: method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(backendData),
-    });
-
-    if (response.ok) {
-      // NEW: Switch to Pending tab after adding new transaction
-      if (!isEditing) {
-        setActiveTab("Pending");
-        await fetchTransactions(1, "Pending"); // Refresh Pending tab
-      } else {
-        await fetchTransactions(currentPage, activeTab); // Stay on current tab for edits
-      }
-      
-      setShowFormModal(false);
-      resetForm();
-    } else {
-      const error = await response.json();
-      alert(error.error || `Failed to ${isEditing ? 'update' : 'create'} transaction`);
+    if (!validateCustomerName(formData.customer_name)) {
+      alert("Please enter a valid customer name (letters, spaces, periods, commas, hyphens only - no numbers or special characters)");
+      return;
     }
-  } catch (error) {
-    console.error(`Error ${isEditing ? 'updating' : 'creating'} transaction:`, error);
-    alert(`Error ${isEditing ? 'updating' : 'creating'} transaction`);
-  }
-};
+
+    if (isPaperService(formData.service_type) && !formData.paper_type) {
+      alert("Please select a paper type for this service");
+      return;
+    }
+
+    if (isPaperService(formData.service_type) && (!formData.total_pages || formData.total_pages < 1)) {
+      alert("Please enter total pages (minimum 1)");
+      return;
+    }
+
+    if (isTshirtService(formData.service_type) && !formData.size_type) {
+      alert("Please select a size for T-shirt printing");
+      return;
+    }
+
+    if (isSuppliesService(formData.service_type) && !formData.supply_type) {
+      alert("Please select a school supply item");
+      return;
+    }
+
+    try {
+      const backendData = {
+        customer_name: formData.customer_name,
+        service_type: formData.service_type,
+        paper_type: formData.paper_type || "",
+        size_type: formData.size_type || "",
+        supply_type: formData.supply_type || "",
+        total_pages: parseInt(formData.total_pages) || 0,
+        price_per_unit: parseFloat(formData.price_per_unit) || 0,
+        quantity: parseInt(formData.quantity) || 1,
+        total_amount: parseFloat(formData.total_amount) || 0,
+        status: formData.status,
+        date: formData.date
+      };
+
+      const url = isEditing 
+        ? `${API_BASE}/transactions/${editIndex}`
+        : `${API_BASE}/transactions`;
+      
+      const method = isEditing ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(backendData),
+      });
+
+      if (response.ok) {
+        if (!isEditing) {
+          setActiveTab("Pending");
+          await fetchTransactions(1, "Pending");
+        } else {
+          await fetchTransactions(currentPage, activeTab);
+        }
+        
+        setShowFormModal(false);
+        resetForm();
+      } else {
+        const error = await response.json();
+        alert(error.error || `Failed to ${isEditing ? 'update' : 'create'} transaction`);
+      }
+    } catch (error) {
+      console.error(`Error ${isEditing ? 'updating' : 'creating'} transaction:`, error);
+      alert(`Error ${isEditing ? 'updating' : 'creating'} transaction`);
+    }
+  };
 
   const handleDelete = async (transaction) => {
-    // Only allow deleting Completed or Cancelled transactions
     if (transaction.status === "Pending") {
       alert("Pending transactions cannot be deleted. Please cancel them first.");
       return;
@@ -474,6 +494,8 @@ const handleSave = async (e) => {
       (t.transaction_id && t.transaction_id.includes(searchTerm))
   );
 
+  const serviceTypeOptions = serviceTypes.map(service => service.service_name);
+
   return (
     <div className="transactions-container">
       <div className="transactions-header">
@@ -485,14 +507,12 @@ const handleSave = async (e) => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          {/* Add button always visible - staff can add anytime */}
           <button className="add-btn" onClick={handleAdd}>
             + Add Transaction
           </button>
         </div>
       </div>
 
-      {/* Tabs - Only Pending, Completed, Cancelled */}
       <div className="transaction-tabs">
         {["Pending", "Completed", "Cancelled"].map((tab) => (
           <button
@@ -505,7 +525,6 @@ const handleSave = async (e) => {
         ))}
       </div>
 
-      {/* Table */}
       <table className="transactions-table">
         <thead>
           <tr>
@@ -561,7 +580,6 @@ const handleSave = async (e) => {
                     </span>
                   </td>
                   <td>
-                    {/* PENDING: Can Edit, Complete, or Cancel */}
                     {t.status === "Pending" && (
                       <>
                         <button className="edit-btn" onClick={() => handleEdit(t)}>✏️ Edit</button>
@@ -570,12 +588,10 @@ const handleSave = async (e) => {
                       </>
                     )}
 
-                    {/* COMPLETED: Can only view (no actions) or Delete */}
                     {t.status === "Completed" && (
                       <button className="delete-btn" onClick={() => handleDelete(t)}>🗑️ Delete</button>
                     )}
 
-                    {/* CANCELLED: Can only view (no actions) or Delete */}
                     {t.status === "Cancelled" && (
                       <button className="delete-btn" onClick={() => handleDelete(t)}>🗑️ Delete</button>
                     )}
@@ -593,7 +609,6 @@ const handleSave = async (e) => {
         </tbody>
       </table>
 
-      {/* PAGINATION CONTROLS */}
       <div className="simple-pagination">
         <button 
           className="pagination-btn" 
@@ -655,7 +670,6 @@ const handleSave = async (e) => {
                 />
               </div>
               
-              {/* Service Type Dropdown */}
               <div className="form-group">
                 <label>Service Type:</label>
                 <select
@@ -673,7 +687,6 @@ const handleSave = async (e) => {
                 </select>
               </div>
 
-              {/* PAPER-BASED SERVICES */}
               {isPaperService(formData.service_type) && (
                 <>
                   <div className="form-group">
@@ -708,7 +721,6 @@ const handleSave = async (e) => {
                 </>
               )}
 
-              {/* T-SHIRT PRINTING */}
               {isTshirtService(formData.service_type) && (
                 <div className="form-group">
                   <label>Shirt Size/Type:</label>
@@ -728,7 +740,6 @@ const handleSave = async (e) => {
                 </div>
               )}
 
-              {/* SCHOOL SUPPLIES */}
               {isSuppliesService(formData.service_type) && (
                 <div className="form-group">
                   <label>School Supply Item:</label>
@@ -788,19 +799,6 @@ const handleSave = async (e) => {
                   className="readonly-field total-amount"
                 />
               </div>
-
-              {/* <div className="form-group">
-                <label>Date:</label>
-                <input
-                  type="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  required
-                />
-              </div> */}
-
-              {/* Status field removed from form - always Pending for new, unchanged for edits */}
 
               <div className="form-buttons">
                 <button type="submit" className="save-btn">

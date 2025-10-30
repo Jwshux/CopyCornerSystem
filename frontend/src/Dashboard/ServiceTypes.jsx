@@ -21,52 +21,76 @@ function ServiceTypes() {
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
-  
-  // NEW: Error modal state
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   
   const [formData, setFormData] = useState({
     service_name: "",
-    category: "",
+    category_id: "",
     status: "Active"
   });
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Fetch service types from backend
+  // FIXED: Better API handling with error handling
   const fetchServiceTypes = async (page = 1) => {
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/service_types?page=${page}&per_page=10`);
       if (response.ok) {
         const data = await response.json();
-        setServiceTypes(data.service_types);
-        setCurrentPage(data.pagination.page);
-        setTotalPages(data.pagination.total_pages);
+        console.log('Service Types API Response:', data);
+        
+        // Handle both array and paginated response formats
+        if (Array.isArray(data)) {
+          setServiceTypes(data);
+          setCurrentPage(1);
+          setTotalPages(1);
+        } else if (data.service_types) {
+          setServiceTypes(data.service_types || []);
+          setCurrentPage(data.pagination?.page || 1);
+          setTotalPages(data.pagination?.total_pages || 1);
+        } else {
+          setServiceTypes([]);
+        }
       } else {
         console.error('Failed to fetch service types');
+        showError('Failed to load service types');
       }
     } catch (error) {
       console.error('Error fetching service types:', error);
+      showError('Error loading service types');
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch categories from backend
+  // FIXED: Better categories fetch
   const fetchCategories = async () => {
     try {
       const response = await fetch(`${API_BASE}/categories`);
       if (response.ok) {
         const data = await response.json();
-        setCategories(data);
-        // Set default category to first category if available
-        if (data.length > 0 && !formData.category) {
-          setFormData(prev => ({ ...prev, category: data[0].name }));
+        console.log('Categories API Response:', data);
+        
+        // Handle both array and object response formats
+        let categoriesData = [];
+        if (Array.isArray(data)) {
+          categoriesData = data;
+        } else if (data.categories && Array.isArray(data.categories)) {
+          categoriesData = data.categories;
+        } else if (Array.isArray(data)) {
+          categoriesData = data;
         }
+        
+        setCategories(categoriesData);
+        
+        if (categoriesData.length > 0 && !formData.category_id) {
+          setFormData(prev => ({ ...prev, category_id: categoriesData[0]._id }));
+        }
+      } else {
+        console.error('Failed to fetch categories');
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -78,7 +102,6 @@ function ServiceTypes() {
     fetchCategories();
   }, []);
 
-  // Reset success states when modals close
   useEffect(() => {
     if (!showAddForm) {
       setAddSuccess(false);
@@ -88,14 +111,12 @@ function ServiceTypes() {
     }
   }, [showAddForm, showEditModal]);
 
-  // Reset delete success state when delete modal closes
   useEffect(() => {
     if (!showDeleteModal) {
       setDeleteSuccess(false);
     }
   }, [showDeleteModal]);
 
-  // Pagination handlers
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       fetchServiceTypes(currentPage + 1);
@@ -108,7 +129,6 @@ function ServiceTypes() {
     }
   };
 
-  // Check if service name exists
   const checkServiceName = async (serviceName) => {
     if (!serviceName) {
       setServiceNameError("");
@@ -117,7 +137,15 @@ function ServiceTypes() {
 
     try {
       const response = await fetch(`${API_BASE}/service_types`);
-      const allServices = await response.json();
+      const allServicesData = await response.json();
+      
+      // Handle different response formats
+      let allServices = [];
+      if (Array.isArray(allServicesData)) {
+        allServices = allServicesData;
+      } else if (allServicesData.service_types && Array.isArray(allServicesData.service_types)) {
+        allServices = allServicesData.service_types;
+      }
       
       const existingService = allServices.find(service => 
         service.service_name.toLowerCase() === serviceName.toLowerCase() &&
@@ -134,41 +162,35 @@ function ServiceTypes() {
     }
   };
 
-  // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
 
-    // Check service name availability in real-time
     if (name === "service_name") {
       checkServiceName(value);
     }
   };
 
-  // Reset form state
   const resetForm = () => {
     setFormData({
       service_name: "",
-      category: categories.length > 0 ? categories[0].name : "",
+      category_id: categories.length > 0 ? categories[0]._id : "",
       status: "Active"
     });
     setSelectedServiceType(null);
     setServiceNameError("");
   };
 
-  // NEW: Show error modal
   const showError = (message) => {
     setErrorMessage(message);
     setShowErrorModal(true);
   };
 
-  // NEW: Close error modal
   const closeErrorModal = () => {
     setShowErrorModal(false);
     setErrorMessage("");
   };
 
-  // Add service type
   const handleAddServiceType = async (e) => {
     e.preventDefault();
     
@@ -190,7 +212,6 @@ function ServiceTypes() {
 
       if (response.ok) {
         setAddSuccess(true);
-        // Wait for animation to complete before refreshing and closing
         setTimeout(async () => {
           await fetchServiceTypes(currentPage);
           setShowAddForm(false);
@@ -209,19 +230,17 @@ function ServiceTypes() {
     }
   };
 
-  // Edit service type - fills form for editing
   const handleEditServiceType = (serviceType) => {
     setSelectedServiceType(serviceType);
     setFormData({
       service_name: serviceType.service_name,
-      category: serviceType.category,
+      category_id: serviceType.category_id || (serviceType.category ? serviceType.category._id : ""),
       status: serviceType.status
     });
     setServiceNameError("");
     setShowEditModal(true);
   };
 
-  // Update service type
   const handleUpdateServiceType = async (e) => {
     e.preventDefault();
     
@@ -243,7 +262,6 @@ function ServiceTypes() {
 
       if (response.ok) {
         setUpdateSuccess(true);
-        // Wait for animation to complete before refreshing and closing
         setTimeout(async () => {
           await fetchServiceTypes(currentPage);
           setShowEditModal(false);
@@ -262,13 +280,11 @@ function ServiceTypes() {
     }
   };
 
-  // Open delete confirmation modal
   const openDeleteModal = (serviceType) => {
     setServiceTypeToDelete(serviceType);
     setShowDeleteModal(true);
   };
 
-  // Close delete confirmation modal
   const closeDeleteModal = () => {
     setShowDeleteModal(false);
     setServiceTypeToDelete(null);
@@ -276,7 +292,6 @@ function ServiceTypes() {
     setDeleteSuccess(false);
   };
 
-  // Delete service type
   const handleDeleteServiceType = async () => {
     if (!serviceTypeToDelete) return;
 
@@ -289,7 +304,6 @@ function ServiceTypes() {
 
       if (response.ok) {
         setDeleteSuccess(true);
-        // Wait for animation to complete before closing and refreshing
         setTimeout(async () => {
           await fetchServiceTypes(currentPage);
           closeDeleteModal();
@@ -306,17 +320,32 @@ function ServiceTypes() {
     }
   };
 
-  // Open "Add New Service Type" modal
   const openAddModal = () => {
     resetForm();
     setShowAddForm(true);
   };
 
-  // Close modals
   const closeModals = () => {
     setShowAddForm(false);
     setShowEditModal(false);
     resetForm();
+  };
+
+  // Helper function to get category name for display
+  const getCategoryName = (serviceType) => {
+    if (serviceType.category_name) return serviceType.category_name;
+    if (serviceType.category && typeof serviceType.category === 'object') {
+      return serviceType.category.name || 'Unknown';
+    }
+    if (serviceType.category) return serviceType.category;
+    
+    // Find category by ID if we have categories data
+    if (serviceType.category_id && categories.length > 0) {
+      const category = categories.find(cat => cat._id === serviceType.category_id);
+      return category ? category.name : 'Unknown';
+    }
+    
+    return 'Uncategorized';
   };
 
   return (
@@ -361,7 +390,7 @@ function ServiceTypes() {
                   <td>{(currentPage - 1) * 10 + index + 1}</td>
                   <td>{serviceType.service_id}</td>
                   <td>{serviceType.service_name}</td>
-                  <td>{serviceType.category}</td>
+                  <td>{getCategoryName(serviceType)}</td>
                   <td>
                     <span
                       className={`status-tag ${
@@ -383,7 +412,6 @@ function ServiceTypes() {
           </tbody>
         </table>
 
-        {/* PAGINATION CONTROLS */}
         <div className="simple-pagination">
           <button 
             className="pagination-btn" 
@@ -411,7 +439,6 @@ function ServiceTypes() {
           <div className="add-form">
             <h3>Add New Service Type</h3>
             
-            {/* Show only loading animation when adding, then checkmark */}
             {loading ? (
               <div className="form-animation-center">
                 {!addSuccess ? (
@@ -457,14 +484,14 @@ function ServiceTypes() {
                 <div className="form-field">
                   <label>Category</label>
                   <select
-                    name="category"
-                    value={formData.category}
+                    name="category_id"
+                    value={formData.category_id}
                     onChange={handleInputChange}
                     required
                   >
                     <option value="">Select Category</option>
                     {categories.map(category => (
-                      <option key={category._id} value={category.name}>
+                      <option key={category._id} value={category._id}>
                         {category.name}
                       </option>
                     ))}
@@ -504,7 +531,6 @@ function ServiceTypes() {
           <div className="add-form">
             <h3>Edit Service Type</h3>
             
-            {/* Show only loading animation when updating, then checkmark */}
             {loading ? (
               <div className="form-animation-center">
                 {!updateSuccess ? (
@@ -550,14 +576,14 @@ function ServiceTypes() {
                 <div className="form-field">
                   <label>Category</label>
                   <select
-                    name="category"
-                    value={formData.category}
+                    name="category_id"
+                    value={formData.category_id}
                     onChange={handleInputChange}
                     required
                   >
                     <option value="">Select Category</option>
                     {categories.map(category => (
-                      <option key={category._id} value={category.name}>
+                      <option key={category._id} value={category._id}>
                         {category.name}
                       </option>
                     ))}
@@ -595,7 +621,6 @@ function ServiceTypes() {
       {showDeleteModal && serviceTypeToDelete && (
         <div className="overlay">
           <div className="add-form delete-confirmation">
-            {/* Show delete animation when deleting, otherwise show normal content */}
             {deleting ? (
               <div className="delete-animation-center">
                 {!deleteSuccess ? (

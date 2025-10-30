@@ -4,24 +4,29 @@ from bson import ObjectId
 from datetime import datetime
 import os
 
-# Create Blueprint for products routes
 products_bp = Blueprint('products', __name__)
 
-# MongoDB connection (will be initialized from app.py)
 products_collection = None
+categories_collection = None
+transactions_collection = None
 
 def init_products_db(mongo_collection):
-    """Initialize the products collection from app.py"""
     global products_collection
     products_collection = mongo_collection
 
-# Helper to convert ObjectId to string
+def init_products_relationships(categories_coll, transactions_coll):
+    global categories_collection, transactions_collection
+    categories_collection = categories_coll
+    transactions_collection = transactions_coll
+
 def serialize_doc(doc):
     if doc:
         doc['_id'] = str(doc['_id'])
+        # Also convert any ObjectId fields
+        if 'category_id' in doc and doc['category_id']:
+            doc['category_id'] = str(doc['category_id'])
     return doc
 
-# Calculate stock status based on quantity AND minimum_stock
 def get_stock_status(stock_quantity, minimum_stock):
     stock_num = int(stock_quantity)
     min_stock = int(minimum_stock)
@@ -33,23 +38,18 @@ def get_stock_status(stock_quantity, minimum_stock):
     else:
         return "In Stock"
 
-# Generate sequential product ID
 def generate_product_id():
     products = list(products_collection.find().sort("created_at", 1))
     if not products:
         return "PROD_001"
     
-    # Count existing products for sequential numbering
     count = products_collection.count_documents({})
     return f"PROD_{count + 1:03d}"
 
-# Renumber all products sequentially
 def renumber_products():
     try:
-        # Get all products sorted by creation date
         products = list(products_collection.find().sort("created_at", 1))
         
-        # Update each product with new sequential ID
         for index, product in enumerate(products, 1):
             new_product_id = f"PROD_{index:03d}"
             products_collection.update_one(
@@ -62,35 +62,32 @@ def renumber_products():
         print(f"Error renumbering products: {e}")
         return False
 
-# Get all products - UPDATED FOR PAGINATION
 @products_bp.route('/api/products', methods=['GET'])
 def get_products():
     try:
-        # Get pagination parameters from query string
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
-        
-        # Calculate skip value
         skip = (page - 1) * per_page
         
-        # Get total count for pagination info
         total_products = products_collection.count_documents({})
+        total_pages = (total_products + per_page - 1) // per_page
         
-        # Calculate total pages
-        total_pages = (total_products + per_page - 1) // per_page  # Ceiling division
-        
-        # If requested page is beyond available pages, go to last page
         if page > total_pages and total_pages > 0:
             page = total_pages
             skip = (page - 1) * per_page
         
-        # Get paginated products
         products_cursor = products_collection.find().sort("created_at", 1).skip(skip).limit(per_page)
         products = list(products_cursor)
         
+        for product in products:
+            if product.get('category_id'):
+                category = categories_collection.find_one({'_id': ObjectId(product['category_id'])})
+                product['category_name'] = category['name'] if category else 'Unknown'
+            else:
+                product['category_name'] = 'Uncategorized'
+        
         serialized_products = [serialize_doc(product) for product in products]
         
-        # Return pagination info along with products
         return jsonify({
             'products': serialized_products,
             'pagination': {
@@ -103,40 +100,52 @@ def get_products():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Get single product by ID
 @products_bp.route('/api/products/<product_id>', methods=['GET'])
 def get_product(product_id):
     try:
         product = products_collection.find_one({'_id': ObjectId(product_id)})
         if product:
+            if product.get('category_id'):
+                category = categories_collection.find_one({'_id': ObjectId(product['category_id'])})
+                product['category_data'] = serialize_doc(category) if category else None
+            
+            transaction_count = transactions_collection.count_documents({
+                '$or': [
+                    {'paper_type': product['product_name']},
+                    {'size_type': product['product_name']},
+                    {'supply_type': product['product_name']}
+                ]
+            })
+            product['transaction_count'] = transaction_count
+            
             return jsonify(serialize_doc(product))
         return jsonify({'error': 'Product not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Create new product - UPDATED WITH MINIMUM_STOCK
 @products_bp.route('/api/products', methods=['POST'])
 def create_product():
     try:
         data = request.json
         
-        # Check if product name already exists
         existing_product = products_collection.find_one({'product_name': data['product_name']})
         if existing_product:
             return jsonify({'error': 'Product name already exists'}), 400
         
-        # Generate sequential product ID
-        product_id = generate_product_id()
+        if data.get('category_id'):
+            category = categories_collection.find_one({'_id': ObjectId(data['category_id'])})
+            if not category:
+                return jsonify({'error': 'Category not found'}), 400
         
-        # Calculate status based on stock and minimum_stock
+        product_id = generate_product_id()
         status = get_stock_status(data['stock_quantity'], data['minimum_stock'])
         
         new_product = {
             'product_id': product_id,
             'product_name': data['product_name'],
-            'category': data['category'],
+            'category_id': ObjectId(data['category_id']) if data.get('category_id') else None,
             'stock_quantity': int(data['stock_quantity']),
-            'minimum_stock': int(data['minimum_stock']),  # NEW FIELD
+            'minimum_stock': int(data['minimum_stock']),
             'unit_price': float(data['unit_price']),
             'status': status,
             'created_at': datetime.utcnow(),
@@ -149,13 +158,11 @@ def create_product():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Update product - UPDATED WITH MINIMUM_STOCK
 @products_bp.route('/api/products/<product_id>', methods=['PUT'])
 def update_product(product_id):
     try:
         data = request.json
         
-        # Check if product name already exists (excluding current product)
         existing_product = products_collection.find_one({
             'product_name': data['product_name'],
             '_id': {'$ne': ObjectId(product_id)}
@@ -163,14 +170,18 @@ def update_product(product_id):
         if existing_product:
             return jsonify({'error': 'Product name already exists'}), 400
         
-        # Calculate status based on stock and minimum_stock
+        if data.get('category_id'):
+            category = categories_collection.find_one({'_id': ObjectId(data['category_id'])})
+            if not category:
+                return jsonify({'error': 'Category not found'}), 400
+        
         status = get_stock_status(data['stock_quantity'], data['minimum_stock'])
         
         update_data = {
             'product_name': data['product_name'],
-            'category': data['category'],
+            'category_id': ObjectId(data['category_id']) if data.get('category_id') else None,
             'stock_quantity': int(data['stock_quantity']),
-            'minimum_stock': int(data['minimum_stock']),  # NEW FIELD
+            'minimum_stock': int(data['minimum_stock']),
             'unit_price': float(data['unit_price']),
             'status': status,
             'updated_at': datetime.utcnow()
@@ -187,14 +198,27 @@ def update_product(product_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Delete product and renumber remaining products
 @products_bp.route('/api/products/<product_id>', methods=['DELETE'])
 def delete_product(product_id):
     try:
-        # First delete the product
+        # Check if product is used in any transactions
+        product = products_collection.find_one({'_id': ObjectId(product_id)})
+        if product:
+            transaction_count = transactions_collection.count_documents({
+                '$or': [
+                    {'paper_type': product['product_name']},
+                    {'size_type': product['product_name']},
+                    {'supply_type': product['product_name']}
+                ]
+            })
+            
+            if transaction_count > 0:
+                return jsonify({
+                    'error': f'Cannot delete product. It is used in {transaction_count} transaction(s).'
+                }), 400
+        
         result = products_collection.delete_one({'_id': ObjectId(product_id)})
         if result.deleted_count:
-            # Then renumber all remaining products
             if renumber_products():
                 return jsonify({'message': 'Product deleted and products renumbered successfully'})
             else:
@@ -203,7 +227,21 @@ def delete_product(product_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Endpoint to manually renumber products
+@products_bp.route('/api/products/category/<category_id>', methods=['GET'])
+def get_products_by_category_id(category_id):
+    try:
+        products = list(products_collection.find({'category_id': ObjectId(category_id)}).sort("product_name", 1))
+        
+        for product in products:
+            if product.get('category_id'):
+                category = categories_collection.find_one({'_id': ObjectId(product['category_id'])})
+                product['category_name'] = category['name'] if category else 'Unknown'
+        
+        serialized_products = [serialize_doc(product) for product in products]
+        return jsonify(serialized_products)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @products_bp.route('/api/products/renumber', methods=['POST'])
 def renumber_all_products():
     try:

@@ -5,37 +5,29 @@ from datetime import datetime
 from dotenv import load_dotenv
 import os
 
-# Import the blueprints
 from groups_api import groups_bp, init_groups_db
 from users_api import users_bp, init_users_db
-from products_api import products_bp, init_products_db
+from products_api import products_bp, init_products_db, init_products_relationships
 from categories_api import categories_bp, init_categories_db
 from schedule_api import schedules_bp, init_schedules_db
 from staffs_api import staffs_bp, init_staffs_db
-from transactions_api import transactions_bp, init_transactions_db
-from services_api import service_types_bp, init_service_types_db
+from transactions_api import transactions_bp, init_transactions_db, init_transactions_relationships
+from services_api import service_types_bp, init_service_types_db, init_service_types_relationships
 from sales_api import sales_bp, init_sales_db
 
-# -----------------------------
-# Load environment variables
-# -----------------------------
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
 if not MONGO_URI:
     raise ValueError("MONGO_URI not set in .env")
 
-# -----------------------------
-# Flask setup
-# -----------------------------
 app = Flask(__name__)
 CORS(app)
 
-# -----------------------------
-# MongoDB setup
-# -----------------------------
 try:
     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
     db = client["CopyCornerSystem"]
+    
+    # Initialize collections
     users_collection = db["users"]
     groups_collection = db["groups"]
     products_collection = db["products"]
@@ -45,16 +37,21 @@ try:
     transactions_collection = db["transactions"]
     service_types_collection = db["service_type"]
 
-    # Initialize APIs with the collections
+    # Initialize databases
     init_groups_db(groups_collection)
     init_users_db(users_collection, groups_collection, staffs_collection)
     init_products_db(products_collection)
-    init_categories_db(categories_collection, products_collection)
+    init_categories_db(categories_collection, products_collection, service_types_collection)
     init_schedules_db(schedule_collection, users_collection, groups_collection)
     init_staffs_db(staffs_collection, users_collection, groups_collection)
     init_transactions_db(transactions_collection, products_collection)
     init_service_types_db(service_types_collection, transactions_collection)
     init_sales_db(transactions_collection, service_types_collection)
+    
+    # Initialize relationships
+    init_products_relationships(categories_collection, transactions_collection)
+    init_service_types_relationships(categories_collection, products_collection)
+    init_transactions_relationships(service_types_collection, categories_collection)
     
     client.admin.command("ping")
     print("✅ Connected to MongoDB Atlas!")
@@ -62,9 +59,6 @@ except Exception as e:
     print("❌ MongoDB connection error:", e)
     raise e
 
-# -----------------------------
-# Register Blueprints
-# -----------------------------
 app.register_blueprint(groups_bp)
 app.register_blueprint(users_bp)
 app.register_blueprint(products_bp)
@@ -75,9 +69,6 @@ app.register_blueprint(transactions_bp)
 app.register_blueprint(service_types_bp)
 app.register_blueprint(sales_bp)
 
-# -----------------------------
-# Routes
-# -----------------------------
 @app.route("/")
 def home():
     return jsonify({"message": "Backend running!"})
@@ -93,18 +84,14 @@ def login():
 
     user = users_collection.find_one({"username": username})
     
-    # Check if user exists and password is correct
     if user and user.get("password") == password:
-        # Check if USER is active
         if user.get("status") != "Active":
             return jsonify({"error": "Your account is inactive. Please contact administrator."}), 401
         
-        # Check if USER'S GROUP is active
         group = groups_collection.find_one({"_id": user["group_id"]})
         if group and group.get("status") != "Active":
             return jsonify({"error": "Your user role has been deactivated. Please contact administrator."}), 401
         
-        # Update last login (only if both user and group are active)
         users_collection.update_one(
             {"_id": user["_id"]},
             {"$set": {
@@ -119,14 +106,11 @@ def login():
                 "username": user["username"],
                 "name": user.get("name", ""),
                 "id": str(user["_id"]),
-                "role": group["group_name"] if group else "User"  # Add role here
+                "role": group["group_name"] if group else "User"
             }
         }), 200
     else:
         return jsonify({"error": "Invalid credentials"}), 401
 
-# -----------------------------
-# Run the app
-# -----------------------------
 if __name__ == "__main__":
     app.run(debug=True)
