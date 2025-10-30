@@ -263,3 +263,23 @@ def delete_user(user_id):
         return jsonify({'error': 'User not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+# Add this route to users_api.py
+@users_bp.route('/api/users/<user_id>/role-level', methods=['GET'])
+def get_user_role_level(user_id):
+    try:
+        user = users_collection.find_one({'_id': ObjectId(user_id)})
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Get the group to find role level
+        group = groups_collection.find_one({'_id': user['group_id']})
+        if not group:
+            return jsonify({'error': 'User role not found'}), 404
+        
+        return jsonify({
+            'role_level': group.get('group_level', 1),
+            'role_name': group.get('group_name', 'Staff')
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

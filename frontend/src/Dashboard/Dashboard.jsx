@@ -21,7 +21,42 @@ function AdminDashboard({ user, onLogout }) {
     Transactions: false
   });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [userRoleLevel, setUserRoleLevel] = useState(0); // Default to admin level
   const profileRef = useRef(null);
+
+  // Get user role level immediately from user data or localStorage
+  useEffect(() => {
+    const getUserRoleLevel = async () => {
+      try {
+        // First try to get from localStorage (set during login)
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          if (userData.role_level !== undefined) {
+            setUserRoleLevel(userData.role_level);
+            return;
+          }
+        }
+        
+        // If not in localStorage, fetch from API
+        if (user?.id) {
+          const response = await fetch(`http://localhost:5000/api/users/${user.id}/role-level`);
+          if (response.ok) {
+            const data = await response.json();
+            setUserRoleLevel(data.role_level);
+            
+            // Update localStorage with role level for future use
+            const updatedUser = { ...user, role_level: data.role_level };
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user role level:', error);
+      }
+    };
+
+    getUserRoleLevel();
+  }, [user]);
 
   // When user clicks outside profile, close dropdown
   useEffect(() => {
@@ -53,6 +88,25 @@ function AdminDashboard({ user, onLogout }) {
       ...prev,
       [menu]: !prev[menu]
     }));
+  };
+
+  // Check if user can access a menu item based on role level
+  const canAccessMenu = (menuItem) => {
+    // Level 0 (Admin) can access everything
+    if (userRoleLevel === 0) return true;
+    
+    // Level 1 (Staff) restrictions
+    if (userRoleLevel === 1) {
+      const restrictedMenus = [
+        "User Management", 
+        "Manage Roles", 
+        "Manage Users", 
+        "All Staffs"
+      ];
+      return !restrictedMenus.includes(menuItem);
+    }
+    
+    return false;
   };
 
   // Get contextual welcome message based on current page
@@ -91,6 +145,16 @@ function AdminDashboard({ user, onLogout }) {
 
   // Display the correct component
   const renderContent = () => {
+    // Check if user has access to the current page
+    if (!canAccessMenu(activePage)) {
+      return (
+        <div className="access-denied">
+          <h2>Access Denied</h2>
+          <p>You don't have permission to access this page.</p>
+        </div>
+      );
+    }
+
     switch (activePage) {
       case "Dashboard":
         return <DashboardUI />;
@@ -117,6 +181,44 @@ function AdminDashboard({ user, onLogout }) {
     }
   };
 
+  // Menu items configuration
+  const menuItems = [
+    { 
+      name: "Dashboard", 
+      icon: "📊", 
+      hasSubmenu: false 
+    },
+    { 
+      name: "Products", 
+      icon: "📦", 
+      hasSubmenu: true,
+      subItems: ["All Products", "Categories"]
+    },
+    { 
+      name: "Staffs", 
+      icon: "👥", 
+      hasSubmenu: true,
+      subItems: ["All Staffs", "Staffs Schedule"]
+    },
+    { 
+      name: "Sales", 
+      icon: "💰", 
+      hasSubmenu: false 
+    },
+    { 
+      name: "Transactions", 
+      icon: "🧾", 
+      hasSubmenu: true,
+      subItems: ["Transactions", "Service Types"]
+    },
+    { 
+      name: "User Management", 
+      icon: "⚙️", 
+      hasSubmenu: true,
+      subItems: ["Manage Roles", "Manage Users"]
+    },
+  ];
+
   return (
     <div className="container">
       {/* Sidebar Menu */}
@@ -124,130 +226,74 @@ function AdminDashboard({ user, onLogout }) {
         <h2 className="logo">Copy Corner Hub</h2>
 
         <nav className="menu">
-          {[
-            "Dashboard",
-            "Products",
-            "Staffs",
-            "Sales",
-            "Transactions",
-            "User Management",
-          ].map((page) => (
-            <div key={page}>
-              {/* Main menu button */}
-              <button
-                className={
-                  activePage === page ||
-                  (page === "Products" && 
-                  ["All Products", "Categories"].includes(activePage)) ||
-                  (page === "Staffs" && 
-                  ["All Staffs", "Staffs Schedule"].includes(activePage)) ||
-                  (page === "User Management" && 
-                  ["Manage Roles", "Manage Users"].includes(activePage)) ||
-                  (page === "Transactions" && 
-                  ["Transactions", "Service Types"].includes(activePage))
-                    ? "active"
-                    : ""
-                }
-                onClick={() => {
-                  // For main pages without submenus
-                  if (["Dashboard", "Sales"].includes(page)) {
-                    setActivePage(page);
-                    return;
+          {menuItems.map((item) => {
+            // Skip rendering if user doesn't have access
+            if (!canAccessMenu(item.name) && !item.subItems?.some(sub => canAccessMenu(sub))) {
+              return null;
+            }
+
+            return (
+              <div key={item.name}>
+                {/* Main menu button */}
+                <button
+                  className={
+                    activePage === item.name ||
+                    (item.hasSubmenu && item.subItems.includes(activePage))
+                      ? "active"
+                      : ""
                   }
-                  
-                  // For pages with submenus - just toggle the submenu
-                  if (["Products", "Staffs", "User Management", "Transactions"].includes(page)) {
-                    toggleSubmenu(page);
-                  }
-                }}
-              >
-                <span className="menu-icon">
-                  {page === "Dashboard" && "📊"}
-                  {page === "Products" && "📦"}
-                  {page === "Staffs" && "👥"}
-                  {page === "Sales" && "💰"}
-                  {page === "Transactions" && "🧾"}
-                  {page === "User Management" && "⚙️"}
-                </span>
-                {page}
-                {(page === "Products" || page === "Staffs" || page === "User Management" || page === "Transactions") && (
-                  <span className={`dropdown-arrow ${openSubmenus[page] ? 'open' : ''}`}>▼</span>
+                  onClick={() => {
+                    // For main pages without submenus
+                    if (!item.hasSubmenu) {
+                      setActivePage(item.name);
+                      return;
+                    }
+                    
+                    // For pages with submenus - just toggle the submenu
+                    toggleSubmenu(item.name);
+                  }}
+                  disabled={!canAccessMenu(item.name) && item.hasSubmenu}
+                >
+                  <span className="menu-icon">{item.icon}</span>
+                  {item.name}
+                  {item.hasSubmenu && (
+                    <span className={`dropdown-arrow ${openSubmenus[item.name] ? 'open' : ''}`}>
+                      ▼
+                    </span>
+                  )}
+                </button>
+
+                {/* Submenus */}
+                {item.hasSubmenu && openSubmenus[item.name] && (
+                  <div className="submenu">
+                    {item.subItems.map((sub) => {
+                      // Skip rendering submenu items user doesn't have access to
+                      if (!canAccessMenu(sub)) return null;
+                      
+                      return (
+                        <button
+                          key={sub}
+                          className={activePage === sub ? "active-sub" : ""}
+                          onClick={() => setActivePage(sub)}
+                        >
+                          <span className="submenu-icon">
+                            {sub === "All Products" ? "📋" : 
+                             sub === "Categories" ? "🏷️" :
+                             sub === "All Staffs" ? "👨‍💼" :
+                             sub === "Staffs Schedule" ? "📅" :
+                             sub === "Transactions" ? "📝" :
+                             sub === "Service Types" ? "🔧" :
+                             sub === "Manage Roles" ? "👥" : "👤"}
+                          </span>
+                          {sub}
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
-              </button>
-
-              {/* Products submenu */}
-              {page === "Products" && openSubmenus.Products && (
-                <div className="submenu">
-                  {["All Products", "Categories"].map((sub) => (
-                    <button
-                      key={sub}
-                      className={activePage === sub ? "active-sub" : ""}
-                      onClick={() => setActivePage(sub)}
-                    >
-                      <span className="submenu-icon">
-                        {sub === "All Products" ? "📋" : "🏷️"}
-                      </span>
-                      {sub}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Staffs submenu */}
-              {page === "Staffs" && openSubmenus.Staffs && (
-                <div className="submenu">
-                  {["All Staffs", "Staffs Schedule"].map((sub) => (
-                    <button
-                      key={sub}
-                      className={activePage === sub ? "active-sub" : ""}
-                      onClick={() => setActivePage(sub)}
-                    >
-                      <span className="submenu-icon">
-                        {sub === "All Staffs" ? "👨‍💼" : "📅"}
-                      </span>
-                      {sub}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Transactions submenu */}
-              {page === "Transactions" && openSubmenus.Transactions && (
-                <div className="submenu">
-                  {["Transactions", "Service Types"].map((sub) => (
-                    <button
-                      key={sub}
-                      className={activePage === sub ? "active-sub" : ""}
-                      onClick={() => setActivePage(sub)}
-                    >
-                      <span className="submenu-icon">
-                        {sub === "Transactions" ? "📝" : "🔧"}
-                      </span>
-                      {sub}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* User Management submenu */}
-              {page === "User Management" && openSubmenus["User Management"] && (
-                <div className="submenu">
-                  {["Manage Roles", "Manage Users"].map((sub) => (
-                    <button
-                      key={sub}
-                      className={activePage === sub ? "active-sub" : ""}
-                      onClick={() => setActivePage(sub)}
-                    >
-                      <span className="submenu-icon">
-                        {sub === "Manage Roles" ? "👥" : "👤"}
-                      </span>
-                      {sub}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </nav>
       </aside>
 
@@ -258,7 +304,7 @@ function AdminDashboard({ user, onLogout }) {
           <p className="welcome-subtitle">{getWelcomeMessage()}</p>
         </div>
         
-        {/* Profile Section - Updated with dynamic user data */}
+        {/* Profile Section */}
         <div className="profile-section" ref={profileRef}>
           <button
             className="profile-trigger"
@@ -267,7 +313,9 @@ function AdminDashboard({ user, onLogout }) {
             <img src={userLogo} alt="User" className="profile-avatar" />
             <div className="profile-info">
               <span className="profile-name">{user?.name || "User"}</span>
-              <span className="profile-role">{user?.role || "User"}</span>
+              <span className="profile-role">
+                {userRoleLevel === 0 ? "Administrator" : "Staff Member"}
+              </span>
             </div>
             <span className={`dropdown-arrow ${isProfileOpen ? 'open' : ''}`}>▼</span>
           </button>
@@ -278,7 +326,7 @@ function AdminDashboard({ user, onLogout }) {
                 <img src={userLogo} alt="User Avatar" className="dropdown-avatar" />
                 <div className="dropdown-user-info">
                   <h4>{user?.name || "User"}</h4>
-                  <p>{user?.role || "User"}</p>
+                  <p>{userRoleLevel === 0 ? "Administrator" : "Staff Member"}</p>
                 </div>
               </div>
               

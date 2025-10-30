@@ -106,7 +106,8 @@ def login():
                 "username": user["username"],
                 "name": user.get("name", ""),
                 "id": str(user["_id"]),
-                "role": group["group_name"] if group else "User"
+                "role": group["group_name"] if group else "User",
+                "role_level": group.get("group_level", 1)  # ← ADD THIS LINE
             }
         }), 200
     else:

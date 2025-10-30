@@ -368,3 +368,22 @@
   width: 16px;
   text-align: center;
 }
+
+.access-denied {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  text-align: center;
+}
+
+.access-denied h2 {
+  color: #dc2626;
+  margin-bottom: 16px;
+}
+
+.access-denied p {
+  color: #6b7280;
+  font-size: 16px;
+}
