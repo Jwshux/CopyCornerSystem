@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from pymongo import MongoClient
 from bson import ObjectId
 from datetime import datetime
-import os
+import json
 
 service_types_bp = Blueprint('service_types', __name__)
 
@@ -21,13 +21,29 @@ def init_service_types_relationships(categories_coll, products_coll):
     categories_collection = categories_coll
     products_collection = products_coll
 
+class JSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, ObjectId):
+            return str(obj)
+        return super().default(obj)
+
 def serialize_doc(doc):
-    if doc:
-        doc['_id'] = str(doc['_id'])
-        # Also convert any ObjectId fields
-        if 'category_id' in doc and doc['category_id']:
-            doc['category_id'] = str(doc['category_id'])
-    return doc
+    if not doc:
+        return doc
+    
+    serialized = {}
+    for key, value in doc.items():
+        if isinstance(value, ObjectId):
+            serialized[key] = str(value)
+        elif isinstance(value, datetime):
+            serialized[key] = value.isoformat()
+        elif isinstance(value, dict):
+            serialized[key] = serialize_doc(value)
+        elif isinstance(value, list):
+            serialized[key] = [serialize_doc(item) if isinstance(item, dict) else item for item in value]
+        else:
+            serialized[key] = value
+    return serialized
 
 def generate_service_id():
     services = list(service_types_collection.find().sort("created_at", 1))
@@ -48,9 +64,13 @@ def get_service_types():
             service_types = list(service_types_collection.find({"status": "Active"}).sort("service_name", 1))
             
             for service in service_types:
+                # Handle both old 'category' field and new 'category_id' relationship
                 if service.get('category_id'):
                     category = categories_collection.find_one({'_id': ObjectId(service['category_id'])})
                     service['category_name'] = category['name'] if category else 'Unknown'
+                elif service.get('category'):
+                    # Fallback to old category field
+                    service['category_name'] = service['category']
                 else:
                     service['category_name'] = 'Uncategorized'
             
@@ -73,9 +93,13 @@ def get_service_types():
         service_types = list(service_types_cursor)
         
         for service in service_types:
+            # Handle both old 'category' field and new 'category_id' relationship
             if service.get('category_id'):
                 category = categories_collection.find_one({'_id': ObjectId(service['category_id'])})
                 service['category_name'] = category['name'] if category else 'Unknown'
+            elif service.get('category'):
+                # Fallback to old category field
+                service['category_name'] = service['category']
             else:
                 service['category_name'] = 'Uncategorized'
         
@@ -98,9 +122,14 @@ def get_service_type(service_type_id):
     try:
         service_type = service_types_collection.find_one({'_id': ObjectId(service_type_id)})
         if service_type:
+            # Handle both old 'category' field and new 'category_id' relationship
             if service_type.get('category_id'):
                 category = categories_collection.find_one({'_id': ObjectId(service_type['category_id'])})
                 service_type['category_data'] = serialize_doc(category) if category else None
+                service_type['category_name'] = category['name'] if category else 'Unknown'
+            elif service_type.get('category'):
+                # Fallback to old category field
+                service_type['category_name'] = service_type['category']
             
             transaction_count = transactions_collection.count_documents({'service_type': service_type['service_name']})
             service_type['transaction_count'] = transaction_count
@@ -128,15 +157,33 @@ def create_service_type():
             'service_id': generate_service_id(),
             'service_name': data['service_name'],
             'category_id': ObjectId(data['category_id']) if data.get('category_id') else None,
+            'category': data.get('category', ''),  # Keep old field for compatibility
             'status': data.get('status', 'Active'),
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
         }
         
         result = service_types_collection.insert_one(new_service_type)
-        new_service_type['_id'] = str(result.inserted_id)
-        return jsonify(new_service_type), 201
+        
+        # Fetch the complete inserted document
+        inserted_service = service_types_collection.find_one({'_id': result.inserted_id})
+        
+        if not inserted_service:
+            return jsonify({'error': 'Failed to create service type'}), 500
+            
+        # Add category name for response
+        if inserted_service.get('category_id'):
+            category = categories_collection.find_one({'_id': ObjectId(inserted_service['category_id'])})
+            inserted_service['category_name'] = category['name'] if category else 'Unknown'
+        elif inserted_service.get('category'):
+            inserted_service['category_name'] = inserted_service['category']
+        
+        # Properly serialize before returning
+        serialized_service = serialize_doc(inserted_service)
+        return jsonify(serialized_service), 201
+        
     except Exception as e:
+        print(f"Error creating service type: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @service_types_bp.route('/api/service_types/<service_type_id>', methods=['PUT'])
@@ -170,6 +217,7 @@ def update_service_type(service_type_id):
         update_data = {
             'service_name': data['service_name'],
             'category_id': ObjectId(data['category_id']) if data.get('category_id') else None,
+            'category': data.get('category', ''),  # Keep old field for compatibility
             'status': data.get('status', 'Active'),
             'updated_at': datetime.utcnow()
         }
@@ -180,9 +228,21 @@ def update_service_type(service_type_id):
         )
         
         if result.matched_count:
+            # Fetch the updated document
+            updated_service = service_types_collection.find_one({'_id': ObjectId(service_type_id)})
+            if updated_service:
+                # Add category name for response
+                if updated_service.get('category_id'):
+                    category = categories_collection.find_one({'_id': ObjectId(updated_service['category_id'])})
+                    updated_service['category_name'] = category['name'] if category else 'Unknown'
+                
+                serialized_service = serialize_doc(updated_service)
+                return jsonify(serialized_service)
+            
             return jsonify({'message': 'Service type updated successfully'})
         return jsonify({'error': 'Service type not found'}), 404
     except Exception as e:
+        print(f"Error updating service type: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @service_types_bp.route('/api/service_types/<service_type_id>', methods=['DELETE'])

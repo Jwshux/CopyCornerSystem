@@ -20,12 +20,22 @@ def init_products_relationships(categories_coll, transactions_coll):
     transactions_collection = transactions_coll
 
 def serialize_doc(doc):
-    if doc:
-        doc['_id'] = str(doc['_id'])
-        # Also convert any ObjectId fields
-        if 'category_id' in doc and doc['category_id']:
-            doc['category_id'] = str(doc['category_id'])
-    return doc
+    if not doc:
+        return doc
+    
+    serialized = {}
+    for key, value in doc.items():
+        if isinstance(value, ObjectId):
+            serialized[key] = str(value)
+        elif isinstance(value, datetime):
+            serialized[key] = value.isoformat()
+        elif isinstance(value, dict):
+            serialized[key] = serialize_doc(value)
+        elif isinstance(value, list):
+            serialized[key] = [serialize_doc(item) if isinstance(item, dict) else item for item in value]
+        else:
+            serialized[key] = value
+    return serialized
 
 def get_stock_status(stock_quantity, minimum_stock):
     stock_num = int(stock_quantity)
@@ -80,9 +90,13 @@ def get_products():
         products = list(products_cursor)
         
         for product in products:
+            # Handle both old 'category' field and new 'category_id' relationship
             if product.get('category_id'):
                 category = categories_collection.find_one({'_id': ObjectId(product['category_id'])})
                 product['category_name'] = category['name'] if category else 'Unknown'
+            elif product.get('category'):
+                # Fallback to old category field
+                product['category_name'] = product['category']
             else:
                 product['category_name'] = 'Uncategorized'
         
@@ -105,9 +119,14 @@ def get_product(product_id):
     try:
         product = products_collection.find_one({'_id': ObjectId(product_id)})
         if product:
+            # Handle both old 'category' field and new 'category_id' relationship
             if product.get('category_id'):
                 category = categories_collection.find_one({'_id': ObjectId(product['category_id'])})
                 product['category_data'] = serialize_doc(category) if category else None
+                product['category_name'] = category['name'] if category else 'Unknown'
+            elif product.get('category'):
+                # Fallback to old category field
+                product['category_name'] = product['category']
             
             transaction_count = transactions_collection.count_documents({
                 '$or': [
@@ -144,6 +163,7 @@ def create_product():
             'product_id': product_id,
             'product_name': data['product_name'],
             'category_id': ObjectId(data['category_id']) if data.get('category_id') else None,
+            'category': data.get('category', ''),  # Keep old field for compatibility
             'stock_quantity': int(data['stock_quantity']),
             'minimum_stock': int(data['minimum_stock']),
             'unit_price': float(data['unit_price']),
@@ -153,9 +173,26 @@ def create_product():
         }
         
         result = products_collection.insert_one(new_product)
-        new_product['_id'] = str(result.inserted_id)
-        return jsonify(new_product), 201
+        
+        # 🔥 FIXED: Fetch the complete inserted document from database
+        inserted_product = products_collection.find_one({'_id': result.inserted_id})
+        
+        if not inserted_product:
+            return jsonify({'error': 'Failed to create product'}), 500
+            
+        # Add category name for response
+        if inserted_product.get('category_id'):
+            category = categories_collection.find_one({'_id': ObjectId(inserted_product['category_id'])})
+            inserted_product['category_name'] = category['name'] if category else 'Unknown'
+        elif inserted_product.get('category'):
+            inserted_product['category_name'] = inserted_product['category']
+        
+        # 🔥 FIXED: Properly serialize before returning
+        serialized_product = serialize_doc(inserted_product)
+        return jsonify(serialized_product), 201
+        
     except Exception as e:
+        print(f"Error creating product: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @products_bp.route('/api/products/<product_id>', methods=['PUT'])
@@ -180,6 +217,7 @@ def update_product(product_id):
         update_data = {
             'product_name': data['product_name'],
             'category_id': ObjectId(data['category_id']) if data.get('category_id') else None,
+            'category': data.get('category', ''),  # Keep old field for compatibility
             'stock_quantity': int(data['stock_quantity']),
             'minimum_stock': int(data['minimum_stock']),
             'unit_price': float(data['unit_price']),
@@ -193,9 +231,22 @@ def update_product(product_id):
         )
         
         if result.matched_count:
+            # 🔥 FIXED: Fetch the updated document from database
+            updated_product = products_collection.find_one({'_id': ObjectId(product_id)})
+            if updated_product:
+                # Add category name for response
+                if updated_product.get('category_id'):
+                    category = categories_collection.find_one({'_id': ObjectId(updated_product['category_id'])})
+                    updated_product['category_name'] = category['name'] if category else 'Unknown'
+                
+                # 🔥 FIXED: Properly serialize before returning
+                serialized_product = serialize_doc(updated_product)
+                return jsonify(serialized_product)
+            
             return jsonify({'message': 'Product updated successfully'})
         return jsonify({'error': 'Product not found'}), 404
     except Exception as e:
+        print(f"Error updating product: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @products_bp.route('/api/products/<product_id>', methods=['DELETE'])
