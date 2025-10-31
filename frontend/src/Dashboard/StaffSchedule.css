@@ -242,10 +242,13 @@ button:disabled {
 }
 
 .modal-box h3 {
-  margin-bottom: 10px;
-  color: #333;
-  text-align: center;
-  font-size: 1.3rem;
+  margin-bottom: 15px;
+  margin-top: 0;
+  color: #00205B !important;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  text-align: left !important;
 }
 
 .modal-box label {

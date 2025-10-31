@@ -402,7 +402,7 @@
 .page-title {
   font-size: 1.8rem;
   color: #00205B;
-  font-weight: 700;
+  font-weight: 1000 !important;
   margin: 0;
   padding-bottom: 8px;
   flex-grow: 1;
@@ -492,4 +492,62 @@
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+/* FIX FOR SAVE/UPDATE/CANCEL BUTTONS - ADD THIS AT THE END OF YOUR CSS FILE */
+.save-btn,
+.update-btn {
+  background: #00205B !important;
+  color: white !important;
+  border: 2px solid #00205B !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 6px rgba(0, 32, 91, 0.1) !important;
+  min-width: 100px !important;
+  height: 36px !important;
+  box-sizing: border-box !important;
+}
+
+.save-btn:hover,
+.update-btn:hover {
+  background: #001a47 !important;
+  border-color: #001a47 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(0, 32, 91, 0.3) !important;
+}
+
+.cancel-btn {
+  background: #6b7280 !important;
+  color: white !important;
+  border: 2px solid #6b7280 !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 6px rgba(107, 114, 128, 0.1) !important;
+  min-width: 100px !important;
+  height: 36px !important;
+  box-sizing: border-box !important;
+}
+
+.cancel-btn:hover {
+  background: #4b5563 !important;
+  border-color: #4b5563 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3) !important;
+}
+
+.form-buttons {
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  margin-top: 20px !important;
 }
