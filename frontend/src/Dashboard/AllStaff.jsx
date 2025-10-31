@@ -3,22 +3,27 @@ import "./AllStaff.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
-import deleteAnimation from "../animations/delete.json";
+import archiveAnimation from "../animations/archive.json";
 
 const API_BASE = "http://localhost:5000/api";
 
 function AllStaff() {
   const [staffs, setStaffs] = useState([]);
+  const [archivedStaffs, setArchivedStaffs] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
-  const [staffToDelete, setStaffToDelete] = useState(null);
+  const [staffToArchive, setStaffToArchive] = useState(null);
+  const [staffToRestore, setStaffToRestore] = useState(null);
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
-  const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [archiveSuccess, setArchiveSuccess] = useState(false);
+  const [restoreSuccess, setRestoreSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [formData, setFormData] = useState({
     name: "",
@@ -27,14 +32,18 @@ function AllStaff() {
     course: "",
     section: "",
     status: "Active",
-    password: "" // For password updates
+    password: ""
   });
+
+  // Archive view and search
+  const [showArchivedView, setShowArchivedView] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Fetch all staffs from the new staffs API
+  // Fetch all active staffs
   const fetchStaffs = async (page = 1) => {
     setLoading(true);
     try {
@@ -47,9 +56,31 @@ function AllStaff() {
         setTotalPages(data.pagination.total_pages);
       } else {
         console.error('Failed to fetch staffs');
+        showError('Failed to load staffs');
       }
     } catch (error) {
       console.error('Error fetching staffs:', error);
+      showError('Error loading staffs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch archived staffs
+  const fetchArchivedStaffs = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/staffs/archived`);
+      if (response.ok) {
+        const data = await response.json();
+        setArchivedStaffs(Array.isArray(data) ? data : []);
+      } else {
+        console.error('Failed to fetch archived staffs');
+        showError('Failed to load archived staffs');
+      }
+    } catch (error) {
+      console.error('Error fetching archived staffs:', error);
+      showError('Error loading archived staffs');
     } finally {
       setLoading(false);
     }
@@ -59,19 +90,24 @@ function AllStaff() {
     fetchStaffs();
   }, []);
 
-  // Reset update success state when modal closes
+  // Reset states when modals close
   useEffect(() => {
     if (!showEditModal) {
       setUpdateSuccess(false);
     }
   }, [showEditModal]);
 
-  // Reset delete success state when modal closes
   useEffect(() => {
-    if (!showDeleteModal) {
-      setDeleteSuccess(false);
+    if (!showArchiveModal) {
+      setArchiveSuccess(false);
     }
-  }, [showDeleteModal]);
+  }, [showArchiveModal]);
+
+  useEffect(() => {
+    if (!showRestoreModal) {
+      setRestoreSuccess(false);
+    }
+  }, [showRestoreModal]);
 
   // Pagination handlers
   const handleNextPage = () => {
@@ -84,6 +120,18 @@ function AllStaff() {
     if (currentPage > 1) {
       fetchStaffs(currentPage - 1);
     }
+  };
+
+  // Show error modal
+  const showError = (message) => {
+    setErrorMessage(message);
+    setShowErrorModal(true);
+  };
+
+  // Close error modal
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorMessage("");
   };
 
   // Handle input changes
@@ -151,7 +199,6 @@ function AllStaff() {
 
       if (response.ok) {
         setUpdateSuccess(true);
-        // Wait for animation to complete before closing
         setTimeout(async () => {
           await fetchStaffs(currentPage);
           setShowEditModal(false);
@@ -163,7 +210,6 @@ function AllStaff() {
         
         // Handle the case where staff has active schedules
         if (errorData.error && errorData.error.includes('schedule(s) are using this staff member')) {
-          // Create a detailed error message
           let errorMessage = errorData.error;
           
           if (errorData.schedules && errorData.schedules.length > 0) {
@@ -190,54 +236,45 @@ function AllStaff() {
     }
   };
 
-  // Open delete confirmation modal
-  const openDeleteModal = (staff) => {
-    setStaffToDelete(staff);
-    setShowDeleteModal(true);
+  // Archive staff functions
+  const openArchiveModal = (staff) => {
+    setStaffToArchive(staff);
+    setShowArchiveModal(true);
   };
 
-  // Close delete confirmation modal
-  const closeDeleteModal = () => {
-    setShowDeleteModal(false);
-    setStaffToDelete(null);
-    setDeleting(false);
-    setDeleteSuccess(false);
+  const closeArchiveModal = () => {
+    setShowArchiveModal(false);
+    setStaffToArchive(null);
+    setArchiving(false);
+    setArchiveSuccess(false);
   };
 
-  // Delete staff - UPDATED WITH VALIDATION
-  const handleDeleteStaff = async () => {
-    if (!staffToDelete) return;
+  const handleArchiveStaff = async () => {
+    if (!staffToArchive) return;
 
-    setDeleting(true);
+    setArchiving(true);
     try {
-      // Use the staffs API endpoint for deletion (which has validation)
-      const response = await fetch(`${API_BASE}/staffs/user/${staffToDelete.user_id}`, {
-        method: 'DELETE',
+      const response = await fetch(`${API_BASE}/staffs/user/${staffToArchive.user_id}/archive`, {
+        method: 'PUT',
       });
 
       if (response.ok) {
-        setDeleteSuccess(true);
-        
-        // Wait for animation to complete before closing and refreshing
+        setArchiveSuccess(true);
         setTimeout(async () => {
-          // Check if this was the last item on the current page
           const isLastItemOnPage = staffs.length === 1;
           
           if (isLastItemOnPage && currentPage > 1) {
-            // If it was the last item and we're not on page 1, go to previous page
             await fetchStaffs(currentPage - 1);
           } else {
-            // Otherwise refresh current page
             await fetchStaffs(currentPage);
           }
-          closeDeleteModal();
+          closeArchiveModal();
         }, 1500);
       } else {
         const errorData = await response.json();
         
         // Handle the case where staff has active schedules
         if (errorData.error && errorData.error.includes('schedule(s) are assigned to this staff member')) {
-          // Create a detailed error message
           let errorMessage = errorData.error;
           
           if (errorData.schedules && errorData.schedules.length > 0) {
@@ -251,107 +288,249 @@ function AllStaff() {
           setErrorMessage(errorMessage);
           setShowErrorModal(true);
         } else {
-          setErrorMessage(errorData.error || 'Failed to delete staff');
+          setErrorMessage(errorData.error || 'Failed to archive staff');
           setShowErrorModal(true);
         }
-        setDeleting(false);
+        setArchiving(false);
       }
     } catch (error) {
-      console.error('Error deleting staff:', error);
-      setErrorMessage('Error deleting staff');
+      console.error('Error archiving staff:', error);
+      setErrorMessage('Error archiving staff');
       setShowErrorModal(true);
-      setDeleting(false);
+      setArchiving(false);
+    }
+  };
+
+  // Restore staff functions
+  const openRestoreModal = (staff) => {
+    setStaffToRestore(staff);
+    setShowRestoreModal(true);
+  };
+
+  const closeRestoreModal = () => {
+    setShowRestoreModal(false);
+    setStaffToRestore(null);
+    setRestoring(false);
+    setRestoreSuccess(false);
+  };
+
+  const handleRestoreStaff = async () => {
+    if (!staffToRestore) return;
+
+    setRestoring(true);
+    try {
+      const response = await fetch(`${API_BASE}/staffs/user/${staffToRestore.user_id}/restore`, {
+        method: 'PUT',
+      });
+
+      if (response.ok) {
+        setRestoreSuccess(true);
+        setTimeout(async () => {
+          await fetchArchivedStaffs();
+          await fetchStaffs(currentPage);
+          closeRestoreModal();
+        }, 1500);
+      } else {
+        const errorData = await response.json();
+        setErrorMessage(errorData.error || 'Failed to restore staff');
+        setShowErrorModal(true);
+        setRestoring(false);
+      }
+    } catch (error) {
+      console.error('Error restoring staff:', error);
+      setErrorMessage('Error restoring staff');
+      setShowErrorModal(true);
+      setRestoring(false);
     }
   };
 
   // Close modals
-  const closeModals = () => {
+  const closeEditModal = () => {
     setShowEditModal(false);
     resetForm();
   };
 
-  // Close error modal
-  const closeErrorModal = () => {
-    setShowErrorModal(false);
-    setErrorMessage("");
+  // Filter staffs based on search term
+  const filteredStaffs = staffs.filter(staff =>
+    staff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    staff.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    staff.studentNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    staff.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    staff.section.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredArchivedStaffs = archivedStaffs.filter(staff =>
+    staff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    staff.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    staff.studentNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    staff.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    staff.section.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Unknown';
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
 
   return (
     <div className="all-staff">
       <div className="staff-table">
+        {/* Table Header with Archive Button and Search */}
         <div className="table-header">
+          {showArchivedView ? (
+            <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
+              ← Back to Main View
+            </button>
+          ) : (
+            <button className="view-archive-btn" onClick={() => {
+              setShowArchivedView(true);
+              fetchArchivedStaffs();
+            }}>
+              📦 View Archived Staff
+            </button>
+          )}
+          
+          <div className="search-container">
+            <input
+              type="text"
+              placeholder="Search staff..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
         </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Name</th>
-              <th>Username</th>
-              <th>Student Number</th>
-              <th>Course</th>
-              <th>Section</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {staffs.length === 0 ? (
+        {/* MAIN STAFF VIEW */}
+        {!showArchivedView && (
+          <>
+            <table>
+              <thead>
                 <tr>
-                  <td colSpan="8" style={{ textAlign: "center", color: "#888" }}>
-                    {loading ? (
-                      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
-                        <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
-                      </div>
-                    ) : (
-                      "No staffs found."
-                    )}
-                  </td>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Username</th>
+                  <th>Student Number</th>
+                  <th>Course</th>
+                  <th>Section</th>
+                  <th>Status</th>
+                  <th>Actions</th>
                 </tr>
-              ) : (
-              staffs.map((staff, index) => (
-                <tr key={staff._id}>
-                  <td>{(currentPage - 1) * 10 + index + 1}</td>
-                  <td>{staff.name}</td>
-                  <td>{staff.username || "—"}</td>
-                  <td>{staff.studentNumber || "—"}</td>
-                  <td>{staff.course || "—"}</td>
-                  <td>{staff.section || "—"}</td>
-                  <td>
-                    <span className={staff.status === "Active" ? "active-status" : "inactive-status"}>
-                      {staff.status}
-                    </span>
-                  </td>
-                  <td>
-                    <button className="edit-btn" onClick={() => handleEditStaff(staff)}>✏️</button>
-                    <button className="delete-btn" onClick={() => openDeleteModal(staff)}>❌</button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody>
+                {filteredStaffs.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" style={{ textAlign: "center", color: "#888" }}>
+                      {loading ? (
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                          <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                        </div>
+                      ) : searchTerm ? (
+                        "No staff found matching your search."
+                      ) : (
+                        "No staff found."
+                      )}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredStaffs.map((staff, index) => (
+                    <tr key={staff._id}>
+                      <td>{(currentPage - 1) * 10 + index + 1}</td>
+                      <td>{staff.name}</td>
+                      <td>{staff.username || "—"}</td>
+                      <td>{staff.studentNumber || "—"}</td>
+                      <td>{staff.course || "—"}</td>
+                      <td>{staff.section || "—"}</td>
+                      <td>
+                        <span className={staff.status === "Active" ? "active-status" : "inactive-status"}>
+                          {staff.status}
+                        </span>
+                      </td>
+                      <td>
+                        <button className="edit-btn" onClick={() => handleEditStaff(staff)}>Edit</button>
+                        <button className="archive-btn" onClick={() => openArchiveModal(staff)}>Archive</button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
 
-        {/* SIMPLE PAGINATION CONTROLS */}
-        <div className="simple-pagination">
-          <button 
-            className="pagination-btn" 
-            onClick={handlePrevPage}
-            disabled={currentPage === 1 || loading}
-          >
-            Previous
-          </button>
-          <span className="page-info">
-            Page {currentPage} of {totalPages}
-          </span>
-          <button 
-            className="pagination-btn" 
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages || loading}
-          >
-            Next
-          </button>
-        </div>
+            {/* PAGINATION CONTROLS */}
+            <div className="simple-pagination">
+              <button 
+                className="pagination-btn" 
+                onClick={handlePrevPage}
+                disabled={currentPage === 1 || loading}
+              >
+                Previous
+              </button>
+              <span className="page-info">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button 
+                className="pagination-btn" 
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages || loading}
+              >
+                Next
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ARCHIVED STAFF VIEW */}
+        {showArchivedView && (
+          <>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Username</th>
+                  <th>Student Number</th>
+                  <th>Course</th>
+                  <th>Section</th>
+                  <th>Archived Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredArchivedStaffs.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: "center", color: "#888" }}>
+                      {loading ? (
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                          <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                        </div>
+                      ) : searchTerm ? (
+                        "No archived staff found matching your search."
+                      ) : (
+                        "No archived staff found."
+                      )}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredArchivedStaffs.map((staff) => (
+                    <tr key={staff._id}>
+                      <td>{staff.name}</td>
+                      <td>{staff.username || "—"}</td>
+                      <td>{staff.studentNumber || "—"}</td>
+                      <td>{staff.course || "—"}</td>
+                      <td>{staff.section || "—"}</td>
+                      <td>{formatDate(staff.archived_at)}</td>
+                      <td>
+                        <button className="restore-btn" onClick={() => openRestoreModal(staff)}>
+                          Restore
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </>
+        )}
       </div>
 
       {/* EDIT STAFF MODAL */}
@@ -360,7 +539,6 @@ function AllStaff() {
           <div className="modal-content">
             <h3><b>Edit Staff Member</b></h3>
             
-            {/* Show only loading animation when updating, then checkmark */}
             {updating ? (
               <div className="form-animation-center">
                 {!updateSuccess ? (
@@ -442,7 +620,7 @@ function AllStaff() {
                   <button type="submit" className="save-btn">
                     Update
                   </button>
-                  <button type="button" className="cancel-btn" onClick={closeModals}>Cancel</button>
+                  <button type="button" className="cancel-btn" onClick={closeEditModal}>Cancel</button>
                 </div>
               </form>
             )}
@@ -450,41 +628,41 @@ function AllStaff() {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
-      {showDeleteModal && staffToDelete && (
+      {/* ARCHIVE CONFIRMATION MODAL */}
+      {showArchiveModal && staffToArchive && (
         <div className="modal-overlay">
-          <div className="modal-content delete-confirmation">
-            {deleting ? (
-              <div className="delete-animation-center">
-                {!deleteSuccess ? (
+          <div className="modal-content archive-confirmation centered-modal">
+            {archiving ? (
+              <div className="archive-animation-center">
+                {!archiveSuccess ? (
                   <Lottie 
                     animationData={loadingAnimation} 
                     loop={true}
-                    style={{ width: 200, height: 200 }}
+                    style={{ width: 250, height: 250 }}
                   />
                 ) : (
                   <Lottie 
-                    animationData={deleteAnimation} 
+                    animationData={archiveAnimation} 
                     loop={false}
-                    style={{ width: 200, height: 200 }}
+                    style={{ width: 250, height: 250 }}
                   />
                 )}
-                <p className="delete-animation-text">
-                  {!deleteSuccess ? "Deleting staff member..." : "Staff member deleted successfully!"}
+                <p style={{ marginTop: '20px', color: '#666' }}>
+                  {!archiveSuccess ? "Archiving staff member..." : "Staff member archived successfully!"}
                 </p>
               </div>
             ) : (
               <>
-                <div className="delete-icon">🗑️</div>
-                <h3>Delete Staff Member</h3>
-                <p>Are you sure you want to delete staff member <strong>"{staffToDelete.name}"</strong>?</p>
-                <p className="delete-warning">This action cannot be undone.</p>
+                <div className="archive-icon">📦</div>
+                <h3 className="centered-text">Archive Staff Member</h3>
+                <p className="centered-text">Are you sure you want to archive staff member <strong>"{staffToArchive.name}"</strong>?</p>
+                <p className="archive-warning centered-text">This staff member will be moved to archives and hidden from the main list.</p>
                 
-                <div className="modal-buttons">
-                  <button className="confirm-delete-btn" onClick={handleDeleteStaff}>
-                    Yes, Delete
+                <div className="modal-buttons centered-buttons">
+                  <button className="confirm-archive-btn" onClick={handleArchiveStaff}>
+                    Yes, Archive
                   </button>
-                  <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
+                  <button className="cancel-btn" onClick={closeArchiveModal}>Cancel</button>
                 </div>
               </>
             )}
@@ -492,13 +670,56 @@ function AllStaff() {
         </div>
       )}
 
-      {/* ERROR MODAL - Same as Categories */}
+      {/* RESTORE CONFIRMATION MODAL */}
+      {showRestoreModal && staffToRestore && (
+        <div className="modal-overlay">
+          <div className="modal-content restore-confirmation centered-modal">
+            {restoring ? (
+              <div className="restore-animation-center">
+                {!restoreSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 250, height: 250 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={checkmarkAnimation} 
+                    loop={false}
+                    style={{ width: 250, height: 250 }}
+                  />
+                )}
+                <p style={{ marginTop: '20px', color: '#666' }}>
+                  {!restoreSuccess ? "Restoring staff member..." : "Staff member restored successfully!"}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="restore-icon">↶</div>
+                <h3 className="centered-text">Restore Staff Member</h3>
+                <p className="centered-text">Are you sure you want to restore staff member <strong>"{staffToRestore.name}"</strong>?</p>
+                <p className="restore-warning centered-text">This staff member will be moved back to the main staff list.</p>
+                
+                <div className="modal-buttons centered-buttons">
+                  <button className="confirm-restore-btn" onClick={handleRestoreStaff}>
+                    Yes, Restore
+                  </button>
+                  <button className="cancel-btn" onClick={closeRestoreModal}>Cancel</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ERROR MODAL */}
       {showErrorModal && (
         <div className="error-modal-overlay">
           <div className="error-modal-content">
             <div className="error-modal-header">Operation Failed</div>
             <div className="error-modal-title">
-              {errorMessage.includes('delete') ? 'Cannot delete staff member' : 'Cannot set staff to inactive'}
+              {errorMessage.includes('archive') ? 'Cannot archive staff member' : 
+               errorMessage.includes('inactive') ? 'Cannot set staff to inactive' : 'Operation Failed'}
             </div>
             <div className="error-modal-message">
               {errorMessage.split('\n\n')[0]}

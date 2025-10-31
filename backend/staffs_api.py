@@ -11,15 +11,15 @@ staffs_bp = Blueprint('staffs', __name__)
 staffs_collection = None
 users_collection = None
 groups_collection = None
-schedules_collection = None  # ADD THIS
+schedules_collection = None
 
-def init_staffs_db(mongo_staffs_collection, mongo_users_collection, mongo_groups_collection, mongo_schedules_collection):  # UPDATE THIS
+def init_staffs_db(mongo_staffs_collection, mongo_users_collection, mongo_groups_collection, mongo_schedules_collection):
     """Initialize the collections from app.py"""
-    global staffs_collection, users_collection, groups_collection, schedules_collection  # UPDATE THIS
+    global staffs_collection, users_collection, groups_collection, schedules_collection
     staffs_collection = mongo_staffs_collection
     users_collection = mongo_users_collection
     groups_collection = mongo_groups_collection
-    schedules_collection = mongo_schedules_collection  # ADD THIS
+    schedules_collection = mongo_schedules_collection
 
 # Helper to convert ObjectId to string and format dates
 def serialize_doc(doc):
@@ -29,7 +29,7 @@ def serialize_doc(doc):
             doc['user_id'] = str(doc['user_id'])
         
         # Handle date formatting
-        for field in ['created_at', 'updated_at', 'last_login']:
+        for field in ['created_at', 'updated_at', 'last_login', 'archived_at']:
             if field in doc and doc[field]:
                 if isinstance(doc[field], dict) and '$date' in doc[field]:
                     doc[field] = doc[field]['$date']
@@ -38,7 +38,7 @@ def serialize_doc(doc):
                     
     return doc
 
-# Get all staffs with user details
+# Get all active staffs with user details
 @staffs_bp.route('/api/staffs', methods=['GET'])
 def get_staffs():
     try:
@@ -49,13 +49,14 @@ def get_staffs():
         # Calculate skip value
         skip = (page - 1) * per_page
         
-        # First, get all users with staff role
+        # Only get non-archived staff users
         staff_users = list(users_collection.find({
             'group_id': {
                 '$in': [ObjectId(group['_id']) for group in groups_collection.find({
                     'group_name': {'$regex': 'staff', '$options': 'i'}
                 })]
-            }
+            },
+            'is_archived': {'$ne': True}
         }).skip(skip).limit(per_page))
         
         # Get total count for pagination info
@@ -64,7 +65,8 @@ def get_staffs():
                 '$in': [ObjectId(group['_id']) for group in groups_collection.find({
                     'group_name': {'$regex': 'staff', '$options': 'i'}
                 })]
-            }
+            },
+            'is_archived': {'$ne': True}
         })
         
         # Calculate total pages
@@ -106,6 +108,50 @@ def get_staffs():
                 'total_pages': total_pages
             }
         })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Get archived staffs
+@staffs_bp.route('/api/staffs/archived', methods=['GET'])
+def get_archived_staffs():
+    try:
+        # Get archived staff users
+        staff_users = list(users_collection.find({
+            'group_id': {
+                '$in': [ObjectId(group['_id']) for group in groups_collection.find({
+                    'group_name': {'$regex': 'staff', '$options': 'i'}
+                })]
+            },
+            'is_archived': True
+        }))
+        
+        # Get staff details for each archived staff user
+        staffs = []
+        for user in staff_users:
+            # Get staff details from staffs collection
+            staff = staffs_collection.find_one({'user_id': user['_id']})
+            
+            # Get group name
+            group = groups_collection.find_one({'_id': ObjectId(user['group_id'])})
+            role = group['group_name'] if group else 'Unknown'
+            
+            staff_data = {
+                '_id': str(user['_id']),
+                'user_id': str(user['_id']),
+                'name': user.get('name', ''),
+                'username': user.get('username', ''),
+                'role': role,
+                'status': user.get('status', 'Inactive'),
+                'studentNumber': staff.get('studentNumber', '') if staff else '',
+                'course': staff.get('course', '') if staff else '',
+                'section': staff.get('section', '') if staff else '',
+                'last_login': user.get('last_login'),
+                'archived_at': user.get('archived_at'),
+                'created_at': user.get('created_at')
+            }
+            staffs.append(staff_data)
+        
+        return jsonify([serialize_doc(staff) for staff in staffs])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -189,7 +235,8 @@ def update_staff(user_id):
         # Check if username already exists (excluding current user)
         existing_user = users_collection.find_one({
             'username': data['username'],
-            '_id': {'$ne': ObjectId(user_id)}
+            '_id': {'$ne': ObjectId(user_id)},
+            'is_archived': {'$ne': True}
         })
         if existing_user:
             return jsonify({'error': 'Username already exists'}), 400
@@ -230,10 +277,19 @@ def update_staff(user_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Delete staff (DELETE FROM STAFFS COLLECTION)
-@staffs_bp.route('/api/staffs/user/<user_id>', methods=['DELETE'])
-def delete_staff(user_id):
+# ARCHIVE STAFF ENDPOINT
+@staffs_bp.route('/api/staffs/user/<user_id>/archive', methods=['PUT'])
+def archive_staff(user_id):
     try:
+        # Check if user exists and is staff
+        user = users_collection.find_one({'_id': ObjectId(user_id)})
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        group = groups_collection.find_one({'_id': ObjectId(user['group_id'])})
+        if not group or 'staff' not in group['group_name'].lower():
+            return jsonify({'error': 'User is not a staff member'}), 400
+        
         # Check if staff has any active schedules
         active_schedule_count = schedules_collection.count_documents({
             'staff_id': ObjectId(user_id)
@@ -254,19 +310,66 @@ def delete_staff(user_id):
                 })
             
             return jsonify({
-                'error': f'Cannot delete staff. {active_schedule_count} schedule(s) are assigned to this staff member.',
+                'error': f'Cannot archive staff. {active_schedule_count} schedule(s) are assigned to this staff member.',
                 'schedule_count': active_schedule_count,
                 'schedules': schedule_details
             }), 400
         
-        # Delete from staffs collection
-        staff_result = staffs_collection.delete_one({'user_id': ObjectId(user_id)})
+        # Archive the staff (set is_archived to True)
+        result = users_collection.update_one(
+            {'_id': ObjectId(user_id)},
+            {'$set': {
+                'is_archived': True,
+                'archived_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            }}
+        )
         
-        # Also delete from users collection
-        user_result = users_collection.delete_one({'_id': ObjectId(user_id)})
+        if result.modified_count:
+            return jsonify({'message': 'Staff archived successfully'})
+        return jsonify({'error': 'Failed to archive staff'}), 500
         
-        if user_result.deleted_count:
-            return jsonify({'message': 'Staff deleted successfully'})
-        return jsonify({'error': 'Staff not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# RESTORE STAFF ENDPOINT
+@staffs_bp.route('/api/staffs/user/<user_id>/restore', methods=['PUT'])
+def restore_staff(user_id):
+    try:
+        # Check if user exists and is archived staff
+        user = users_collection.find_one({'_id': ObjectId(user_id)})
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        if not user.get('is_archived'):
+            return jsonify({'error': 'Staff is not archived'}), 400
+        
+        group = groups_collection.find_one({'_id': ObjectId(user['group_id'])})
+        if not group or 'staff' not in group['group_name'].lower():
+            return jsonify({'error': 'User is not a staff member'}), 400
+        
+        # Check if username already exists in active users
+        existing_user = users_collection.find_one({
+            'username': user['username'],
+            '_id': {'$ne': ObjectId(user_id)},
+            'is_archived': {'$ne': True}
+        })
+        if existing_user:
+            return jsonify({'error': 'A user with this username already exists'}), 400
+        
+        # Restore the staff (set is_archived to False)
+        result = users_collection.update_one(
+            {'_id': ObjectId(user_id)},
+            {'$set': {
+                'is_archived': False,
+                'restored_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            }}
+        )
+        
+        if result.modified_count:
+            return jsonify({'message': 'Staff restored successfully'})
+        return jsonify({'error': 'Failed to restore staff'}), 500
+        
     except Exception as e:
         return jsonify({'error': str(e)}), 500

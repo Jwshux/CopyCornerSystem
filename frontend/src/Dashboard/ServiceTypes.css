@@ -358,3 +358,219 @@
   flex-direction: column;
   justify-content: center;
 }
+
+/* Add these styles to your existing ServiceTypes.css */
+
+/* Table Header with Archive and Search */
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 10px;
+}
+
+.view-archive-btn, .back-to-main-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.view-archive-btn {
+  background: #8b5cf6;
+  color: white;
+}
+
+.view-archive-btn:hover {
+  background: #7c3aed;
+  transform: translateY(-1px);
+}
+
+.back-to-main-btn {
+  background: #6b7280;
+  color: white;
+}
+
+.back-to-main-btn:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  padding: 10px 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 250px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.search-input:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+/* Archive and Restore buttons */
+.archive-btn, .restore-btn {
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s ease;
+  margin-right: 5px;
+}
+
+.archive-btn {
+  background-color: #8b5cf6;
+  color: white;
+}
+
+.archive-btn:hover {
+  background-color: #7c3aed;
+}
+
+.restore-btn {
+  background-color: #10b981;
+  color: white;
+}
+
+.restore-btn:hover {
+  background-color: #059669;
+}
+
+/* Archive Confirmation Modal */
+.archive-confirmation {
+  text-align: center;
+  max-width: 400px;
+}
+
+.archive-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.archive-confirmation h3 {
+  color: #8b5cf6;
+  margin-bottom: 15px;
+}
+
+.archive-confirmation p {
+  margin-bottom: 10px;
+  color: #555;
+}
+
+.archive-warning {
+  color: #8b5cf6 !important;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.confirm-archive-btn {
+  background-color: #8b5cf6;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.confirm-archive-btn:hover:not(:disabled) {
+  background-color: #7c3aed;
+}
+
+.confirm-archive-btn:disabled {
+  background-color: #8b5cf6;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Restore Confirmation Modal */
+.restore-confirmation {
+  max-width: 400px;
+}
+
+.restore-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.restore-confirmation h3 {
+  color: #10b981;
+  margin-bottom: 15px;
+}
+
+.restore-warning {
+  color: #10b981 !important;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.confirm-restore-btn {
+  background-color: #10b981;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.confirm-restore-btn:hover:not(:disabled) {
+  background-color: #059669;
+}
+
+/* Centered Modals */
+.centered-modal {
+  text-align: center;
+}
+
+.centered-text {
+  text-align: center;
+  margin: 10px 0;
+}
+
+.centered-buttons {
+  justify-content: center !important;
+}
+
+/* Archive Animation Center */
+.archive-animation-center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  text-align: center;
+}
+
+/* Restore Animation Center */
+.restore-animation-center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  text-align: center;
+}
+
+/* Make sure the confirmation modals have enough height */
+.archive-confirmation,
+.restore-confirmation {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}

@@ -3,30 +3,39 @@ import "./ServiceTypes.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
-import deleteAnimation from "../animations/delete.json";
+import archiveAnimation from "../animations/archive.json";
 
 const API_BASE = "http://localhost:5000/api";
 
 function ServiceTypes({ showAddModal, onAddModalClose }) {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [serviceTypes, setServiceTypes] = useState([]);
+  const [archivedServiceTypes, setArchivedServiceTypes] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedServiceType, setSelectedServiceType] = useState(null);
-  const [serviceTypeToDelete, setServiceTypeToDelete] = useState(null);
+  const [serviceTypeToArchive, setServiceTypeToArchive] = useState(null);
+  const [serviceTypeToRestore, setServiceTypeToRestore] = useState(null);
   const [loading, setLoading] = useState(false);
   const [serviceNameError, setServiceNameError] = useState("");
   const [addSuccess, setAddSuccess] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [archiveSuccess, setArchiveSuccess] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreSuccess, setRestoreSuccess] = useState(false);
   
   const [formData, setFormData] = useState({
     service_name: "",
     category_id: "",
     status: ""
   });
+
+  // Archive view and search
+  const [showArchivedView, setShowArchivedView] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -38,7 +47,7 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
     }
   }, [showAddModal]);
 
-  // FIXED: Better API handling with error handling
+  // Fetch active service types
   const fetchServiceTypes = async (page = 1) => {
     setLoading(true);
     try {
@@ -47,7 +56,6 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
         const data = await response.json();
         console.log('Service Types API Response:', data);
         
-        // Handle both array and paginated response formats
         if (Array.isArray(data)) {
           setServiceTypes(data);
           setCurrentPage(1);
@@ -69,7 +77,25 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
     }
   };
 
-  // FIXED: Better categories fetch
+  // Fetch archived service types
+  const fetchArchivedServiceTypes = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/service_types/archived`);
+      if (response.ok) {
+        const data = await response.json();
+        setArchivedServiceTypes(Array.isArray(data) ? data : []);
+      } else {
+        console.error('Failed to fetch archived service types');
+      }
+    } catch (error) {
+      console.error('Error fetching archived service types:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch categories
   const fetchCategories = async () => {
     try {
       const response = await fetch(`${API_BASE}/categories`);
@@ -77,7 +103,6 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
         const data = await response.json();
         console.log('Categories API Response:', data);
         
-        // Handle both array and object response formats
         let categoriesData = [];
         if (Array.isArray(data)) {
           categoriesData = data;
@@ -115,10 +140,16 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
   }, [showAddForm, showEditModal]);
 
   useEffect(() => {
-    if (!showDeleteModal) {
-      setDeleteSuccess(false);
+    if (!showArchiveModal) {
+      setArchiveSuccess(false);
     }
-  }, [showDeleteModal]);
+  }, [showArchiveModal]);
+
+  useEffect(() => {
+    if (!showRestoreModal) {
+      setRestoreSuccess(false);
+    }
+  }, [showRestoreModal]);
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
@@ -138,13 +169,11 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
       return;
     }
 
-    // Check if service name contains only numbers
     if (/^\d+$/.test(serviceName)) {
       setServiceNameError("Service name cannot contain only numbers");
       return;
     }
 
-    // Check if service name already exists
     const existingService = serviceTypes.find(service => 
       service.service_name.toLowerCase() === serviceName.toLowerCase() &&
       (!selectedServiceType || service._id !== selectedServiceType._id)
@@ -265,43 +294,86 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
     }
   };
 
-  const openDeleteModal = (serviceType) => {
-    setServiceTypeToDelete(serviceType);
-    setShowDeleteModal(true);
+  // Archive service type functions
+  const openArchiveModal = (serviceType) => {
+    setServiceTypeToArchive(serviceType);
+    setShowArchiveModal(true);
   };
 
-  const closeDeleteModal = () => {
-    setShowDeleteModal(false);
-    setServiceTypeToDelete(null);
-    setDeleting(false);
-    setDeleteSuccess(false);
+  const closeArchiveModal = () => {
+    setShowArchiveModal(false);
+    setServiceTypeToArchive(null);
+    setArchiving(false);
+    setArchiveSuccess(false);
   };
 
-  const handleDeleteServiceType = async () => {
-    if (!serviceTypeToDelete) return;
+  const handleArchiveServiceType = async () => {
+    if (!serviceTypeToArchive) return;
 
-    setDeleting(true);
+    setArchiving(true);
     
     try {
-      const response = await fetch(`${API_BASE}/service_types/${serviceTypeToDelete._id}`, {
-        method: 'DELETE',
+      const response = await fetch(`${API_BASE}/service_types/${serviceTypeToArchive._id}/archive`, {
+        method: 'PUT',
       });
 
       if (response.ok) {
-        setDeleteSuccess(true);
+        setArchiveSuccess(true);
         setTimeout(async () => {
           await fetchServiceTypes(currentPage);
-          closeDeleteModal();
+          closeArchiveModal();
         }, 1500);
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to delete service type');
-        setDeleting(false);
+        alert(error.error || 'Failed to archive service type');
+        setArchiving(false);
       }
     } catch (error) {
-      console.error('Error deleting service type:', error);
-      alert('Error deleting service type');
-      setDeleting(false);
+      console.error('Error archiving service type:', error);
+      alert('Error archiving service type');
+      setArchiving(false);
+    }
+  };
+
+  // Restore service type functions
+  const openRestoreModal = (serviceType) => {
+    setServiceTypeToRestore(serviceType);
+    setShowRestoreModal(true);
+  };
+
+  const closeRestoreModal = () => {
+    setShowRestoreModal(false);
+    setServiceTypeToRestore(null);
+    setRestoring(false);
+    setRestoreSuccess(false);
+  };
+
+  const handleRestoreServiceType = async () => {
+    if (!serviceTypeToRestore) return;
+
+    setRestoring(true);
+    
+    try {
+      const response = await fetch(`${API_BASE}/service_types/${serviceTypeToRestore._id}/restore`, {
+        method: 'PUT',
+      });
+
+      if (response.ok) {
+        setRestoreSuccess(true);
+        setTimeout(async () => {
+          await fetchArchivedServiceTypes();
+          await fetchServiceTypes(currentPage);
+          closeRestoreModal();
+        }, 1500);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to restore service type');
+        setRestoring(false);
+      }
+    } catch (error) {
+      console.error('Error restoring service type:', error);
+      alert('Error restoring service type');
+      setRestoring(false);
     }
   };
 
@@ -327,7 +399,6 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
     }
     if (serviceType.category) return serviceType.category;
     
-    // Find category by ID if we have categories data
     if (serviceType.category_id && categories.length > 0) {
       const category = categories.find(cat => cat._id === serviceType.category_id);
       return category ? category.name : 'Unknown';
@@ -336,80 +407,192 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
     return 'Uncategorized';
   };
 
+  // Filter service types based on search term
+  const filteredServiceTypes = serviceTypes.filter(serviceType =>
+    serviceType.service_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    serviceType.service_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getCategoryName(serviceType).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredArchivedServiceTypes = archivedServiceTypes.filter(serviceType =>
+    serviceType.service_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    serviceType.service_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getCategoryName(serviceType).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Unknown';
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  };
+
   return (
     <div className="service-types-page">
       <div className="table-container">
-        <table className="service-types-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Service ID</th>
-              <th>Service Name</th>
-              <th>Category</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {serviceTypes.length === 0 ? (
-              <tr>
-                <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
-                  {loading ? (
-                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
-                      <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
-                    </div>
-                  ) : (
-                    "No service types found."
-                  )}
-                </td>
-              </tr>
-            ) : (
-              serviceTypes.map((serviceType, index) => (
-                <tr key={serviceType._id}>
-                  <td>{(currentPage - 1) * 10 + index + 1}</td>
-                  <td>{serviceType.service_id}</td>
-                  <td>{serviceType.service_name}</td>
-                  <td>{getCategoryName(serviceType)}</td>
-                  <td>
-                    <span
-                      className={`status-tag ${
-                        serviceType.status === "Active"
-                          ? "in-stock"
-                          : "out-stock"
-                      }`}
-                    >
-                      {serviceType.status}
-                    </span>
-                  </td>
-                  <td>
-                    <button className="edit-btn" onClick={() => handleEditServiceType(serviceType)}>Edit</button>
-                    <button className="delete-btn" onClick={() => openDeleteModal(serviceType)}>Delete</button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-
-        <div className="simple-pagination">
-          <button 
-            className="pagination-btn" 
-            onClick={handlePrevPage}
-            disabled={currentPage === 1 || loading}
-          >
-            Previous
-          </button>
-          <span className="page-info">
-            Page {currentPage} of {totalPages}
-          </span>
-          <button 
-            className="pagination-btn" 
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages || loading}
-          >
-            Next
-          </button>
+        {/* Table Header with Archive Button and Search */}
+        <div className="table-header">
+          {showArchivedView ? (
+            <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
+              ← Back to Main View
+            </button>
+          ) : (
+            <button className="view-archive-btn" onClick={() => {
+              setShowArchivedView(true);
+              fetchArchivedServiceTypes();
+            }}>
+              📦 View Archived Service Types
+            </button>
+          )}
+          
+          <div className="search-container">
+            <input
+              type="text"
+              placeholder="Search service types..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
         </div>
+
+        {/* MAIN SERVICE TYPES VIEW */}
+        {!showArchivedView && (
+          <>
+            <table className="service-types-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Service ID</th>
+                  <th>Service Name</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredServiceTypes.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
+                      {loading ? (
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                          <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                        </div>
+                      ) : searchTerm ? (
+                        "No service types found matching your search."
+                      ) : (
+                        "No service types found."
+                      )}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredServiceTypes.map((serviceType, index) => (
+                    <tr key={serviceType._id}>
+                      <td>{(currentPage - 1) * 10 + index + 1}</td>
+                      <td>{serviceType.service_id}</td>
+                      <td>{serviceType.service_name}</td>
+                      <td>{getCategoryName(serviceType)}</td>
+                      <td>
+                        <span
+                          className={`status-tag ${
+                            serviceType.status === "Active"
+                              ? "in-stock"
+                              : "out-stock"
+                          }`}
+                        >
+                          {serviceType.status}
+                        </span>
+                      </td>
+                      <td>
+                        <button className="edit-btn" onClick={() => handleEditServiceType(serviceType)}>Edit</button>
+                        <button className="archive-btn" onClick={() => openArchiveModal(serviceType)}>Archive</button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+
+            <div className="simple-pagination">
+              <button 
+                className="pagination-btn" 
+                onClick={handlePrevPage}
+                disabled={currentPage === 1 || loading}
+              >
+                Previous
+              </button>
+              <span className="page-info">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button 
+                className="pagination-btn" 
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages || loading}
+              >
+                Next
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ARCHIVED SERVICE TYPES VIEW */}
+        {showArchivedView && (
+          <>
+            <table className="service-types-table">
+              <thead>
+                <tr>
+                  <th>Service ID</th>
+                  <th>Service Name</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Archived Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredArchivedServiceTypes.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
+                      {loading ? (
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                          <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                        </div>
+                      ) : searchTerm ? (
+                        "No archived service types found matching your search."
+                      ) : (
+                        "No archived service types found."
+                      )}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredArchivedServiceTypes.map((serviceType) => (
+                    <tr key={serviceType._id}>
+                      <td>{serviceType.service_id}</td>
+                      <td>{serviceType.service_name}</td>
+                      <td>{getCategoryName(serviceType)}</td>
+                      <td>
+                        <span
+                          className={`status-tag ${
+                            serviceType.status === "Active"
+                              ? "in-stock"
+                              : "out-stock"
+                          }`}
+                        >
+                          {serviceType.status}
+                        </span>
+                      </td>
+                      <td>{formatDate(serviceType.archived_at)}</td>
+                      <td>
+                        <button className="restore-btn" onClick={() => openRestoreModal(serviceType)}>
+                          Restore
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </>
+        )}
       </div>
 
       {/* ADD SERVICE TYPE MODAL */}
@@ -610,41 +793,83 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
-      {showDeleteModal && serviceTypeToDelete && (
+      {/* ARCHIVE CONFIRMATION MODAL */}
+      {showArchiveModal && serviceTypeToArchive && (
         <div className="overlay">
-          <div className="add-form delete-confirmation">
-            {deleting ? (
-              <div className="delete-animation-center">
-                {!deleteSuccess ? (
+          <div className="add-form archive-confirmation centered-modal">
+            {archiving ? (
+              <div className="archive-animation-center">
+                {!archiveSuccess ? (
                   <Lottie 
                     animationData={loadingAnimation} 
                     loop={true}
-                    style={{ width: 200, height: 200 }}
+                    style={{ width: 250, height: 250 }}
                   />
                 ) : (
                   <Lottie 
-                    animationData={deleteAnimation} 
+                    animationData={archiveAnimation} 
                     loop={false}
-                    style={{ width: 200, height: 200 }}
+                    style={{ width: 250, height: 250 }}
                   />
                 )}
                 <p style={{ marginTop: '20px', color: '#666' }}>
-                  {!deleteSuccess ? "Deleting service type..." : "Service type deleted successfully!"}
+                  {!archiveSuccess ? "Archiving service type..." : "Service type archived successfully!"}
                 </p>
               </div>
             ) : (
               <>
-                <div className="delete-icon">🗑️</div>
-                <h3>Delete Service Type</h3>
-                <p>Are you sure you want to delete service type <strong>"{serviceTypeToDelete.service_name}"</strong>?</p>
-                <p className="delete-warning">This action cannot be undone.</p>
+                <div className="archive-icon">📦</div>
+                <h3 className="centered-text">Archive Service Type</h3>
+                <p className="centered-text">Are you sure you want to archive service type <strong>"{serviceTypeToArchive.service_name}"</strong>?</p>
+                <p className="archive-warning centered-text">This service type will be moved to archives and hidden from the main list.</p>
                 
-                <div className="form-buttons">
-                  <button className="confirm-delete-btn" onClick={handleDeleteServiceType}>
-                    Yes, Delete
+                <div className="form-buttons centered-buttons">
+                  <button className="confirm-archive-btn" onClick={handleArchiveServiceType}>
+                    Yes, Archive
                   </button>
-                  <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
+                  <button className="cancel-btn" onClick={closeArchiveModal}>Cancel</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* RESTORE CONFIRMATION MODAL */}
+      {showRestoreModal && serviceTypeToRestore && (
+        <div className="overlay">
+          <div className="add-form restore-confirmation centered-modal">
+            {restoring ? (
+              <div className="restore-animation-center">
+                {!restoreSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 250, height: 250 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={checkmarkAnimation} 
+                    loop={false}
+                    style={{ width: 250, height: 250 }}
+                  />
+                )}
+                <p style={{ marginTop: '20px', color: '#666' }}>
+                  {!restoreSuccess ? "Restoring service type..." : "Service type restored successfully!"}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="restore-icon">↶</div>
+                <h3 className="centered-text">Restore Service Type</h3>
+                <p className="centered-text">Are you sure you want to restore service type <strong>"{serviceTypeToRestore.service_name}"</strong>?</p>
+                <p className="restore-warning centered-text">This service type will be moved back to the main service types list.</p>
+                
+                <div className="form-buttons centered-buttons">
+                  <button className="confirm-restore-btn" onClick={handleRestoreServiceType}>
+                    Yes, Restore
+                  </button>
+                  <button className="cancel-btn" onClick={closeRestoreModal}>Cancel</button>
                 </div>
               </>
             )}
