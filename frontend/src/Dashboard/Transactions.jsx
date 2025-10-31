@@ -540,7 +540,6 @@ const Transactions = () => {
   return (
     <div className="transactions-container">
       <div className="transactions-header">
-        <h2>Transaction Records</h2>
         <div className="transactions-controls">
           <input
             type="text"

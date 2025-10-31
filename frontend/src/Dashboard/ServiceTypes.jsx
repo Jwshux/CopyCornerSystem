@@ -351,7 +351,6 @@ function ServiceTypes() {
   return (
     <div className="service-types-page">
       <div className="service-types-header">
-        <h2>List of Service Types</h2>
         <div className="header-right">
           <button className="add-service-type-btn" onClick={openAddModal}>
             Add Service Type

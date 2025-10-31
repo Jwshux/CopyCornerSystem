@@ -453,7 +453,6 @@ function ManageUsers() {
     <div className="manage-users">
       <div className="user-table">
         <div className="table-header">
-          <h3>USERS</h3>
           <button className="add-btn" onClick={openAddModal}>
             ADD NEW USER
           </button>

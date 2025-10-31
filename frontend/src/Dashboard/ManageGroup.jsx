@@ -298,7 +298,6 @@ function ManageGroup() {
   return (
     <div className="manage-group-page">
       <div className="header-section">
-        <h2>MANAGE ROLES</h2>
         <button className="add-btn" onClick={handleAddNewGroup}>
           ADD NEW ROLE
         </button>

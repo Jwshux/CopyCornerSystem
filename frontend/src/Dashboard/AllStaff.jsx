@@ -280,7 +280,6 @@ function AllStaff() {
     <div className="all-staff">
       <div className="staff-table">
         <div className="table-header">
-          <h3>ALL STAFFS</h3>
         </div>
 
         <table>

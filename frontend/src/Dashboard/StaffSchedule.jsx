@@ -237,7 +237,6 @@ function StaffSchedule() {
   return (
     <div className="schedule-container">
       <div className="schedule-header">
-        <h2>📅 Staff Weekly Schedule</h2>
         <button className="add-btn main-add" onClick={() => setShowModal(true)}>
           ➕ Add Schedule
         </button>
