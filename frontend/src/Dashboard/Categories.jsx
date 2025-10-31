@@ -3,20 +3,23 @@ import "./Categories.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
-import deleteAnimation from "../animations/delete.json";
+import archiveAnimation from "../animations/archive.json";
 
 const API_BASE = "http://localhost:5000/api";
 
 const Categories = () => {
   const [categories, setCategories] = useState([]);
+  const [archivedCategories, setArchivedCategories] = useState([]);
   const [newCategory, setNewCategory] = useState("");
   const [newDescription, setNewDescription] = useState("");
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState(null);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [categoryToArchive, setCategoryToArchive] = useState(null);
+  const [categoryToRestore, setCategoryToRestore] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   
-  // Pagination state - Same as Products
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -24,33 +27,62 @@ const Categories = () => {
   // Separate loading states for different actions
   const [addingLoading, setAddingLoading] = useState(false);
   const [updatingLoading, setUpdatingLoading] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteSuccess, setDeleteSuccess] = useState(false);
-  const [updateSuccess, setUpdateSuccess] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [archiveSuccess, setArchiveSuccess] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreSuccess, setRestoreSuccess] = useState(false);
   
   // Category name errors
   const [categoryNameError, setCategoryNameError] = useState("");
   const [editCategoryNameError, setEditCategoryNameError] = useState("");
   
-  // NEW: Error modal state
+  // Error modal state
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Fetch categories from backend - UPDATED FOR PAGINATION
+  // Archive view and search
+  const [showArchivedView, setShowArchivedView] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [updateSuccess, setUpdateSuccess] = useState(false);
+
+  // Fetch categories from backend
   const fetchCategories = async (page = 1) => {
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/categories?page=${page}&per_page=10`);
       if (response.ok) {
         const data = await response.json();
-        setCategories(data.categories);
-        setCurrentPage(data.pagination.page);
-        setTotalPages(data.pagination.total_pages);
+        setCategories(data.categories || []);
+        setCurrentPage(data.pagination?.page || 1);
+        setTotalPages(data.pagination?.total_pages || 1);
       } else {
         console.error('Failed to fetch categories');
+        showError('Failed to load categories');
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
+      showError('Error loading categories');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch archived categories
+  const fetchArchivedCategories = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/categories/archived`);
+      if (response.ok) {
+        const data = await response.json();
+        setArchivedCategories(Array.isArray(data) ? data : []);
+      } else {
+        console.error('Failed to fetch archived categories');
+        showError('Failed to load archived categories');
+      }
+    } catch (error) {
+      console.error('Error fetching archived categories:', error);
+      showError('Error loading archived categories');
     } finally {
       setLoading(false);
     }
@@ -60,21 +92,26 @@ const Categories = () => {
     fetchCategories();
   }, []);
 
-  // Reset update success state when modal closes
+  // Reset states when modals close
   useEffect(() => {
     if (!showEditModal) {
       setUpdateSuccess(false);
     }
   }, [showEditModal]);
 
-  // Reset delete success state when modal closes
   useEffect(() => {
-    if (!showDeleteModal) {
-      setDeleteSuccess(false);
+    if (!showArchiveModal) {
+      setArchiveSuccess(false);
     }
-  }, [showDeleteModal]);
+  }, [showArchiveModal]);
 
-  // Pagination handlers - Same as Products
+  useEffect(() => {
+    if (!showRestoreModal) {
+      setRestoreSuccess(false);
+    }
+  }, [showRestoreModal]);
+
+  // Pagination handlers
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       fetchCategories(currentPage + 1);
@@ -94,7 +131,6 @@ const Categories = () => {
       return;
     }
 
-    // Check if category name contains only numbers
     if (/^\d+$/.test(categoryName)) {
       setCategoryNameError("Category name cannot contain only numbers");
       return;
@@ -118,7 +154,6 @@ const Categories = () => {
       return;
     }
 
-    // Check if category name contains only numbers
     if (/^\d+$/.test(categoryName)) {
       setEditCategoryNameError("Category name cannot contain only numbers");
       return;
@@ -249,7 +284,6 @@ const Categories = () => {
 
       if (response.ok) {
         setUpdateSuccess(true);
-        // Wait for animation to complete before closing
         setTimeout(async () => {
           await fetchCategories(currentPage);
           setShowEditModal(false);
@@ -268,55 +302,90 @@ const Categories = () => {
     }
   };
 
-  // Open delete confirmation modal
-  const openDeleteModal = (category) => {
-    setCategoryToDelete(category);
-    setShowDeleteModal(true);
+  // Archive category functions
+  const openArchiveModal = (category) => {
+    setCategoryToArchive(category);
+    setShowArchiveModal(true);
   };
 
-  // Close delete confirmation modal
-  const closeDeleteModal = () => {
-    setShowDeleteModal(false);
-    setCategoryToDelete(null);
-    setDeleting(false);
-    setDeleteSuccess(false);
+  const closeArchiveModal = () => {
+    setShowArchiveModal(false);
+    setCategoryToArchive(null);
+    setArchiving(false);
+    setArchiveSuccess(false);
   };
 
-  // Delete category
-  const handleDeleteCategory = async () => {
-    if (!categoryToDelete) return;
+  const handleArchiveCategory = async () => {
+    if (!categoryToArchive) return;
 
-    setDeleting(true);
+    setArchiving(true);
     try {
-      const response = await fetch(`${API_BASE}/categories/${categoryToDelete._id}`, {
-        method: 'DELETE',
+      const response = await fetch(`${API_BASE}/categories/${categoryToArchive._id}/archive`, {
+        method: 'PUT',
       });
 
       if (response.ok) {
-        setDeleteSuccess(true);
-        // Wait for animation to complete before closing and refreshing
+        setArchiveSuccess(true);
         setTimeout(async () => {
-          // Check if this was the last item on the current page
           const isLastItemOnPage = categories.length === 1;
           
           if (isLastItemOnPage && currentPage > 1) {
-            // If it was the last item and we're not on page 1, go to previous page
             await fetchCategories(currentPage - 1);
           } else {
-            // Otherwise refresh current page
             await fetchCategories(currentPage);
           }
-          closeDeleteModal();
+          closeArchiveModal();
         }, 1500);
       } else {
         const error = await response.json();
-        showError(error.error || 'Failed to delete category');
-        setDeleting(false);
+        showError(error.error || 'Failed to archive category');
+        setArchiving(false);
       }
     } catch (error) {
-      console.error('Error deleting category:', error);
-      showError('Error deleting category');
-      setDeleting(false);
+      console.error('Error archiving category:', error);
+      showError('Error archiving category');
+      setArchiving(false);
+    }
+  };
+
+  // Restore category functions
+  const openRestoreModal = (category) => {
+    setCategoryToRestore(category);
+    setShowRestoreModal(true);
+  };
+
+  const closeRestoreModal = () => {
+    setShowRestoreModal(false);
+    setCategoryToRestore(null);
+    setRestoring(false);
+    setRestoreSuccess(false);
+  };
+
+  const handleRestoreCategory = async () => {
+    if (!categoryToRestore) return;
+
+    setRestoring(true);
+    try {
+      const response = await fetch(`${API_BASE}/categories/${categoryToRestore._id}/restore`, {
+        method: 'PUT',
+      });
+
+      if (response.ok) {
+        setRestoreSuccess(true);
+        setTimeout(async () => {
+          await fetchArchivedCategories();
+          await fetchCategories(currentPage);
+          closeRestoreModal();
+        }, 1500);
+      } else {
+        const error = await response.json();
+        showError(error.error || 'Failed to restore category');
+        setRestoring(false);
+      }
+    } catch (error) {
+      console.error('Error restoring category:', error);
+      showError('Error restoring category');
+      setRestoring(false);
     }
   };
 
@@ -325,6 +394,23 @@ const Categories = () => {
     setShowEditModal(false);
     setSelectedCategory(null);
     setEditCategoryNameError("");
+  };
+
+  // Filter categories based on search term
+  const filteredCategories = categories.filter(category =>
+    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const filteredArchivedCategories = archivedCategories.filter(category =>
+    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Unknown';
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
 
   return (
@@ -370,77 +456,160 @@ const Categories = () => {
 
       {/* All categories */}
       <div className="all-categories">
-        <h3>📋 All Categories</h3>
-        <table className="category-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Category Name</th>
-              <th>Description</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {categories.length === 0 ? (
-            <tr>
-                <td colSpan="4" style={{ textAlign: "center", color: "#888" }}>
-                    {loading ? (
-                      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
-                        <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
-                      </div>
-                    ) : (
-                      "No categories found."
-                    )}
-                  </td>
-                </tr>
-              ) : (
-              categories.map((category, index) => (
-                <tr key={category._id}>
-                  <td>{(currentPage - 1) * 10 + index + 1}</td>
-                  <td>{category.name}</td>
-                  <td>
-                    <div className="description-cell">{category.description || "—"}</div>
-                  </td>
-                  <td>
-                    <button
-                      className="edit-btn"
-                      onClick={() => handleEditCategory(category)}
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      className="delete-btn"
-                      onClick={() => openDeleteModal(category)}
-                    >
-                      🗑️
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-
-        {/* SIMPLE PAGINATION CONTROLS - Same as Products */}
-        <div className="simple-pagination">
-          <button 
-            className="pagination-btn" 
-            onClick={handlePrevPage}
-            disabled={currentPage === 1 || loading}
-          >
-            Previous
-          </button>
-          <span className="page-info">
-            Page {currentPage} of {totalPages}
-          </span>
-          <button 
-            className="pagination-btn" 
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages || loading}
-          >
-            Next
-          </button>
+        {/* Table Header with Archive Button and Search */}
+        <div className="table-header">
+          {showArchivedView ? (
+            <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
+              ← Back to Main View
+            </button>
+          ) : (
+            <button className="view-archive-btn" onClick={() => {
+              setShowArchivedView(true);
+              fetchArchivedCategories();
+            }}>
+              📦 View Archived Categories
+            </button>
+          )}
+          
+          <div className="search-container">
+            <input
+              type="text"
+              placeholder="Search categories..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
         </div>
+
+        {/* MAIN CATEGORIES VIEW */}
+        {!showArchivedView && (
+          <>
+            <table className="category-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Category Name</th>
+                  <th>Description</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCategories.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: "center", color: "#888" }}>
+                      {loading ? (
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                          <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                        </div>
+                      ) : searchTerm ? (
+                        "No categories found matching your search."
+                      ) : (
+                        "No categories found."
+                      )}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredCategories.map((category, index) => (
+                    <tr key={category._id}>
+                      <td>{(currentPage - 1) * 10 + index + 1}</td>
+                      <td>{category.name}</td>
+                      <td>
+                        <div className="description-cell">{category.description || "—"}</div>
+                      </td>
+                      <td>
+                        <button
+                          className="edit-btn"
+                          onClick={() => handleEditCategory(category)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="archive-btn"
+                          onClick={() => openArchiveModal(category)}
+                        >
+                          Archive
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+
+            {/* PAGINATION CONTROLS */}
+            <div className="simple-pagination">
+              <button 
+                className="pagination-btn" 
+                onClick={handlePrevPage}
+                disabled={currentPage === 1 || loading}
+              >
+                Previous
+              </button>
+              <span className="page-info">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button 
+                className="pagination-btn" 
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages || loading}
+              >
+                Next
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ARCHIVED CATEGORIES VIEW */}
+        {showArchivedView && (
+          <>
+            <table className="category-table">
+              <thead>
+                <tr>
+                  <th>Category Name</th>
+                  <th>Description</th>
+                  <th>Archived Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredArchivedCategories.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: "center", color: "#888" }}>
+                      {loading ? (
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                          <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                        </div>
+                      ) : searchTerm ? (
+                        "No archived categories found matching your search."
+                      ) : (
+                        "No archived categories found."
+                      )}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredArchivedCategories.map((category) => (
+                    <tr key={category._id}>
+                      <td>{category.name}</td>
+                      <td>
+                        <div className="description-cell">{category.description || "—"}</div>
+                      </td>
+                      <td>{formatDate(category.archived_at)}</td>
+                      <td>
+                        <button 
+                          className="restore-btn"
+                          onClick={() => openRestoreModal(category)}
+                        >
+                          Restore
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </>
+        )}
       </div>
 
       {/* EDIT CATEGORY MODAL */}
@@ -449,7 +618,6 @@ const Categories = () => {
           <div className="modal-content">
             <h3>Edit Category</h3>
             
-            {/* Show only loading animation when updating, then checkmark */}
             {updatingLoading ? (
               <div className="form-animation-center">
                 {!updateSuccess ? (
@@ -515,42 +683,83 @@ const Categories = () => {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
-      {showDeleteModal && categoryToDelete && (
+      {/* ARCHIVE CONFIRMATION MODAL */}
+      {showArchiveModal && categoryToArchive && (
         <div className="overlay">
-          <div className="modal-content delete-confirmation">
-            {/* Show delete animation when deleting, otherwise show normal content */}
-            {deleting ? (
-              <div className="delete-animation-center">
-                {!deleteSuccess ? (
+          <div className="modal-content archive-confirmation centered-modal">
+            {archiving ? (
+              <div className="archive-animation-center">
+                {!archiveSuccess ? (
                   <Lottie 
                     animationData={loadingAnimation} 
                     loop={true}
-                    style={{ width: 200, height: 200 }}
+                    style={{ width: 250, height: 250 }}
                   />
                 ) : (
                   <Lottie 
-                    animationData={deleteAnimation} 
+                    animationData={archiveAnimation} 
                     loop={false}
-                    style={{ width: 200, height: 200 }}
+                    style={{ width: 250, height: 250 }}
                   />
                 )}
                 <p style={{ marginTop: '20px', color: '#666' }}>
-                  {!deleteSuccess ? "Deleting category..." : "Category deleted successfully!"}
+                  {!archiveSuccess ? "Archiving category..." : "Category archived successfully!"}
                 </p>
               </div>
             ) : (
               <>
-                <div className="delete-icon">🗑️</div>
-                <h3>Delete Category</h3>
-                <p>Are you sure you want to delete category <strong>"{categoryToDelete.name}"</strong>?</p>
-                <p className="delete-warning">This action cannot be undone.</p>
+                <div className="archive-icon">📦</div>
+                <h3 className="centered-text">Archive Category</h3>
+                <p className="centered-text">Are you sure you want to archive category <strong>"{categoryToArchive.name}"</strong>?</p>
+                <p className="archive-warning centered-text">This category will be moved to archives and hidden from the main list.</p>
                 
-                <div className="form-buttons">
-                  <button className="confirm-delete-btn" onClick={handleDeleteCategory}>
-                    Yes, Delete
+                <div className="form-buttons centered-buttons">
+                  <button className="confirm-archive-btn" onClick={handleArchiveCategory}>
+                    Yes, Archive
                   </button>
-                  <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
+                  <button className="cancel-btn" onClick={closeArchiveModal}>Cancel</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* RESTORE CONFIRMATION MODAL */}
+      {showRestoreModal && categoryToRestore && (
+        <div className="overlay">
+          <div className="modal-content restore-confirmation centered-modal">
+            {restoring ? (
+              <div className="restore-animation-center">
+                {!restoreSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 250, height: 250 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={checkmarkAnimation} 
+                    loop={false}
+                    style={{ width: 250, height: 250 }}
+                  />
+                )}
+                <p style={{ marginTop: '20px', color: '#666' }}>
+                  {!restoreSuccess ? "Restoring category..." : "Category restored successfully!"}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="restore-icon">↶</div>
+                <h3 className="centered-text">Restore Category</h3>
+                <p className="centered-text">Are you sure you want to restore category <strong>"{categoryToRestore.name}"</strong>?</p>
+                <p className="restore-warning centered-text">This category will be moved back to the main categories list.</p>
+                
+                <div className="form-buttons centered-buttons">
+                  <button className="confirm-restore-btn" onClick={handleRestoreCategory}>
+                    Yes, Restore
+                  </button>
+                  <button className="cancel-btn" onClick={closeRestoreModal}>Cancel</button>
                 </div>
               </>
             )}

@@ -94,86 +94,170 @@
   flex-direction: column;
 }
 
+/* Table Header with Archive and Search */
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 10px;
+}
+
+.view-archive-btn, .back-to-main-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.view-archive-btn {
+  background: #8b5cf6;
+  color: white;
+}
+
+.view-archive-btn:hover {
+  background: #7c3aed;
+  transform: translateY(-1px);
+}
+
+.back-to-main-btn {
+  background: #6b7280;
+  color: white;
+}
+
+.back-to-main-btn:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  padding: 10px 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 250px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.search-input:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
 /* 🔹 Table Styling */
-.all-categories table {
+.category-table {
   width: 100%;
   border-collapse: collapse;
   min-width: 500px;
   table-layout: fixed;
 }
 
-.all-categories th,
-.all-categories td {
+.category-table th,
+.category-table td {
   border-bottom: 1px solid #ddd;
   padding: 10px;
   text-align: left;
   vertical-align: top;
 }
 
-.all-categories th {
+.category-table th {
   background: #f7f7f7;
 }
 
 /* 🔹 Description Column */
-.all-categories td.description-cell {
+.description-cell {
   color: #555;
   font-size: 14px;
   line-height: 1.4;
   max-width: 250px;
   word-wrap: break-word;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 /* Buttons */
 .edit-btn,
-.delete-btn {
+.archive-btn,
+.delete-btn,
+.restore-btn {
   border: none;
-  padding: 6px 10px;
-  border-radius: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
   cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s ease;
   margin-right: 5px;
 }
 
 .edit-btn {
-  background-color: #ffc107;
+  background-color: #f59e0b;
+  color: white;
+}
+
+.edit-btn:hover {
+  background-color: #d97706;
+}
+
+.archive-btn {
+  background-color: #8b5cf6;
+  color: white;
+}
+
+.archive-btn:hover {
+  background-color: #7c3aed;
 }
 
 .delete-btn {
   background-color: #dc3545;
-  color: #fff;
-}
-
-.edit-btn:hover {
-  background-color: #e0a800;
+  color: white;
 }
 
 .delete-btn:hover {
   background-color: #c82333;
 }
 
+.restore-btn {
+  background-color: #10b981;
+  color: white;
+}
+
+.restore-btn:hover {
+  background-color: #059669;
+}
+
 /* Column widths */
-.all-categories th:nth-child(1),
-.all-categories td:nth-child(1) {
+.category-table th:nth-child(1),
+.category-table td:nth-child(1) {
   width: 50px;
   text-align: center;
 }
 
-.all-categories th:nth-child(2),
-.all-categories td:nth-child(2) {
+.category-table th:nth-child(2),
+.category-table td:nth-child(2) {
   width: 150px;
 }
 
-.all-categories th:nth-child(3),
-.all-categories td:nth-child(3) {
+.category-table th:nth-child(3),
+.category-table td:nth-child(3) {
   width: 200px;
 }
 
-.all-categories th:nth-child(4),
-.all-categories td:nth-child(4) {
-  width: 100px;
+.category-table th:nth-child(4),
+.category-table td:nth-child(4) {
+  width: 150px;
   text-align: center;
 }
 
-/* Simple Pagination Styles - Same as Products */
+/* Simple Pagination Styles */
 .simple-pagination {
   display: flex;
   justify-content: center;
@@ -215,8 +299,8 @@
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100%;
+  height: 100%;
   background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
@@ -230,7 +314,9 @@
   padding: 25px;
   border-radius: 12px;
   width: 400px;
+  max-width: 90vw;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  margin: 0 auto;
 }
 
 .modal-content h3 {
@@ -264,26 +350,59 @@
 
 .form-buttons {
   display: flex;
-  justify-content: space-between;
-  margin-top: 10px;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px !important;
 }
 
-.save-btn {
-  background-color: #3b82f6;
+.save-btn,
+.update-btn {
+  background: #00205B;
   color: white;
-  border: none;
-  padding: 8px 14px;
+  border: 2px solid #00205B;
+  padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 32, 91, 0.1);
+  min-width: 100px;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+.save-btn:hover,
+.update-btn:hover {
+  background: #001a47;
+  border-color: #001a47;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 32, 91, 0.3);
 }
 
 .cancel-btn {
-  background-color: #9ca3af;
+  background: #6b7280;
   color: white;
-  border: none;
-  padding: 8px 14px;
+  border: 2px solid #6b7280;
+  padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(107, 114, 128, 0.1);
+  min-width: 100px;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+.cancel-btn:hover {
+  background: #4b5563;
+  border-color: #4b5563;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
 }
 
 /* Delete Confirmation Modal */
@@ -333,6 +452,89 @@
   cursor: not-allowed;
 }
 
+/* Archive Confirmation Modal */
+.archive-confirmation {
+  text-align: center;
+  max-width: 400px;
+}
+
+.archive-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.archive-confirmation h3 {
+  color: #8b5cf6;
+  margin-bottom: 15px;
+}
+
+.archive-confirmation p {
+  margin-bottom: 10px;
+  color: #555;
+}
+
+.archive-warning {
+  color: #8b5cf6 !important;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.confirm-archive-btn {
+  background-color: #8b5cf6;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.confirm-archive-btn:hover:not(:disabled) {
+  background-color: #7c3aed;
+}
+
+.confirm-archive-btn:disabled {
+  background-color: #8b5cf6;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Restore Confirmation Modal */
+.restore-confirmation {
+  max-width: 400px;
+}
+
+.restore-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.restore-confirmation h3 {
+  color: #10b981;
+  margin-bottom: 15px;
+}
+
+.restore-warning {
+  color: #10b981 !important;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.confirm-restore-btn {
+  background-color: #10b981;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.confirm-restore-btn:hover:not(:disabled) {
+  background-color: #059669;
+}
+
 /* Error Styling */
 .error-input {
   border: 2px solid #ff4444 !important;
@@ -355,16 +557,6 @@
   color: #666;
   font-size: 14px;
   padding: 5px 10px;
-}
-
-.description-cell {
-  white-space: normal;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  max-width: 350px;
-  line-height: 1.4;
-  color: #555;
-  font-size: 14px;
 }
 
 /* Form Animation Center */
@@ -394,8 +586,30 @@
   text-align: center;
 }
 
-/* Make sure the delete confirmation modal has enough height */
-.delete-confirmation {
+/* Archive Animation Center */
+.archive-animation-center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  text-align: center;
+}
+
+/* Restore Animation Center */
+.restore-animation-center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  text-align: center;
+}
+
+/* Make sure the confirmation modals have enough height */
+.delete-confirmation,
+.archive-confirmation,
+.restore-confirmation {
   min-height: 300px;
   display: flex;
   flex-direction: column;
@@ -423,4 +637,18 @@
   margin-bottom: 20px;
   line-height: 1.5;
   padding: 0 10px;
+}
+
+/* Centered Modals */
+.centered-modal {
+  text-align: center;
+}
+
+.centered-text {
+  text-align: center;
+  margin: 10px 0;
+}
+
+.centered-buttons {
+  justify-content: center !important;
 }

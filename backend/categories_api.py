@@ -27,13 +27,19 @@ def get_categories():
         page_param = request.args.get('page')
         per_page_param = request.args.get('per_page')
         
+        # Only fetch non-archived categories
+        query = {'is_archived': {'$ne': True}}
+        
         # If no pagination parameters, return all categories
         if not page_param and not per_page_param:
-            categories = list(categories_collection.find().sort("created_at", 1))
+            categories = list(categories_collection.find(query).sort("created_at", 1))
             
             for category in categories:
                 category_id = category['_id']
-                product_count = products_collection.count_documents({'category_id': category_id})
+                product_count = products_collection.count_documents({
+                    'category_id': category_id,
+                    'is_archived': {'$ne': True}
+                })
                 category['product_count'] = product_count
                 service_count = service_types_collection.count_documents({'category_id': category_id})
                 category['service_type_count'] = service_count
@@ -46,19 +52,22 @@ def get_categories():
         per_page = int(per_page_param or 10)
         skip = (page - 1) * per_page
         
-        total_categories = categories_collection.count_documents({})
+        total_categories = categories_collection.count_documents(query)
         total_pages = (total_categories + per_page - 1) // per_page
         
         if page > total_pages and total_pages > 0:
             page = total_pages
             skip = (page - 1) * per_page
         
-        categories_cursor = categories_collection.find().sort("created_at", 1).skip(skip).limit(per_page)
+        categories_cursor = categories_collection.find(query).sort("created_at", 1).skip(skip).limit(per_page)
         categories = list(categories_cursor)
         
         for category in categories:
             category_id = category['_id']
-            product_count = products_collection.count_documents({'category_id': category_id})
+            product_count = products_collection.count_documents({
+                'category_id': category_id,
+                'is_archived': {'$ne': True}
+            })
             category['product_count'] = product_count
             service_count = service_types_collection.count_documents({'category_id': category_id})
             category['service_type_count'] = service_count
@@ -98,13 +107,18 @@ def create_category():
     try:
         data = request.json
         
-        existing_category = categories_collection.find_one({'name': data['name']})
+        # Check if category name already exists (including archived ones)
+        existing_category = categories_collection.find_one({
+            'name': data['name'],
+            'is_archived': {'$ne': True}
+        })
         if existing_category:
             return jsonify({'error': 'Category name already exists'}), 400
         
         new_category = {
             'name': data['name'],
             'description': data.get('description', ''),
+            'is_archived': False,
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
         }
@@ -125,7 +139,10 @@ def update_category(category_id):
             return jsonify({'error': 'Category not found'}), 404
         
         if data['name'] != current_category['name']:
-            product_count = products_collection.count_documents({'category_id': ObjectId(category_id)})
+            product_count = products_collection.count_documents({
+                'category_id': ObjectId(category_id),
+                'is_archived': {'$ne': True}
+            })
             if product_count > 0:
                 return jsonify({
                     'error': f'Cannot rename category "{current_category["name"]}". {product_count} product(s) are using this category. Please reassign products first.'
@@ -133,7 +150,8 @@ def update_category(category_id):
         
         existing_category = categories_collection.find_one({
             'name': data['name'],
-            '_id': {'$ne': ObjectId(category_id)}
+            '_id': {'$ne': ObjectId(category_id)},
+            'is_archived': {'$ne': True}
         })
         if existing_category:
             return jsonify({'error': 'Category name already exists'}), 400
@@ -155,36 +173,105 @@ def update_category(category_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@categories_bp.route('/api/categories/<category_id>', methods=['DELETE'])
-def delete_category(category_id):
+# ARCHIVE CATEGORY ENDPOINT
+@categories_bp.route('/api/categories/<category_id>/archive', methods=['PUT'])
+def archive_category(category_id):
     try:
+        # Check if category exists
         category = categories_collection.find_one({'_id': ObjectId(category_id)})
         if not category:
             return jsonify({'error': 'Category not found'}), 404
         
-        product_count = products_collection.count_documents({'category_id': ObjectId(category_id)})
+        # Check if category has active products
+        product_count = products_collection.count_documents({
+            'category_id': ObjectId(category_id),
+            'is_archived': {'$ne': True}
+        })
         if product_count > 0:
             return jsonify({
-                'error': f'Cannot delete category "{category["name"]}". {product_count} product(s) are using this category. Please delete or reassign products first.'
+                'error': f'Cannot archive category "{category["name"]}". {product_count} active product(s) are using this category. Please reassign or archive products first.'
             }), 400
         
-        service_count = service_types_collection.count_documents({'category_id': ObjectId(category_id)})
-        if service_count > 0:
-            return jsonify({
-                'error': f'Cannot delete category "{category["name"]}". {service_count} service type(s) are using this category. Please reassign service types first.'
-            }), 400
+        # Update category to set as archived
+        result = categories_collection.update_one(
+            {'_id': ObjectId(category_id)},
+            {'$set': {
+                'is_archived': True,
+                'archived_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            }}
+        )
         
-        result = categories_collection.delete_one({'_id': ObjectId(category_id)})
-        if result.deleted_count:
-            return jsonify({'message': 'Category deleted successfully'})
-        return jsonify({'error': 'Category not found'}), 404
+        if result.modified_count:
+            return jsonify({'message': 'Category archived successfully'})
+        return jsonify({'error': 'Failed to archive category'}), 500
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# RESTORE CATEGORY ENDPOINT
+@categories_bp.route('/api/categories/<category_id>/restore', methods=['PUT'])
+def restore_category(category_id):
+    try:
+        # Check if category exists and is archived
+        category = categories_collection.find_one({'_id': ObjectId(category_id)})
+        if not category:
+            return jsonify({'error': 'Category not found'}), 404
+        
+        if not category.get('is_archived'):
+            return jsonify({'error': 'Category is not archived'}), 400
+        
+        # Check if category name already exists in active categories
+        existing_category = categories_collection.find_one({
+            'name': category['name'],
+            '_id': {'$ne': ObjectId(category_id)},
+            'is_archived': {'$ne': True}
+        })
+        if existing_category:
+            return jsonify({'error': 'A category with this name already exists'}), 400
+        
+        # Restore the category
+        result = categories_collection.update_one(
+            {'_id': ObjectId(category_id)},
+            {'$set': {
+                'is_archived': False,
+                'restored_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            }}
+        )
+        
+        if result.modified_count:
+            return jsonify({'message': 'Category restored successfully'})
+        return jsonify({'error': 'Failed to restore category'}), 500
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# GET ARCHIVED CATEGORIES
+@categories_bp.route('/api/categories/archived', methods=['GET'])
+def get_archived_categories():
+    try:
+        categories = list(categories_collection.find({'is_archived': True}).sort("archived_at", -1))
+        
+        for category in categories:
+            category_id = category['_id']
+            product_count = products_collection.count_documents({'category_id': category_id})
+            category['product_count'] = product_count
+            service_count = service_types_collection.count_documents({'category_id': category_id})
+            category['service_type_count'] = service_count
+        
+        serialized_categories = [serialize_doc(category) for category in categories]
+        return jsonify(serialized_categories)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @categories_bp.route('/api/categories/<category_id>/products', methods=['GET'])
 def get_products_by_category(category_id):
     try:
-        products = list(products_collection.find({'category_id': ObjectId(category_id)}).sort("product_name", 1))
+        products = list(products_collection.find({
+            'category_id': ObjectId(category_id),
+            'is_archived': {'$ne': True}
+        }).sort("product_name", 1))
         serialized_products = [serialize_doc(product) for product in products]
         return jsonify(serialized_products)
     except Exception as e:
