@@ -1,4 +1,3 @@
-/* === Main Container === */
 .schedule-container {
   padding: 20px 30px;
   background: #fff;
@@ -10,7 +9,6 @@
   overflow-x: hidden;
 }
 
-/* === Header === */
 .schedule-header {
   display: flex;
   justify-content: space-between;
@@ -24,7 +22,6 @@
   font-size: 1.5rem;
 }
 
-/* Add Schedule button */
 .add-btn.main-add {
   background: #5bc0de;
   color: white;
@@ -42,7 +39,6 @@
   transform: translateY(-1px);
 }
 
-/* === Table Styling === */
 .schedule-table {
   width: 100%;
   border-collapse: collapse;
@@ -65,13 +61,11 @@
   font-weight: 600;
 }
 
-/* Align the Actions column */
 .schedule-table th:nth-child(3),
 .schedule-table td:nth-child(3) {
   text-align: center;
 }
 
-/* === Day Column === */
 .day-cell {
   font-weight: 600;
   color: #333;
@@ -79,7 +73,6 @@
   vertical-align: top;
 }
 
-/* === Staff & Time === */
 .staff-row {
   display: flex;
   align-items: center;
@@ -88,7 +81,6 @@
   width: 100%;
 }
 
-/* Staff name with fixed width */
 .staff-row strong {
   min-width: 120px;
   max-width: 120px;
@@ -96,7 +88,6 @@
   font-size: 0.9rem;
 }
 
-/* Time display (non-editing) */
 .time-text {
   display: flex;
   align-items: center;
@@ -115,12 +106,11 @@
   flex-shrink: 0;
 }
 
-/* Time input container for editing mode - MAKE WIDER */
 .time-edit-container {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 240px; /* Increased from 200px to 240px */
+  width: 240px;
   flex-shrink: 0;
 }
 
@@ -130,9 +120,8 @@
   font-weight: 500;
 }
 
-/* Custom time input styling - MAKE WIDER FOR AM/PM */
 .time-input {
-  width: 100px !important; /* Increased from 85px to 100px */
+  width: 100px !important;
   height: 36px;
   border: 1px solid #ccc;
   border-radius: 6px;
@@ -146,14 +135,12 @@
   flex-shrink: 0;
 }
 
-/* KEEP THE CLOCK PICKER */
 .time-input[type="time"] {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
 }
 
-/* === Action Buttons === */
 .action-buttons {
   display: flex;
   justify-content: center;
@@ -214,7 +201,6 @@ button:disabled {
   transform: none !important;
 }
 
-/* === Modal === */
 .modal-backdrop {
   position: fixed;
   top: 0;
@@ -231,45 +217,41 @@ button:disabled {
 
 .modal-box {
   background: #fff;
-  padding: 25px 30px;
-  border-radius: 10px;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+  padding: 20px;
+  border-radius: 12px;
+  width: 400px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
 }
 
 .modal-box h3 {
-  margin-bottom: 15px;
-  margin-top: 0;
-  color: #00205B !important;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-  font-size: 1.5rem !important;
-  font-weight: 700 !important;
-  text-align: left !important;
+  margin: 0 0 15px 0;
+  color: #00205B;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: left;
 }
 
 .modal-box label {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
+  display: block;
   margin-bottom: 5px;
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
 }
 
 .modal-box select,
 .modal-box input[type="time"] {
   width: 100%;
   padding: 10px;
-  border: 1px solid #ccc;
+  margin-bottom: 12px;
+  border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 14px;
   box-sizing: border-box;
   background: #fff;
 }
 
-/* KEEP THE CLOCK PICKER IN MODAL */
 .modal-box input[type="time"] {
   font-family: 'Courier New', monospace;
 }
@@ -277,8 +259,8 @@ button:disabled {
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
+  gap: 12px;
+  margin-top: 10px !important;
 }
 
 .modal-actions button {
@@ -292,24 +274,53 @@ button:disabled {
 }
 
 .modal-actions .save-btn {
-  background: #28a745;
+  background: #00205B;
   color: white;
+  border: 2px solid #00205B;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 32, 91, 0.1);
+  min-width: 100px;
+  height: 36px;
+  box-sizing: border-box;
 }
 
 .modal-actions .save-btn:hover:not(:disabled) {
-  background: #218838;
+  background: #001a47;
+  border-color: #001a47;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 32, 91, 0.3);
 }
 
-.modal-actions .remove-btn {
-  background: #6c757d;
+.modal-actions .cancel-btn {
+  background: #6b7280;
   color: white;
+  border: 2px solid #6b7280;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(107, 114, 128, 0.1);
+  min-width: 100px;
+  height: 36px;
+  box-sizing: border-box;
 }
 
-.modal-actions .remove-btn:hover:not(:disabled) {
-  background: #5a6268;
+.modal-actions .cancel-btn:hover {
+  background: #4b5563;
+  border-color: #4b5563;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
 }
 
-/* === Loading === */
 .loading {
   text-align: center;
   padding: 20px;
@@ -318,7 +329,6 @@ button:disabled {
   font-size: 1rem;
 }
 
-/* === No Staff Message === */
 .no-staff {
   color: #888;
   font-style: italic;
@@ -326,17 +336,14 @@ button:disabled {
   padding: 20px;
 }
 
-/* Ensure consistent row heights and alignment */
 .schedule-table tr {
   height: 60px;
 }
 
-/* Make sure all elements stay in one line */
 .staff-row > * {
   flex-shrink: 0;
 }
 
-/* Responsive design */
 @media (max-width: 768px) {
   .schedule-container {
     padding: 15px;
@@ -366,7 +373,6 @@ button:disabled {
   }
 }
 
-/* Form Animation Center */
 .form-animation-center {
   display: flex;
   justify-content: center;
@@ -374,7 +380,6 @@ button:disabled {
   height: 400px;
 }
 
-/* Delete Animation Center */
 .delete-animation-center {
   display: flex;
   flex-direction: column;
@@ -384,7 +389,6 @@ button:disabled {
   text-align: center;
 }
 
-/* Make sure the delete confirmation modal has enough height */
 .delete-confirmation {
   min-height: 300px;
   display: flex;

@@ -22,7 +22,7 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
   const [deleting, setDeleting] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [newEntry, setNewEntry] = useState({
-    day: "Monday",
+    day: "",
     staff_id: "",
     start_time: "",
     end_time: "",
@@ -81,6 +81,12 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
   useEffect(() => {
     if (!showModal) {
       setAddSuccess(false);
+      setNewEntry({
+        day: "",
+        staff_id: "",
+        start_time: "",
+        end_time: "",
+      });
       if (onAddModalClose) {
         onAddModalClose();
       }
@@ -181,12 +187,9 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
     }
   };
 
-  const handleAddStaff = async () => {
-    if (!newEntry.staff_id || !newEntry.start_time || !newEntry.end_time) {
-      alert("Please fill out all fields!");
-      return;
-    }
-
+  const handleAddStaff = async (e) => {
+    if (e) e.preventDefault();
+    
     setModalLoading(true);
     try {
       const response = await fetch(`${API_BASE}/schedules`, {
@@ -202,7 +205,7 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
         setTimeout(async () => {
           await fetchSchedules();
           setShowModal(false);
-          setNewEntry({ day: "Monday", staff_id: "", start_time: "", end_time: "" });
+          setNewEntry({ day: "", staff_id: "", start_time: "", end_time: "" });
           setAddSuccess(false);
           setModalLoading(false);
         }, 1500);
@@ -366,14 +369,18 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
                 )}
               </div>
             ) : (
-              <>
+              <form onSubmit={handleAddStaff}>
                 <label>Day:</label>
                 <select
                   value={newEntry.day}
                   onChange={(e) => setNewEntry({ ...newEntry, day: e.target.value })}
+                  required
+                  onInvalid={(e) => e.target.setCustomValidity('Please select a day')}
+                  onInput={(e) => e.target.setCustomValidity('')}
                 >
+                  <option value="" disabled>Select A Day</option>
                   {Object.keys(scheduleByDay).map((d) => (
-                    <option key={d}>{d}</option>
+                    <option key={d} value={d}>{d}</option>
                   ))}
                 </select>
 
@@ -381,8 +388,11 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
                 <select
                   value={newEntry.staff_id}
                   onChange={(e) => setNewEntry({ ...newEntry, staff_id: e.target.value })}
+                  required
+                  onInvalid={(e) => e.target.setCustomValidity('Please select a staff member')}
+                  onInput={(e) => e.target.setCustomValidity('')}
                 >
-                  <option value="">Select Staff</option>
+                  <option value="" disabled>Select Staff</option>
                   {staffList.map((staff) => (
                     <option key={staff._id} value={staff._id}>
                       {staff.name}
@@ -395,6 +405,9 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
                   type="time"
                   value={newEntry.start_time}
                   onChange={(e) => setNewEntry({ ...newEntry, start_time: e.target.value })}
+                  required
+                  onInvalid={(e) => e.target.setCustomValidity('Please select a start time')}
+                  onInput={(e) => e.target.setCustomValidity('')}
                 />
 
                 <label>End Time:</label>
@@ -402,17 +415,20 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
                   type="time"
                   value={newEntry.end_time}
                   onChange={(e) => setNewEntry({ ...newEntry, end_time: e.target.value })}
+                  required
+                  onInvalid={(e) => e.target.setCustomValidity('Please select an end time')}
+                  onInput={(e) => e.target.setCustomValidity('')}
                 />
 
                 <div className="modal-actions">
-                  <button className="save-btn" onClick={handleAddStaff} disabled={modalLoading}>
-                    {modalLoading ? "⏳ Adding..." : "💾 Save"}
+                  <button type="submit" className="save-btn" disabled={modalLoading}>
+                    {modalLoading ? "⏳ Adding..." : "Save"}
                   </button>
-                  <button className="cancel-btn" onClick={() => setShowModal(false)} disabled={modalLoading}>
-                    ✖ Cancel
+                  <button type="button" className="cancel-btn" onClick={() => setShowModal(false)} disabled={modalLoading}>
+                    Cancel
                   </button>
                 </div>
-              </>
+              </form>
             )}
           </div>
         </div>
