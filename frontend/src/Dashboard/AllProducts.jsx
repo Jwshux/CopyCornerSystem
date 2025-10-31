@@ -3,26 +3,33 @@ import "./AllProducts.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
-import deleteAnimation from "../animations/delete.json";
+import archiveAnimation from "../animations/archive.json";
 
 const API_BASE = "http://localhost:5000/api";
 
 function AllProducts({ showAddModal, onAddModalClose }) {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [products, setProducts] = useState([]);
+  const [archivedProducts, setArchivedProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [productToDelete, setProductToDelete] = useState(null);
+  const [productToArchive, setProductToArchive] = useState(null);
+  const [productToRestore, setProductToRestore] = useState(null);
   const [loading, setLoading] = useState(false);
   const [productNameError, setProductNameError] = useState("");
   const [addSuccess, setAddSuccess] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [archiveSuccess, setArchiveSuccess] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreSuccess, setRestoreSuccess] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showArchivedView, setShowArchivedView] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   
   const [formData, setFormData] = useState({
     product_name: "",
@@ -73,6 +80,25 @@ function AllProducts({ showAddModal, onAddModalClose }) {
     }
   };
 
+  const fetchArchivedProducts = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/products/archived`);
+      if (response.ok) {
+        const data = await response.json();
+        setArchivedProducts(Array.isArray(data) ? data : []);
+      } else {
+        console.error('Failed to fetch archived products');
+        showError('Failed to load archived products');
+      }
+    } catch (error) {
+      console.error('Error fetching archived products:', error);
+      showError('Error loading archived products');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchCategories = async () => {
     try {
       const response = await fetch(`${API_BASE}/categories`);
@@ -116,10 +142,16 @@ function AllProducts({ showAddModal, onAddModalClose }) {
   }, [showAddForm, showEditModal]);
 
   useEffect(() => {
-    if (!showDeleteModal) {
-      setDeleteSuccess(false);
+    if (!showArchiveModal) {
+      setArchiveSuccess(false);
     }
-  }, [showDeleteModal]);
+  }, [showArchiveModal]);
+
+  useEffect(() => {
+    if (!showRestoreModal) {
+      setRestoreSuccess(false);
+    }
+  }, [showRestoreModal]);
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
@@ -278,29 +310,29 @@ function AllProducts({ showAddModal, onAddModalClose }) {
     }
   };
 
-  const openDeleteModal = (product) => {
-    setProductToDelete(product);
-    setShowDeleteModal(true);
+  const openArchiveModal = (product) => {
+    setProductToArchive(product);
+    setShowArchiveModal(true);
   };
 
-  const closeDeleteModal = () => {
-    setShowDeleteModal(false);
-    setProductToDelete(null);
-    setDeleting(false);
-    setDeleteSuccess(false);
+  const closeArchiveModal = () => {
+    setShowArchiveModal(false);
+    setProductToArchive(null);
+    setArchiving(false);
+    setArchiveSuccess(false);
   };
 
-  const handleDeleteProduct = async () => {
-    if (!productToDelete) return;
+  const handleArchiveProduct = async () => {
+    if (!productToArchive) return;
 
-    setDeleting(true);
+    setArchiving(true);
     try {
-      const response = await fetch(`${API_BASE}/products/${productToDelete._id}`, {
-        method: 'DELETE',
+      const response = await fetch(`${API_BASE}/products/${productToArchive._id}/archive`, {
+        method: 'PUT',
       });
 
       if (response.ok) {
-        setDeleteSuccess(true);
+        setArchiveSuccess(true);
         setTimeout(async () => {
           const isLastItemOnPage = products.length === 1;
           
@@ -309,17 +341,57 @@ function AllProducts({ showAddModal, onAddModalClose }) {
           } else {
             await fetchProducts(currentPage);
           }
-          closeDeleteModal();
+          closeArchiveModal();
         }, 1500);
       } else {
         const error = await response.json();
-        showError(error.error || 'Failed to delete product');
-        setDeleting(false);
+        showError(error.error || 'Failed to archive product');
+        setArchiving(false);
       }
     } catch (error) {
-      console.error('Error deleting product:', error);
-      showError('Error deleting product');
-      setDeleting(false);
+      console.error('Error archiving product:', error);
+      showError('Error archiving product');
+      setArchiving(false);
+    }
+  };
+
+  const openRestoreModal = (product) => {
+    setProductToRestore(product);
+    setShowRestoreModal(true);
+  };
+
+  const closeRestoreModal = () => {
+    setShowRestoreModal(false);
+    setProductToRestore(null);
+    setRestoring(false);
+    setRestoreSuccess(false);
+  };
+
+  const handleRestoreProduct = async () => {
+    if (!productToRestore) return;
+
+    setRestoring(true);
+    try {
+      const response = await fetch(`${API_BASE}/products/${productToRestore._id}/restore`, {
+        method: 'PUT',
+      });
+
+      if (response.ok) {
+        setRestoreSuccess(true);
+        setTimeout(async () => {
+          await fetchArchivedProducts();
+          await fetchProducts(currentPage);
+          closeRestoreModal();
+        }, 1500);
+      } else {
+        const error = await response.json();
+        showError(error.error || 'Failed to restore product');
+        setRestoring(false);
+      }
+    } catch (error) {
+      console.error('Error restoring product:', error);
+      showError('Error restoring product');
+      setRestoring(false);
     }
   };
 
@@ -356,88 +428,192 @@ function AllProducts({ showAddModal, onAddModalClose }) {
     return 'Uncategorized';
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Unknown';
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  };
+
+  // Filter products based on search term
+  const filteredProducts = products.filter(product =>
+    product.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.product_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getCategoryName(product).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredArchivedProducts = archivedProducts.filter(product =>
+    product.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.product_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getCategoryName(product).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="product-page">
       <div className="table-container">
-        <table className="product-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Product ID</th>
-              <th>Product Name</th>
-              <th>Category</th>
-              <th>Stock Quantity</th>
-              <th>Min Stock</th>
-              <th>Unit Price</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.length === 0 ? (
-              <tr>
-                <td colSpan="9" style={{ textAlign: "center", color: "#888" }}>
-                  {loading ? (
-                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
-                      <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
-                    </div>
-                  ) : (
-                    "No products found."
-                  )}
-                </td>
-              </tr>
-            ) : (
-              products.map((product, index) => (
-                <tr key={product._id}>
-                  <td>{(currentPage - 1) * 10 + index + 1}</td>
-                  <td>{product.product_id}</td>
-                  <td>{product.product_name}</td>
-                  <td>{getCategoryName(product)}</td>
-                  <td>{product.stock_quantity}</td>
-                  <td>{product.minimum_stock || 5}</td>
-                  <td>{formatPrice(product.unit_price)}</td>
-                  <td>
-                    <span
-                      className={`status-tag ${
-                        product.status === "In Stock"
-                          ? "in-stock"
-                          : product.status === "Low Stock"
-                          ? "low-stock"
-                          : "out-stock"
-                      }`}
-                    >
-                      {product.status}
-                    </span>
-                  </td>
-                  <td>
-                    <button className="edit-btn" onClick={() => handleEditProduct(product)}>Edit</button>
-                    <button className="delete-btn" onClick={() => openDeleteModal(product)}>Delete</button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-
-        <div className="simple-pagination">
-          <button 
-            className="pagination-btn" 
-            onClick={handlePrevPage}
-            disabled={currentPage === 1 || loading}
-          >
-            Previous
-          </button>
-          <span className="page-info">
-            Page {currentPage} of {totalPages}
-          </span>
-          <button 
-            className="pagination-btn" 
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages || loading}
-          >
-            Next
-          </button>
+        {/* Table Header with Archive Button and Search */}
+        <div className="table-header">
+          {showArchivedView ? (
+            <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
+              ← Back to Main View
+            </button>
+          ) : (
+            <button className="view-archive-btn" onClick={() => {
+              setShowArchivedView(true);
+              fetchArchivedProducts();
+            }}>
+              📦 View Archived Products
+            </button>
+          )}
+          
+          <div className="search-container">
+            <input
+              type="text"
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
         </div>
+
+        {/* MAIN PRODUCTS VIEW */}
+        {!showArchivedView && (
+          <>
+            <table className="product-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Product ID</th>
+                  <th>Product Name</th>
+                  <th>Category</th>
+                  <th>Stock Quantity</th>
+                  <th>Min Stock</th>
+                  <th>Unit Price</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProducts.length === 0 ? (
+                  <tr>
+                    <td colSpan="9" style={{ textAlign: "center", color: "#888" }}>
+                      {loading ? (
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                          <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                        </div>
+                      ) : searchTerm ? (
+                        "No products found matching your search."
+                      ) : (
+                        "No products found."
+                      )}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredProducts.map((product, index) => (
+                    <tr key={product._id}>
+                      <td>{(currentPage - 1) * 10 + index + 1}</td>
+                      <td>{product.product_id}</td>
+                      <td>{product.product_name}</td>
+                      <td>{getCategoryName(product)}</td>
+                      <td>{product.stock_quantity}</td>
+                      <td>{product.minimum_stock || 5}</td>
+                      <td>{formatPrice(product.unit_price)}</td>
+                      <td>
+                        <span
+                          className={`status-tag ${
+                            product.status === "In Stock"
+                              ? "in-stock"
+                              : product.status === "Low Stock"
+                              ? "low-stock"
+                              : "out-stock"
+                          }`}
+                        >
+                          {product.status}
+                        </span>
+                      </td>
+                      <td>
+                        <button className="edit-btn" onClick={() => handleEditProduct(product)}>Edit</button>
+                        <button className="archive-btn" onClick={() => openArchiveModal(product)}>Archive</button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+
+            <div className="simple-pagination">
+              <button 
+                className="pagination-btn" 
+                onClick={handlePrevPage}
+                disabled={currentPage === 1 || loading}
+              >
+                Previous
+              </button>
+              <span className="page-info">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button 
+                className="pagination-btn" 
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages || loading}
+              >
+                Next
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ARCHIVED PRODUCTS VIEW */}
+        {showArchivedView && (
+          <>
+            <table className="product-table">
+              <thead>
+                <tr>
+                  <th>Product ID</th>
+                  <th>Product Name</th>
+                  <th>Category</th>
+                  <th>Stock Quantity</th>
+                  <th>Unit Price</th>
+                  <th>Archived Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredArchivedProducts.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: "center", color: "#888" }}>
+                      {loading ? (
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                          <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                        </div>
+                      ) : searchTerm ? (
+                        "No archived products found matching your search."
+                      ) : (
+                        "No archived products found."
+                      )}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredArchivedProducts.map((product) => (
+                    <tr key={product._id}>
+                      <td>{product.product_id}</td>
+                      <td>{product.product_name}</td>
+                      <td>{getCategoryName(product)}</td>
+                      <td>{product.stock_quantity}</td>
+                      <td>{formatPrice(product.unit_price)}</td>
+                      <td>{formatDate(product.archived_at)}</td>
+                      <td>
+                        <button className="restore-btn" onClick={() => openRestoreModal(product)}>
+                          Restore
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </>
+        )}
       </div>
 
       {/* ADD PRODUCT MODAL */}
@@ -704,41 +880,83 @@ function AllProducts({ showAddModal, onAddModalClose }) {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
-      {showDeleteModal && productToDelete && (
+      {/* ARCHIVE CONFIRMATION MODAL - CENTERED */}
+      {showArchiveModal && productToArchive && (
         <div className="overlay">
-          <div className="add-form delete-confirmation">
-            {deleting ? (
-              <div className="delete-animation-center">
-                {!deleteSuccess ? (
+          <div className="add-form archive-confirmation centered-modal">
+            {archiving ? (
+              <div className="archive-animation-center">
+                {!archiveSuccess ? (
                   <Lottie 
                     animationData={loadingAnimation} 
                     loop={true}
-                    style={{ width: 200, height: 200 }}
+                    style={{ width: 250, height: 250 }}
                   />
                 ) : (
                   <Lottie 
-                    animationData={deleteAnimation} 
+                    animationData={archiveAnimation} 
                     loop={false}
-                    style={{ width: 200, height: 200 }}
+                    style={{ width: 250, height: 250 }}
                   />
                 )}
                 <p style={{ marginTop: '20px', color: '#666' }}>
-                  {!deleteSuccess ? "Deleting product..." : "Product deleted successfully!"}
+                  {!archiveSuccess ? "Archiving product..." : "Product archived successfully!"}
                 </p>
               </div>
             ) : (
               <>
-                <div className="delete-icon">🗑️</div>
-                <h3>Delete Product</h3>
-                <p>Are you sure you want to delete product <strong>"{productToDelete.product_name}"</strong>?</p>
-                <p className="delete-warning">This action cannot be undone.</p>
+                <div className="archive-icon">📦</div>
+                <h3 className="centered-text">Archive Product</h3>
+                <p className="centered-text">Are you sure you want to archive product <strong>"{productToArchive.product_name}"</strong>?</p>
+                <p className="archive-warning centered-text">This product will be moved to archives and hidden from the main list.</p>
                 
-                <div className="form-buttons">
-                  <button className="confirm-delete-btn" onClick={handleDeleteProduct}>
-                    Yes, Delete
+                <div className="form-buttons centered-buttons">
+                  <button className="confirm-archive-btn" onClick={handleArchiveProduct}>
+                    Yes, Archive
                   </button>
-                  <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
+                  <button className="cancel-btn" onClick={closeArchiveModal}>Cancel</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* RESTORE CONFIRMATION MODAL - CENTERED WITH CHECKMARK */}
+      {showRestoreModal && productToRestore && (
+        <div className="overlay">
+          <div className="add-form restore-confirmation centered-modal">
+            {restoring ? (
+              <div className="restore-animation-center">
+                {!restoreSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 250, height: 250 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={checkmarkAnimation} 
+                    loop={false}
+                    style={{ width: 250, height: 250 }}
+                  />
+                )}
+                <p style={{ marginTop: '20px', color: '#666' }}>
+                  {!restoreSuccess ? "Restoring product..." : "Product restored successfully!"}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="restore-icon">↶</div>
+                <h3 className="centered-text">Restore Product</h3>
+                <p className="centered-text">Are you sure you want to restore product <strong>"{productToRestore.product_name}"</strong>?</p>
+                <p className="restore-warning centered-text">This product will be moved back to the main products list.</p>
+                
+                <div className="form-buttons centered-buttons">
+                  <button className="confirm-restore-btn" onClick={handleRestoreProduct}>
+                    Yes, Restore
+                  </button>
+                  <button className="cancel-btn" onClick={closeRestoreModal}>Cancel</button>
                 </div>
               </>
             )}
@@ -749,11 +967,11 @@ function AllProducts({ showAddModal, onAddModalClose }) {
       {/* ERROR MODAL */}
       {showErrorModal && (
         <div className="overlay">
-          <div className="add-form error-modal">
+          <div className="add-form error-modal centered-modal">
             <div className="error-icon">⚠️</div>
-            <h3>Operation Failed</h3>
-            <p className="error-message-text">{errorMessage}</p>
-            <div className="form-buttons">
+            <h3 className="centered-text">Operation Failed</h3>
+            <p className="error-message-text centered-text">{errorMessage}</p>
+            <div className="form-buttons centered-buttons">
               <button className="cancel-btn" onClick={closeErrorModal}>
                 OK
               </button>
