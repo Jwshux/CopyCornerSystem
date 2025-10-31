@@ -29,19 +29,6 @@
   font-size: 14px;
 }
 
-.add-product-btn {
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.add-product-btn:hover {
-  background-color: #2563eb;
-}
 
 .product-table {
   width: 100%;
@@ -375,22 +362,3 @@
   border-bottom: none;
 }
 
-.add-product-btn {
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  transition: background 0.2s ease;
-  margin-left: 20px;
-  position: relative;
-  top: 0;
-}
-
-.add-product-btn:hover {
-  background-color: #2563eb;
-}

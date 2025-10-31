@@ -7,10 +7,6 @@
   align-items: flex-start;
 }
 
-.add-service-type-btn:hover {
-  background-color: #2563eb;
-}
-
 /* Table Container */
 .table-container {
   background: #fff;

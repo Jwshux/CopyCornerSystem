@@ -356,27 +356,27 @@ function AdminDashboard({ user, onLogout }) {
             </button>
           )}
           {activePage === "Staffs Schedule" && (
-            <button className="add-product-btn" onClick={() => setShowAddScheduleModal(true)}>
+            <button className="add-schedule-btn" onClick={() => setShowAddScheduleModal(true)}>
               Add Schedule
             </button>
           )}
           {activePage === "Transactions" && (
-            <button className="add-product-btn" onClick={() => setShowAddTransactionModal(true)}>
+            <button className="add-transaction-btn" onClick={() => setShowAddTransactionModal(true)}>
               Add Transaction
             </button>
           )}
           {activePage === "Service Types" && (
-            <button className="add-product-btn" onClick={() => setShowAddServiceTypeModal(true)}>
+            <button className="add-service-type-btn" onClick={() => setShowAddServiceTypeModal(true)}>
               Add Service Type
             </button>
           )}
           {activePage === "Manage Roles" && (
-            <button className="add-product-btn" onClick={() => setShowAddRoleModal(true)}>
+            <button className="add-role-btn" onClick={() => setShowAddRoleModal(true)}>
               Add New Role
             </button>
           )}
           {activePage === "Manage Users" && (
-            <button className="add-product-btn" onClick={() => setShowAddUserModal(true)}>
+            <button className="add-user-btn" onClick={() => setShowAddUserModal(true)}>
               Add New User
             </button>
           )}
