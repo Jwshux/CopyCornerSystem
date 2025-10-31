@@ -35,7 +35,6 @@ function AllProducts() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // FIXED: Better API handling with error handling
   const fetchProducts = async (page = 1) => {
     setLoading(true);
     try {
@@ -44,7 +43,6 @@ function AllProducts() {
         const data = await response.json();
         console.log('Products API Response:', data);
         
-        // Handle both array and paginated response formats
         if (Array.isArray(data)) {
           setProducts(data);
           setCurrentPage(1);
@@ -68,7 +66,6 @@ function AllProducts() {
     }
   };
 
-  // FIXED: Better categories fetch
   const fetchCategories = async () => {
     try {
       const response = await fetch(`${API_BASE}/categories`);
@@ -76,7 +73,6 @@ function AllProducts() {
         const data = await response.json();
         console.log('Categories API Response:', data);
         
-        // Handle both array and object response formats
         let categoriesData = [];
         if (Array.isArray(data)) {
           categoriesData = data;
@@ -87,10 +83,6 @@ function AllProducts() {
         }
         
         setCategories(categoriesData);
-        
-        if (categoriesData.length > 0 && !formData.category_id) {
-          setFormData(prev => ({ ...prev, category_id: categoriesData[0]._id }));
-        }
       } else {
         console.error('Failed to fetch categories');
       }
@@ -137,6 +129,13 @@ function AllProducts() {
       return;
     }
 
+    // Check if product name contains only numbers
+    if (/^\d+$/.test(productName)) {
+      setProductNameError("Product name cannot contain only numbers");
+      return;
+    }
+
+    // Check if product name already exists
     const existingProduct = products.find(product => 
       product.product_name.toLowerCase() === productName.toLowerCase() &&
       (!selectedProduct || product._id !== selectedProduct._id)
@@ -161,7 +160,7 @@ function AllProducts() {
   const resetForm = () => {
     setFormData({
       product_name: "",
-      category_id: categories.length > 0 ? categories[0]._id : "",
+      category_id: "",
       stock_quantity: "",
       minimum_stock: "",
       unit_price: ""
@@ -185,11 +184,6 @@ function AllProducts() {
     
     if (productNameError) {
       showError("Please fix the product name error before saving.");
-      return;
-    }
-
-    if (parseInt(formData.minimum_stock) > parseInt(formData.stock_quantity)) {
-      showError("Minimum stock cannot be greater than current stock quantity.");
       return;
     }
 
@@ -241,11 +235,6 @@ function AllProducts() {
     
     if (productNameError) {
       showError("Please fix the product name error before updating.");
-      return;
-    }
-
-    if (parseInt(formData.minimum_stock) > parseInt(formData.stock_quantity)) {
-      showError("Minimum stock cannot be greater than current stock quantity.");
       return;
     }
 
@@ -339,7 +328,6 @@ function AllProducts() {
     return `₱${parseFloat(price).toFixed(2)}`;
   };
 
-  // Helper function to get category name for display
   const getCategoryName = (product) => {
     if (product.category_name) return product.category_name;
     if (product.category && typeof product.category === 'object') {
@@ -347,7 +335,6 @@ function AllProducts() {
     }
     if (product.category) return product.category;
     
-    // Find category by ID if we have categories data
     if (product.category_id && categories.length > 0) {
       const category = categories.find(cat => cat._id === product.category_id);
       return category ? category.name : 'Unknown';
@@ -359,7 +346,6 @@ function AllProducts() {
   return (
     <div className="product-page">
       <div className="product-header">
-        <h2>List of Products</h2>
         <div className="header-right">
           <button className="add-product-btn" onClick={openAddModal}>
             Add Product
@@ -493,6 +479,8 @@ function AllProducts() {
                     onChange={handleInputChange}
                     className={productNameError ? "error-input" : ""}
                     required
+                    pattern=".*[a-zA-Z].*"
+                    title="Product name must contain letters and cannot be only numbers"
                   />
                   {productNameError && <div className="error-message">{productNameError}</div>}
                 </div>
@@ -504,8 +492,10 @@ function AllProducts() {
                     value={formData.category_id}
                     onChange={handleInputChange}
                     required
+                    onInvalid={(e) => e.target.setCustomValidity('Please select a category')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   >
-                    <option value="" disabled hidden>Select Category</option>
+                    <option value="" disabled>-- Select Category --</option>
                     {categories.map((category) => (
                       <option key={category._id} value={category._id}>
                         {category.name}
@@ -524,6 +514,8 @@ function AllProducts() {
                     onChange={handleInputChange}
                     required
                     min="0"
+                    onInvalid={(e) => e.target.setCustomValidity('Stock quantity must be greater than or equal to 0')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
                 </div>
                 
@@ -537,6 +529,8 @@ function AllProducts() {
                     onChange={handleInputChange}
                     required
                     min="0"
+                    onInvalid={(e) => e.target.setCustomValidity('Minimum stock must be greater than or equal to 0')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
                   <small style={{color: '#666', fontSize: '12px', marginTop: '5px'}}>
                     Product will show "Low Stock" when quantity reaches this level
@@ -553,6 +547,9 @@ function AllProducts() {
                     value={formData.unit_price}
                     onChange={handleInputChange}
                     required
+                    min="0"
+                    onInvalid={(e) => e.target.setCustomValidity('Unit price must be greater than or equal to 0')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
                 </div>
 
@@ -614,6 +611,8 @@ function AllProducts() {
                     onChange={handleInputChange}
                     className={productNameError ? "error-input" : ""}
                     required
+                    pattern=".*[a-zA-Z].*"
+                    title="Product name must contain letters and cannot be only numbers"
                   />
                   {productNameError && <div className="error-message">{productNameError}</div>}
                 </div>
@@ -625,8 +624,10 @@ function AllProducts() {
                     value={formData.category_id}
                     onChange={handleInputChange}
                     required
+                    onInvalid={(e) => e.target.setCustomValidity('Please select a category')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   >
-                    <option value="" disabled hidden>Select Category</option>
+                    <option value="" disabled>-- Select Category --</option>
                     {categories.map((category) => (
                       <option key={category._id} value={category._id}>
                         {category.name}
@@ -645,6 +646,8 @@ function AllProducts() {
                     onChange={handleInputChange}
                     required
                     min="0"
+                    onInvalid={(e) => e.target.setCustomValidity('Stock quantity must be greater than or equal to 0')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
                 </div>
                 
@@ -658,6 +661,8 @@ function AllProducts() {
                     onChange={handleInputChange}
                     required
                     min="0"
+                    onInvalid={(e) => e.target.setCustomValidity('Minimum stock must be greater than or equal to 0')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
                   <small style={{color: '#666', fontSize: '12px', marginTop: '5px'}}>
                     Product will show "Low Stock" when quantity reaches this level
@@ -674,6 +679,9 @@ function AllProducts() {
                     value={formData.unit_price}
                     onChange={handleInputChange}
                     required
+                    min="0"
+                    onInvalid={(e) => e.target.setCustomValidity('Unit price must be greater than or equal to 0')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
                 </div>
 
