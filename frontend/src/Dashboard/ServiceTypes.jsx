@@ -21,13 +21,11 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
   
   const [formData, setFormData] = useState({
     service_name: "",
     category_id: "",
-    status: "Active"
+    status: ""
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -63,11 +61,9 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
         }
       } else {
         console.error('Failed to fetch service types');
-        showError('Failed to load service types');
       }
     } catch (error) {
       console.error('Error fetching service types:', error);
-      showError('Error loading service types');
     } finally {
       setLoading(false);
     }
@@ -93,9 +89,6 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
         
         setCategories(categoriesData);
         
-        if (categoriesData.length > 0 && !formData.category_id) {
-          setFormData(prev => ({ ...prev, category_id: categoriesData[0]._id }));
-        }
       } else {
         console.error('Failed to fetch categories');
       }
@@ -139,36 +132,28 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
     }
   };
 
-  const checkServiceName = async (serviceName) => {
+  const checkServiceName = (serviceName) => {
     if (!serviceName) {
       setServiceNameError("");
       return;
     }
 
-    try {
-      const response = await fetch(`${API_BASE}/service_types`);
-      const allServicesData = await response.json();
-      
-      // Handle different response formats
-      let allServices = [];
-      if (Array.isArray(allServicesData)) {
-        allServices = allServicesData;
-      } else if (allServicesData.service_types && Array.isArray(allServicesData.service_types)) {
-        allServices = allServicesData.service_types;
-      }
-      
-      const existingService = allServices.find(service => 
-        service.service_name.toLowerCase() === serviceName.toLowerCase() &&
-        (!selectedServiceType || service._id !== selectedServiceType._id)
-      );
+    // Check if service name contains only numbers
+    if (/^\d+$/.test(serviceName)) {
+      setServiceNameError("Service name cannot contain only numbers");
+      return;
+    }
 
-      if (existingService) {
-        setServiceNameError("Service type name already exists");
-      } else {
-        setServiceNameError("");
-      }
-    } catch (error) {
-      console.error('Error checking service name:', error);
+    // Check if service name already exists
+    const existingService = serviceTypes.find(service => 
+      service.service_name.toLowerCase() === serviceName.toLowerCase() &&
+      (!selectedServiceType || service._id !== selectedServiceType._id)
+    );
+
+    if (existingService) {
+      setServiceNameError("Service name already exists");
+    } else {
+      setServiceNameError("");
     }
   };
 
@@ -184,28 +169,18 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
   const resetForm = () => {
     setFormData({
       service_name: "",
-      category_id: categories.length > 0 ? categories[0]._id : "",
-      status: "Active"
+      category_id: "",
+      status: ""
     });
     setSelectedServiceType(null);
     setServiceNameError("");
-  };
-
-  const showError = (message) => {
-    setErrorMessage(message);
-    setShowErrorModal(true);
-  };
-
-  const closeErrorModal = () => {
-    setShowErrorModal(false);
-    setErrorMessage("");
   };
 
   const handleAddServiceType = async (e) => {
     e.preventDefault();
     
     if (serviceNameError) {
-      showError("Please fix the service name error before saving.");
+      alert("Please fix the service name error before saving.");
       return;
     }
 
@@ -230,12 +205,12 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
         }, 1500);
       } else {
         const error = await response.json();
-        showError(error.error || 'Failed to create service type');
+        alert(error.error || 'Failed to create service type');
         setLoading(false);
       }
     } catch (error) {
       console.error('Error creating service type:', error);
-      showError('Error creating service type');
+      alert('Error creating service type');
       setLoading(false);
     }
   };
@@ -255,7 +230,7 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
     e.preventDefault();
     
     if (serviceNameError) {
-      showError("Please fix the service name error before updating.");
+      alert("Please fix the service name error before updating.");
       return;
     }
 
@@ -280,12 +255,12 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
         }, 1500);
       } else {
         const error = await response.json();
-        showError(error.error || 'Failed to update service type');
+        alert(error.error || 'Failed to update service type');
         setLoading(false);
       }
     } catch (error) {
       console.error('Error updating service type:', error);
-      showError('Error updating service type');
+      alert('Error updating service type');
       setLoading(false);
     }
   };
@@ -320,12 +295,12 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
         }, 1500);
       } else {
         const error = await response.json();
-        showError(error.error || 'Failed to delete service type');
+        alert(error.error || 'Failed to delete service type');
         setDeleting(false);
       }
     } catch (error) {
       console.error('Error deleting service type:', error);
-      showError('Error deleting service type');
+      alert('Error deleting service type');
       setDeleting(false);
     }
   };
@@ -363,8 +338,6 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
 
   return (
     <div className="service-types-page">
-      {/* REMOVED THE HEADER - Now handled by Dashboard.jsx */}
-
       <div className="table-container">
         <table className="service-types-table">
           <thead>
@@ -483,6 +456,8 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
                     onChange={handleInputChange}
                     className={serviceNameError ? "error-input" : ""}
                     required
+                    pattern=".*[a-zA-Z].*"
+                    title="Service name must contain letters and cannot be only numbers"
                   />
                   {serviceNameError && <div className="error-message">{serviceNameError}</div>}
                 </div>
@@ -494,8 +469,10 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
                     value={formData.category_id}
                     onChange={handleInputChange}
                     required
+                    onInvalid={(e) => e.target.setCustomValidity('Please select a category')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   >
-                    <option value="">Select Category</option>
+                    <option value="" disabled>Select Category</option>
                     {categories.map(category => (
                       <option key={category._id} value={category._id}>
                         {category.name}
@@ -511,7 +488,10 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
                     value={formData.status}
                     onChange={handleInputChange}
                     required
+                    onInvalid={(e) => e.target.setCustomValidity('Please select a status')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   >
+                    <option value="" disabled>Select Status</option>
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
                   </select>
@@ -575,6 +555,8 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
                     onChange={handleInputChange}
                     className={serviceNameError ? "error-input" : ""}
                     required
+                    pattern=".*[a-zA-Z].*"
+                    title="Service name must contain letters and cannot be only numbers"
                   />
                   {serviceNameError && <div className="error-message">{serviceNameError}</div>}
                 </div>
@@ -586,8 +568,10 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
                     value={formData.category_id}
                     onChange={handleInputChange}
                     required
+                    onInvalid={(e) => e.target.setCustomValidity('Please select a category')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   >
-                    <option value="">Select Category</option>
+                    <option value="" disabled>Select Category</option>
                     {categories.map(category => (
                       <option key={category._id} value={category._id}>
                         {category.name}
@@ -603,7 +587,10 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
                     value={formData.status}
                     onChange={handleInputChange}
                     required
+                    onInvalid={(e) => e.target.setCustomValidity('Please select a status')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   >
+                    <option value="" disabled>Select Status</option>
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
                   </select>
@@ -661,22 +648,6 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
                 </div>
               </>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* ERROR MODAL */}
-      {showErrorModal && (
-        <div className="overlay">
-          <div className="add-form error-modal">
-            <div className="error-icon">⚠️</div>
-            <h3>Operation Failed</h3>
-            <p className="error-message-text">{errorMessage}</p>
-            <div className="form-buttons">
-              <button className="cancel-btn" onClick={closeErrorModal}>
-                OK
-              </button>
-            </div>
           </div>
         </div>
       )}

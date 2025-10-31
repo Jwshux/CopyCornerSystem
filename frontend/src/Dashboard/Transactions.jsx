@@ -19,6 +19,8 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState(null);
 
+  const [customerNameError, setCustomerNameError] = useState("");
+
   const [formData, setFormData] = useState({
     queue_number: "",
     transaction_id: "",
@@ -46,10 +48,19 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     }
   }, [showAddModal]);
 
-  const validateCustomerName = (name) => {
-    if (!name || !name.trim()) return false;
-    const nameRegex = /^[A-Za-z\s.,'-]+$/;
-    return nameRegex.test(name);
+  const checkCustomerName = (customerName) => {
+    if (!customerName) {
+      setCustomerNameError("");
+      return;
+    }
+
+    // Check if customer name contains only numbers
+    if (/^\d+$/.test(customerName)) {
+      setCustomerNameError("Customer name cannot contain only numbers");
+      return;
+    }
+
+    setCustomerNameError("");
   };
 
   // Fetch transactions
@@ -205,7 +216,14 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     if (name === "price_per_unit" || name === "quantity") {
       const price = parseFloat(updated.price_per_unit) || 0;
       const qty = parseFloat(updated.quantity) || 0;
-      updated.total_amount = (price * qty).toFixed(2);
+      
+      // Only calculate total if both values are positive
+      if (price >= 0 && qty >= 0) {
+        updated.total_amount = (price * qty).toFixed(2);
+      } else {
+        // If negative values, don't calculate or set to 0
+        updated.total_amount = "0.00";
+      }
     }
 
     if (name === "service_type") {
@@ -215,6 +233,10 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       updated.supply_type = "";
       updated.product_type = "";
       updated.total_pages = "";
+    }
+
+    if (name === "customer_name") {
+      checkCustomerName(value);
     }
 
     setFormData(updated);
@@ -241,6 +263,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       status: "Pending",
       date: dateString,
     });
+    setCustomerNameError("");
     setIsEditing(false);
     setShowFormModal(true);
   };
@@ -281,6 +304,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       status: transaction.status || "Pending",
       date: transaction.date || new Date().toISOString().split("T")[0],
     });
+    setCustomerNameError("");
     setEditIndex(transaction._id);
     setIsEditing(true);
     setShowFormModal(true);
@@ -289,8 +313,9 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   const handleSave = async (e) => {
     e.preventDefault();
     
-    if (!validateCustomerName(formData.customer_name)) {
-      alert("Please enter a valid customer name (letters, spaces, periods, commas, hyphens only - no numbers or special characters)");
+    // LIKE SERVICE TYPES: Check for custom validation errors before submitting
+    if (customerNameError) {
+      alert("Please fix the customer name error before saving.");
       return;
     }
 
@@ -489,6 +514,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       status: "Pending",
       date: "",
     });
+    setCustomerNameError("");
     setEditIndex(null);
   };
 
@@ -714,8 +740,14 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                   placeholder="Customer Name (e.g., Juan Dela Cruz)"
                   value={formData.customer_name}
                   onChange={handleChange}
+                  className={customerNameError ? "error-input" : ""}
                   required
+                  pattern=".*[a-zA-Z].*"
+                  title="Customer name must contain letters and cannot be only numbers"
+                  onInvalid={(e) => e.target.setCustomValidity('Please enter a valid customer name')}
+                  onInput={(e) => e.target.setCustomValidity('')}
                 />
+                {customerNameError && <div className="error-message">{customerNameError}</div>}
               </div>
               
               <div className="form-group">
@@ -725,8 +757,10 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                   value={formData.service_type}
                   onChange={handleChange}
                   required
+                  onInvalid={(e) => e.target.setCustomValidity('Please select a service type')}
+                  onInput={(e) => e.target.setCustomValidity('')}
                 >
-                  <option value="">Select Service Type</option>
+                  <option value="" disabled>Select Service Type</option>
                   {serviceTypeOptions.map((option) => (
                     <option key={option} value={option}>
                       {option}
@@ -750,8 +784,10 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                       }));
                     }}
                     required
+                    onInvalid={(e) => e.target.setCustomValidity('Please select a product')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   >
-                    <option value="">Select Product</option>
+                    <option value="" disabled>Select Product</option>
                     {getServiceOptions(formData.service_type).map((option) => (
                       <option key={option} value={option}>
                         {option}
@@ -773,6 +809,8 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                     onChange={handleChange}
                     required
                     min="1"
+                    onInvalid={(e) => e.target.setCustomValidity('Pages cannot be below 1')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
                 </div>
               )}
@@ -788,6 +826,9 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                     value={formData.price_per_unit}
                     onChange={handleChange}
                     required
+                    min="0"
+                    onInvalid={(e) => e.target.setCustomValidity('Price must be greater than or equal to 0')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
                 </div>
                 <div className="form-group">
@@ -800,6 +841,8 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                     onChange={handleChange}
                     required
                     min="1"
+                    onInvalid={(e) => e.target.setCustomValidity('Quantity must be greater than or equal to 1')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
                 </div>
               </div>
@@ -815,7 +858,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
               </div>
 
               <div className="form-buttons">
-                <button type="submit" className="save-btn">
+                <button type="submit" className="save-btn" disabled={customerNameError}>
                   {isEditing ? "Update" : "Save"}
                 </button>
                 <button

@@ -500,7 +500,7 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                     onInvalid={(e) => e.target.setCustomValidity('Please select a category')}
                     onInput={(e) => e.target.setCustomValidity('')}
                   >
-                    <option value="" disabled>-- Select Category --</option>
+                    <option value="" disabled>Select Category</option>
                     {categories.map((category) => (
                       <option key={category._id} value={category._id}>
                         {category.name}

@@ -94,6 +94,12 @@ const Categories = () => {
       return;
     }
 
+    // Check if category name contains only numbers
+    if (/^\d+$/.test(categoryName)) {
+      setCategoryNameError("Category name cannot contain only numbers");
+      return;
+    }
+
     const existingCategory = categories.find(cat => 
       cat.name.toLowerCase() === categoryName.toLowerCase()
     );
@@ -109,6 +115,12 @@ const Categories = () => {
   const checkEditCategoryName = (categoryName) => {
     if (!categoryName) {
       setEditCategoryNameError("");
+      return;
+    }
+
+    // Check if category name contains only numbers
+    if (/^\d+$/.test(categoryName)) {
+      setEditCategoryNameError("Category name cannot contain only numbers");
       return;
     }
 
@@ -329,6 +341,10 @@ const Categories = () => {
               onChange={handleAddNameChange}
               className={categoryNameError ? "error-input" : ""}
               required
+              pattern=".*[a-zA-Z].*"
+              title="Category name must contain letters and cannot be only numbers"
+              onInvalid={(e) => e.target.setCustomValidity('Please fill up the category name')}
+              onInput={(e) => e.target.setCustomValidity('')}
             />
             {categoryNameError && <div className="error-message">{categoryNameError}</div>}
           </div>
@@ -338,12 +354,14 @@ const Categories = () => {
               value={newDescription}
               onChange={handleAddDescriptionChange}
               required
+              onInvalid={(e) => e.target.setCustomValidity('Please fill up the description')}
+              onInput={(e) => e.target.setCustomValidity('')}
             />
           </div>
           <button 
             type="submit" 
             className="add-btn" 
-            disabled={addingLoading}
+            disabled={addingLoading || categoryNameError}
           >
             {addingLoading ? "Adding..." : "Add Category"}
           </button>
@@ -460,6 +478,10 @@ const Categories = () => {
                     onChange={handleEditInputChange}
                     className={editCategoryNameError ? "error-input" : ""}
                     required
+                    pattern=".*[a-zA-Z].*"
+                    title="Category name must contain letters and cannot be only numbers"
+                    onInvalid={(e) => e.target.setCustomValidity('Please fill up the category name')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
                   {editCategoryNameError && <div className="error-message">{editCategoryNameError}</div>}
                 </div>
@@ -471,14 +493,17 @@ const Categories = () => {
                     value={selectedCategory.description || ""}
                     onChange={handleEditInputChange}
                     required
+                    onInvalid={(e) => e.target.setCustomValidity('Please fill up the description')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
                 </div>
                 <div className="form-buttons">
                   <button 
                     type="submit" 
                     className="save-btn" 
+                    disabled={updatingLoading || editCategoryNameError}
                   >
-                    Update
+                    {updatingLoading ? "Updating..." : "Update"}
                   </button>
                   <button type="button" className="cancel-btn" onClick={closeEditModal}>
                     Cancel

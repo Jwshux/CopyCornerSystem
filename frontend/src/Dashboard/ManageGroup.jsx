@@ -15,8 +15,8 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
   const [currentGroup, setCurrentGroup] = useState({
     _id: null,
     group_name: "",
-    group_level: "1", // Default to level 1 (Staff)
-    status: "Active",
+    group_level: "", // Changed to empty string for placeholder
+    status: "", // Changed to empty string for placeholder
   });
   const [groupToDelete, setGroupToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -105,13 +105,20 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     }
   };
 
-  // Check if group name exists
+  // Check if group name is valid
   const checkGroupName = (groupName) => {
     if (!groupName) {
       setGroupNameError("");
       return;
     }
 
+    // Check if group name contains only numbers
+    if (/^\d+$/.test(groupName)) {
+      setGroupNameError("Role name cannot contain only numbers");
+      return;
+    }
+
+    // Check if group name already exists
     const existingGroup = groups.find(group => 
       group.group_name.toLowerCase() === groupName.toLowerCase() &&
       (!currentGroup._id || group._id !== currentGroup._id)
@@ -286,8 +293,8 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     setCurrentGroup({
       _id: null,
       group_name: "",
-      group_level: "1", // Default to Staff level
-      status: "Active"
+      group_level: "", // Empty for placeholder
+      status: "" // Empty for placeholder
     });
     setGroupNameError("");
     setShowForm(true);
@@ -299,8 +306,8 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     setCurrentGroup({
       _id: null,
       group_name: "",
-      group_level: "1",
-      status: "Active"
+      group_level: "", // Reset to empty for placeholder
+      status: "" // Reset to empty for placeholder
     });
     setGroupNameError("");
     if (onAddModalClose) {
@@ -415,7 +422,11 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
                   onChange={handleInputChange}
                   className={groupNameError ? "error-input" : ""}
                   placeholder="e.g., Administrator, Staff Member"
-                  required 
+                  required
+                  pattern=".*[a-zA-Z].*"
+                  title="Role name must contain letters and cannot be only numbers"
+                  onInvalid={(e) => e.target.setCustomValidity('Please enter a valid role name')}
+                  onInput={(e) => e.target.setCustomValidity('')}
                 />
                 {groupNameError && <div className="error-message">{groupNameError}</div>}
                 
@@ -425,7 +436,10 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
                   value={currentGroup.group_level}
                   onChange={handleInputChange}
                   required
+                  onInvalid={(e) => e.target.setCustomValidity('Please select a role level')}
+                  onInput={(e) => e.target.setCustomValidity('')}
                 >
+                  <option value="" disabled>Select Role Level</option>
                   {roleLevels.map(level => (
                     <option key={level.value} value={level.value}>
                       {level.label}
@@ -433,7 +447,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
                   ))}
                 </select>
                 <div className="level-description">
-                  {getLevelDescription(currentGroup.group_level)}
+                  {currentGroup.group_level ? getLevelDescription(currentGroup.group_level) : "Please select a role level to see description"}
                 </div>
                 
                 <label>Status</label>
@@ -441,7 +455,11 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
                   name="status"
                   value={currentGroup.status}
                   onChange={handleInputChange}
+                  required
+                  onInvalid={(e) => e.target.setCustomValidity('Please select a status')}
+                  onInput={(e) => e.target.setCustomValidity('')}
                 >
+                  <option value="" disabled>Select Status</option>
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
                 </select>

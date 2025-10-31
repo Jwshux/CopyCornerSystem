@@ -25,13 +25,14 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     name: "",
     username: "",
     password: "",
-    role: "",
-    status: "Active",
+    role: "", // Changed to empty string for placeholder
+    status: "", // Changed to empty string for placeholder
     studentNumber: null,
     course: null,
     section: null
   });
   const [usernameError, setUsernameError] = useState("");
+  const [nameError, setNameError] = useState(""); // Added for full name validation
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -64,9 +65,6 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         const data = await response.json();
         setRoles(data);
-        if (data.length > 0 && !formData.role) {
-          setFormData(prev => ({ ...prev, role: data[0] }));
-        }
       }
     } catch (error) {
       console.error('Error fetching roles:', error);
@@ -121,6 +119,13 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       return;
     }
 
+    // Check if username contains only numbers (SAME AS MANAGEGROUP)
+    if (/^\d+$/.test(username)) {
+      setUsernameError("Username cannot contain only numbers");
+      return;
+    }
+
+    // Check if username already exists
     const existingUser = users.find(user => 
       user.username.toLowerCase() === username.toLowerCase() &&
       (!selectedUser || user._id !== selectedUser._id)
@@ -131,6 +136,21 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     } else {
       setUsernameError("");
     }
+  };
+
+  const checkName = (name) => {
+    if (!name) {
+      setNameError("");
+      return;
+    }
+
+    // Check if name contains only numbers (SAME AS MANAGEGROUP)
+    if (/^\d+$/.test(name)) {
+      setNameError("Full name cannot contain only numbers");
+      return;
+    }
+
+    setNameError("");
   };
 
   const handleInputChange = (e) => {
@@ -145,6 +165,10 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     if (name === "username") {
       checkUsername(value);
     }
+    
+    if (name === "name") {
+      checkName(value);
+    }
   };
 
   const resetForm = () => {
@@ -152,14 +176,15 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       name: "",
       username: "",
       password: "",
-      role: roles.length > 0 ? roles[0] : "",
-      status: "Active",
+      role: "", // Reset to empty for placeholder
+      status: "", // Reset to empty for placeholder
       studentNumber: null,
       course: null,
       section: null
     });
     setSelectedUser(null);
     setUsernameError("");
+    setNameError(""); // Reset name error
     setSaveSuccess(false);
   };
 
@@ -170,8 +195,8 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
   const handleAddUser = async (e) => {
     if (e) e.preventDefault();
     
-    if (usernameError) {
-      setErrorMessage("Please fix the username error before saving.");
+    if (usernameError || nameError) {
+      setErrorMessage("Please fix the form errors before saving.");
       setShowErrorModal(true);
       return;
     }
@@ -253,14 +278,15 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       section: user.section || null
     });
     setUsernameError("");
+    setNameError(""); // Reset name error
     setShowEditModal(true);
   };
 
   const handleUpdateUser = async (e) => {
     if (e) e.preventDefault();
     
-    if (usernameError) {
-      setErrorMessage("Please fix the username error before updating.");
+    if (usernameError || nameError) {
+      setErrorMessage("Please fix the form errors before updating.");
       setShowErrorModal(true);
       return;
     }
@@ -559,8 +585,14 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                   value={formData.name} 
                   onChange={handleInputChange} 
                   placeholder="Full Name" 
+                  className={nameError ? "error-input" : ""}
                   required 
+                  pattern=".*[a-zA-Z].*"
+                  title="Full name must contain letters and cannot be only numbers"
+                  onInvalid={(e) => e.target.setCustomValidity('Please enter a valid full name')}
+                  onInput={(e) => e.target.setCustomValidity('')}
                 />
+                {nameError && <div className="error-message">{nameError}</div>}
                 
                 <label>Username</label>
                 <input 
@@ -569,7 +601,11 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                   onChange={handleInputChange} 
                   placeholder="Username" 
                   className={usernameError ? "error-input" : ""}
-                  required 
+                  required
+                  pattern=".*[a-zA-Z].*"
+                  title="Username must contain letters and cannot be only numbers"
+                  onInvalid={(e) => e.target.setCustomValidity('Please enter a valid username')}
+                  onInput={(e) => e.target.setCustomValidity('')}
                 />
                 {usernameError && <div className="error-message">{usernameError}</div>}
                 
@@ -581,10 +617,20 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                   onChange={handleInputChange} 
                   placeholder="Password" 
                   required 
+                  onInvalid={(e) => e.target.setCustomValidity('Please enter password')}
+                  onInput={(e) => e.target.setCustomValidity('')}
                 />
                 
                 <label>User Role</label>
-                <select name="role" value={formData.role} onChange={handleInputChange} required>
+                <select 
+                  name="role" 
+                  value={formData.role} 
+                  onChange={handleInputChange} 
+                  required
+                  onInvalid={(e) => e.target.setCustomValidity('Please select a user role')}
+                  onInput={(e) => e.target.setCustomValidity('')}
+                >
+                  <option value="" disabled>Select Role</option>
                   {roles.map((role) => (
                     <option key={role} value={role}>{role}</option>
                   ))}
@@ -599,6 +645,8 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                       onChange={handleInputChange} 
                       placeholder="e.g., 2023-00123" 
                       required={isStaffRole()}
+                      onInvalid={(e) => e.target.setCustomValidity('Please enter student number')}
+                      onInput={(e) => e.target.setCustomValidity('')}
                     />
                     
                     <label>Course</label>
@@ -608,6 +656,8 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                       onChange={handleInputChange} 
                       placeholder="e.g., BSIT, BSCS, BSIS" 
                       required={isStaffRole()}
+                      onInvalid={(e) => e.target.setCustomValidity('Please enter course')}
+                      onInput={(e) => e.target.setCustomValidity('')}
                     />
                     
                     <label>Section</label>
@@ -617,18 +667,28 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                       onChange={handleInputChange} 
                       placeholder="e.g., 3A, 2B" 
                       required={isStaffRole()}
+                      onInvalid={(e) => e.target.setCustomValidity('Please enter section')}
+                      onInput={(e) => e.target.setCustomValidity('')}
                     />
                   </>
                 )}
                 
                 <label>Status</label>
-                <select name="status" value={formData.status} onChange={handleInputChange}>
-                  <option>Active</option>
-                  <option>Inactive</option>
+                <select 
+                  name="status" 
+                  value={formData.status} 
+                  onChange={handleInputChange}
+                  required
+                  onInvalid={(e) => e.target.setCustomValidity('Please select a status')}
+                  onInput={(e) => e.target.setCustomValidity('')}
+                >
+                  <option value="" disabled>Select Status</option>
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
                 </select>
 
                 <div className="modal-buttons">
-                  <button type="submit" className="save-btn" disabled={usernameError}>
+                  <button type="submit" className="save-btn" disabled={usernameError || nameError}>
                     Save
                   </button>
                   <button type="button" className="cancel-btn" onClick={closeModals}>
@@ -671,8 +731,14 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                   name="name" 
                   value={formData.name} 
                   onChange={handleInputChange} 
+                  className={nameError ? "error-input" : ""}
                   required 
+                  pattern=".*[a-zA-Z].*"
+                  title="Full name must contain letters and cannot be only numbers"
+                  onInvalid={(e) => e.target.setCustomValidity('Please enter a valid full name')}
+                  onInput={(e) => e.target.setCustomValidity('')}
                 />
+                {nameError && <div className="error-message">{nameError}</div>}
                 
                 <label>Username</label>
                 <input 
@@ -680,7 +746,11 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                   value={formData.username} 
                   onChange={handleInputChange} 
                   className={usernameError ? "error-input" : ""}
-                  required 
+                  required
+                  pattern=".*[a-zA-Z].*"
+                  title="Username must contain letters and cannot be only numbers"
+                  onInvalid={(e) => e.target.setCustomValidity('Please enter a valid username')}
+                  onInput={(e) => e.target.setCustomValidity('')}
                 />
                 {usernameError && <div className="error-message">{usernameError}</div>}
                 
@@ -694,7 +764,15 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                 />
                 
                 <label>User Role</label>
-                <select name="role" value={formData.role} onChange={handleInputChange} required>
+                <select 
+                  name="role" 
+                  value={formData.role} 
+                  onChange={handleInputChange} 
+                  required
+                  onInvalid={(e) => e.target.setCustomValidity('Please select a user role')}
+                  onInput={(e) => e.target.setCustomValidity('')}
+                >
+                  <option value="" disabled>Select Role</option>
                   {roles.map((role) => (
                     <option key={role} value={role}>{role}</option>
                   ))}
@@ -709,6 +787,8 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                       onChange={handleInputChange} 
                       placeholder="e.g., 2023-00123" 
                       required={isStaffRole()}
+                      onInvalid={(e) => e.target.setCustomValidity('Please enter student number')}
+                      onInput={(e) => e.target.setCustomValidity('')}
                     />
                     
                     <label>Course</label>
@@ -718,6 +798,8 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                       onChange={handleInputChange} 
                       placeholder="e.g., BSIT, BSCS, BSIS" 
                       required={isStaffRole()}
+                      onInvalid={(e) => e.target.setCustomValidity('Please enter course')}
+                      onInput={(e) => e.target.setCustomValidity('')}
                     />
                     
                     <label>Section</label>
@@ -727,18 +809,28 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                       onChange={handleInputChange} 
                       placeholder="e.g., 3A, 2B" 
                       required={isStaffRole()}
+                      onInvalid={(e) => e.target.setCustomValidity('Please enter section')}
+                      onInput={(e) => e.target.setCustomValidity('')}
                     />
                   </>
                 )}
                 
                 <label>Status</label>
-                <select name="status" value={formData.status} onChange={handleInputChange}>
-                  <option>Active</option>
-                  <option>Inactive</option>
+                <select 
+                  name="status" 
+                  value={formData.status} 
+                  onChange={handleInputChange}
+                  required
+                  onInvalid={(e) => e.target.setCustomValidity('Please select a status')}
+                  onInput={(e) => e.target.setCustomValidity('')}
+                >
+                  <option value="" disabled>Select Status</option>
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
                 </select>
 
                 <div className="modal-buttons">
-                  <button type="submit" className="save-btn" disabled={usernameError}>
+                  <button type="submit" className="save-btn" disabled={usernameError || nameError}>
                     Update
                   </button>
                   <button type="button" className="cancel-btn" onClick={closeModals}>
