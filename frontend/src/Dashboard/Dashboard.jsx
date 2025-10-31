@@ -22,6 +22,7 @@ function AdminDashboard({ user, onLogout }) {
   });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [userRoleLevel, setUserRoleLevel] = useState(0); // Default to admin level
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
   const profileRef = useRef(null);
 
   // Get user role level immediately from user data or localStorage
@@ -159,7 +160,10 @@ function AdminDashboard({ user, onLogout }) {
       case "Dashboard":
         return <DashboardUI />;
       case "All Products":
-        return <AllProducts />;
+        return <AllProducts 
+          showAddModal={showAddProductModal}
+          onAddModalClose={() => setShowAddProductModal(false)}
+        />;
       case "Categories":
         return <Categories />;
       case "Manage Roles":
@@ -353,6 +357,11 @@ function AdminDashboard({ user, onLogout }) {
       <main className="main">
         <div className="page-header">
           <h2 className="page-title">{getPageTitle()}</h2>
+          {activePage === "All Products" && (
+            <button className="add-product-btn" onClick={() => setShowAddProductModal(true)}>
+              Add Product
+            </button>
+          )}
         </div>
         <div className="content-container">
           {renderContent()}

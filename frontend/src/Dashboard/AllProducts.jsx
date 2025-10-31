@@ -7,7 +7,7 @@ import deleteAnimation from "../animations/delete.json";
 
 const API_BASE = "http://localhost:5000/api";
 
-function AllProducts() {
+function AllProducts({ showAddModal, onAddModalClose }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -34,6 +34,13 @@ function AllProducts() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Handle modal from parent
+  useEffect(() => {
+    if (showAddModal) {
+      setShowAddForm(true);
+    }
+  }, [showAddModal]);
 
   const fetchProducts = async (page = 1) => {
     setLoading(true);
@@ -99,6 +106,9 @@ function AllProducts() {
   useEffect(() => {
     if (!showAddForm) {
       setAddSuccess(false);
+      if (onAddModalClose) {
+        onAddModalClose();
+      }
     }
     if (!showEditModal) {
       setUpdateSuccess(false);
@@ -322,6 +332,9 @@ function AllProducts() {
     setShowAddForm(false);
     setShowEditModal(false);
     resetForm();
+    if (onAddModalClose) {
+      onAddModalClose();
+    }
   };
 
   const formatPrice = (price) => {
@@ -345,14 +358,6 @@ function AllProducts() {
 
   return (
     <div className="product-page">
-      <div className="product-header">
-        <div className="header-right">
-          <button className="add-product-btn" onClick={openAddModal}>
-            Add Product
-          </button>
-        </div>
-      </div>
-
       <div className="table-container">
         <table className="product-table">
           <thead>
