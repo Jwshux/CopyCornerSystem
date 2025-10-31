@@ -7,7 +7,7 @@ import deleteAnimation from "../animations/delete.json";
 
 const API_BASE = "http://localhost:5000/api";
 
-function ManageGroup() {
+function ManageGroup({ showAddModal, onAddModalClose }) {
   const [groups, setGroups] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -44,6 +44,13 @@ function ManageGroup() {
     }
   ];
 
+  // Handle modal from parent
+  useEffect(() => {
+    if (showAddModal) {
+      handleAddNewGroup();
+    }
+  }, [showAddModal]);
+
   // Fetch groups from backend
   const fetchGroups = async (page = 1) => {
     setLoading(true);
@@ -72,6 +79,9 @@ function ManageGroup() {
   useEffect(() => {
     if (!showForm) {
       setSaveSuccess(false);
+      if (onAddModalClose) {
+        onAddModalClose();
+      }
     }
   }, [showForm]);
 
@@ -293,15 +303,14 @@ function ManageGroup() {
       status: "Active"
     });
     setGroupNameError("");
+    if (onAddModalClose) {
+      onAddModalClose();
+    }
   };
 
   return (
     <div className="manage-group-page">
-      <div className="header-section">
-        <button className="add-btn" onClick={handleAddNewGroup}>
-          ADD NEW ROLE
-        </button>
-      </div>
+      {/* REMOVED THE HEADER - Now handled by Dashboard.jsx */}
 
       <table className="group-table">
         <thead>

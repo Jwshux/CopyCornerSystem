@@ -7,7 +7,7 @@ import deleteAnimation from "../animations/delete.json";
 
 const API_BASE = "http://localhost:5000/api";
 
-function ServiceTypes() {
+function ServiceTypes({ showAddModal, onAddModalClose }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -32,6 +32,13 @@ function ServiceTypes() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Handle modal from parent
+  useEffect(() => {
+    if (showAddModal) {
+      openAddModal();
+    }
+  }, [showAddModal]);
 
   // FIXED: Better API handling with error handling
   const fetchServiceTypes = async (page = 1) => {
@@ -105,6 +112,9 @@ function ServiceTypes() {
   useEffect(() => {
     if (!showAddForm) {
       setAddSuccess(false);
+      if (onAddModalClose) {
+        onAddModalClose();
+      }
     }
     if (!showEditModal) {
       setUpdateSuccess(false);
@@ -329,6 +339,9 @@ function ServiceTypes() {
     setShowAddForm(false);
     setShowEditModal(false);
     resetForm();
+    if (onAddModalClose) {
+      onAddModalClose();
+    }
   };
 
   // Helper function to get category name for display
@@ -350,13 +363,7 @@ function ServiceTypes() {
 
   return (
     <div className="service-types-page">
-      <div className="service-types-header">
-        <div className="header-right">
-          <button className="add-service-type-btn" onClick={openAddModal}>
-            Add Service Type
-          </button>
-        </div>
-      </div>
+      {/* REMOVED THE HEADER - Now handled by Dashboard.jsx */}
 
       <div className="table-container">
         <table className="service-types-table">

@@ -24,6 +24,10 @@ function AdminDashboard({ user, onLogout }) {
   const [userRoleLevel, setUserRoleLevel] = useState(0);
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [showAddScheduleModal, setShowAddScheduleModal] = useState(false);
+  const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
+  const [showAddServiceTypeModal, setShowAddServiceTypeModal] = useState(false);
+  const [showAddRoleModal, setShowAddRoleModal] = useState(false);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
   const profileRef = useRef(null);
 
   useEffect(() => {
@@ -153,9 +157,15 @@ function AdminDashboard({ user, onLogout }) {
       case "Categories":
         return <Categories />;
       case "Manage Roles":
-        return <ManageGroup />;
+        return <ManageGroup 
+          showAddModal={showAddRoleModal}
+          onAddModalClose={() => setShowAddRoleModal(false)}
+        />;
       case "Manage Users":
-        return <ManageUsers />;
+        return <ManageUsers 
+          showAddModal={showAddUserModal}
+          onAddModalClose={() => setShowAddUserModal(false)}
+        />;
       case "All Staffs":
         return <AllStaff />;
       case "Staffs Schedule":
@@ -166,9 +176,15 @@ function AdminDashboard({ user, onLogout }) {
       case "Sales":
         return <Sales />;
       case "Transactions":
-        return <Transactions />;
+        return <Transactions 
+          showAddModal={showAddTransactionModal}
+          onAddModalClose={() => setShowAddTransactionModal(false)}
+        />;
       case "Service Types":
-        return <ServiceTypes />;
+        return <ServiceTypes 
+          showAddModal={showAddServiceTypeModal}
+          onAddModalClose={() => setShowAddServiceTypeModal(false)}
+        />;
       default:
         return <DashboardUI />;
     }
@@ -342,6 +358,26 @@ function AdminDashboard({ user, onLogout }) {
           {activePage === "Staffs Schedule" && (
             <button className="add-product-btn" onClick={() => setShowAddScheduleModal(true)}>
               Add Schedule
+            </button>
+          )}
+          {activePage === "Transactions" && (
+            <button className="add-product-btn" onClick={() => setShowAddTransactionModal(true)}>
+              Add Transaction
+            </button>
+          )}
+          {activePage === "Service Types" && (
+            <button className="add-product-btn" onClick={() => setShowAddServiceTypeModal(true)}>
+              Add Service Type
+            </button>
+          )}
+          {activePage === "Manage Roles" && (
+            <button className="add-product-btn" onClick={() => setShowAddRoleModal(true)}>
+              Add New Role
+            </button>
+          )}
+          {activePage === "Manage Users" && (
+            <button className="add-product-btn" onClick={() => setShowAddUserModal(true)}>
+              Add New User
             </button>
           )}
         </div>

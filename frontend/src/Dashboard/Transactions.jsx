@@ -5,7 +5,7 @@ import loadingAnimation from "../animations/loading.json";
 
 const API_BASE = "http://localhost:5000/api";
 
-const Transactions = () => {
+const Transactions = ({ showAddModal, onAddModalClose }) => {
   const [allProducts, setAllProducts] = useState([]);
   const [serviceTypes, setServiceTypes] = useState([]);
   const [transactions, setTransactions] = useState([]);
@@ -27,7 +27,7 @@ const Transactions = () => {
     paper_type: "",
     size_type: "",
     supply_type: "",
-    product_type: "", // NEW: Unified product field
+    product_type: "",
     total_pages: "",
     price_per_unit: "",
     quantity: "",
@@ -38,6 +38,13 @@ const Transactions = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Handle modal from parent
+  useEffect(() => {
+    if (showAddModal) {
+      handleAdd();
+    }
+  }, [showAddModal]);
 
   const validateCustomerName = (name) => {
     if (!name || !name.trim()) return false;
@@ -226,7 +233,7 @@ const Transactions = () => {
       paper_type: "",
       size_type: "",
       supply_type: "",
-      product_type: "", // NEW
+      product_type: "",
       total_pages: "",
       price_per_unit: "",
       quantity: "",
@@ -266,7 +273,7 @@ const Transactions = () => {
       paper_type: transaction.paper_type || "",
       size_type: transaction.size_type || "",
       supply_type: transaction.supply_type || "",
-      product_type: productType, // NEW
+      product_type: productType,
       total_pages: transaction.total_pages || "",
       price_per_unit: transaction.price_per_unit || "",
       quantity: transaction.quantity || "",
@@ -352,6 +359,9 @@ const Transactions = () => {
         }
         
         setShowFormModal(false);
+        if (onAddModalClose) {
+          onAddModalClose();
+        }
         resetForm();
       } else {
         const error = await response.json();
@@ -471,7 +481,7 @@ const Transactions = () => {
       paper_type: "",
       size_type: "",
       supply_type: "",
-      product_type: "", // NEW
+      product_type: "",
       total_pages: "",
       price_per_unit: "",
       quantity: "",
@@ -539,20 +549,17 @@ const Transactions = () => {
 
   return (
     <div className="transactions-container">
-      <div className="transactions-header">
-        <div className="transactions-controls">
-          <input
-            type="text"
-            placeholder="Search by Queue, Name, or ID"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <button className="add-btn" onClick={handleAdd}>
-            + Add Transaction
-          </button>
-        </div>
+      {/* Search bar only */}
+      <div className="transactions-controls">
+        <input
+          type="text"
+          placeholder="Search by Queue, Name, or ID"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
+      {/* Tabs */}
       <div className="transaction-tabs">
         {["Pending", "Completed", "Cancelled"].map((tab) => (
           <button
@@ -565,6 +572,7 @@ const Transactions = () => {
         ))}
       </div>
 
+      {/* Table */}
       <table className="transactions-table">
         <thead>
           <tr>
@@ -813,7 +821,12 @@ const Transactions = () => {
                 <button
                   type="button"
                   className="cancel-btn"
-                  onClick={() => setShowFormModal(false)}
+                  onClick={() => {
+                    setShowFormModal(false);
+                    if (onAddModalClose) {
+                      onAddModalClose();
+                    }
+                  }}
                 >
                   Cancel
                 </button>

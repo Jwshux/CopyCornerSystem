@@ -7,38 +7,6 @@
   align-items: flex-start;
 }
 
-.service-types-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.loading-indicator {
-  color: #3b82f6;
-  font-weight: bold;
-  padding: 5px 10px;
-  background: #eff6ff;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.add-service-type-btn {
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
 .add-service-type-btn:hover {
   background-color: #2563eb;
 }

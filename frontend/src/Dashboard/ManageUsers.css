@@ -34,21 +34,8 @@ td {
   font-weight: bold;
 }
 
-.add-btn,
 .edit-btn,
 .delete-btn,
-.add-user-form button {
-  margin: 5px;
-  padding: 5px 10px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.add-btn {
-  background: #5bc0de;
-  color: white;
-}
 
 .edit-btn {
   background: #f0ad4e;
@@ -58,13 +45,6 @@ td {
 .delete-btn {
   background: #d9534f;
   color: white;
-}
-
-.table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
 }
 
 /* Modal Overlay */

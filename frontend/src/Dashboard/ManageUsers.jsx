@@ -7,10 +7,9 @@ import deleteAnimation from "../animations/delete.json";
 
 const API_BASE = "http://localhost:5000/api";
 
-function ManageUsers() {
+function ManageUsers({ showAddModal, onAddModalClose }) {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -79,10 +78,20 @@ function ManageUsers() {
     fetchRoles();
   }, []);
 
+  // Handle modal from parent
+  useEffect(() => {
+    if (showAddModal) {
+      resetForm();
+    }
+  }, [showAddModal]);
+
   // Reset save success state when modals close
   useEffect(() => {
     if (!showAddModal && !showEditModal) {
       setSaveSuccess(false);
+      if (onAddModalClose) {
+        onAddModalClose();
+      }
     }
   }, [showAddModal, showEditModal]);
 
@@ -211,9 +220,11 @@ function ManageUsers() {
         // Wait for animation to complete before closing
         setTimeout(async () => {
           await fetchUsers(currentPage);
-          setShowAddModal(false);
           resetForm();
           setSaving(false);
+          if (onAddModalClose) {
+            onAddModalClose();
+          }
         }, 1500);
       } else {
         const error = await response.json();
@@ -405,15 +416,12 @@ function ManageUsers() {
     }
   };
 
-  const openAddModal = () => {
-    resetForm();
-    setShowAddModal(true);
-  };
-
   const closeModals = () => {
-    setShowAddModal(false);
     setShowEditModal(false);
     resetForm();
+    if (onAddModalClose) {
+      onAddModalClose();
+    }
   };
 
   const closeErrorModal = () => {
@@ -451,82 +459,74 @@ function ManageUsers() {
 
   return (
     <div className="manage-users">
-      <div className="user-table">
-        <div className="table-header">
-          <button className="add-btn" onClick={openAddModal}>
-            ADD NEW USER
+      <table className="user-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Username</th>
+            <th>User Role</th>
+            <th>Status</th>
+            <th>Last Login</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.length === 0 ? (
+              <tr>
+                <td colSpan="7" style={{ textAlign: "center", color: "#888" }}>
+                  {loading ? (
+                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                      <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                    </div>
+                  ) : (
+                    "No users found."
+                  )}
+                </td>
+              </tr>
+            ) : (
+            users.map((user, index) => (
+              <tr key={user._id}>
+                <td>{(currentPage - 1) * 10 + index + 1}</td>
+                <td>{user.name}</td>
+                <td>{user.username}</td>
+                <td>{user.role}</td>
+                <td>
+                  <span className={user.status === "Active" ? "active-status" : "inactive-status"}>
+                    {user.status}
+                  </span>
+                </td>
+                <td>{formatDate(user.last_login)}</td>
+                <td>
+                  <button className="edit-btn" onClick={() => handleEditUser(user)}>✏️</button>
+                  <button className="delete-btn" onClick={() => openDeleteModal(user)}>❌</button>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+
+      {/* SIMPLE PAGINATION CONTROLS */}
+        <div className="simple-pagination">
+          <button 
+            className="pagination-btn" 
+            onClick={handlePrevPage}
+            disabled={currentPage === 1 || loading}
+          >
+            Previous
+          </button>
+          <span className="page-info">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button 
+            className="pagination-btn" 
+            onClick={handleNextPage}
+            disabled={currentPage === totalPages || loading}
+          >
+            Next
           </button>
         </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Name</th>
-              <th>Username</th>
-              <th>User Role</th>
-              <th>Status</th>
-              <th>Last Login</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.length === 0 ? (
-                <tr>
-                  <td colSpan="7" style={{ textAlign: "center", color: "#888" }}>
-                    {loading ? (
-                      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
-                        <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
-                      </div>
-                    ) : (
-                      "No users found."
-                    )}
-                  </td>
-                </tr>
-              ) : (
-              users.map((user, index) => (
-                <tr key={user._id}>
-                  <td>{(currentPage - 1) * 10 + index + 1}</td>
-                  <td>{user.name}</td>
-                  <td>{user.username}</td>
-                  <td>{user.role}</td>
-                  <td>
-                    <span className={user.status === "Active" ? "active-status" : "inactive-status"}>
-                      {user.status}
-                    </span>
-                  </td>
-                  <td>{formatDate(user.last_login)}</td>
-                  <td>
-                    <button className="edit-btn" onClick={() => handleEditUser(user)}>✏️</button>
-                    <button className="delete-btn" onClick={() => openDeleteModal(user)}>❌</button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-
-        {/* SIMPLE PAGINATION CONTROLS */}
-          <div className="simple-pagination">
-            <button 
-              className="pagination-btn" 
-              onClick={handlePrevPage}
-              disabled={currentPage === 1 || loading}
-            >
-              Previous
-            </button>
-            <span className="page-info">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button 
-              className="pagination-btn" 
-              onClick={handleNextPage}
-              disabled={currentPage === totalPages || loading}
-            >
-              Next
-            </button>
-          </div>
-      </div>
 
       {/* ADD USER MODAL */}
       {showAddModal && (
@@ -794,7 +794,7 @@ function ManageUsers() {
         </div>
       )}
 
-      {/* ERROR MODAL - Same as Categories */}
+      {/* ERROR MODAL */}
       {showErrorModal && (
         <div className="error-modal-overlay">
           <div className="error-modal-content">

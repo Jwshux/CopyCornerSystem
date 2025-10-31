@@ -5,33 +5,6 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
-.header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.header-section h2 {
-  margin: 0;
-  font-size: 1.3rem;
-  color: #333;
-}
-
-.add-btn {
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.add-btn:hover {
-  background-color: #2563eb;
-}
-
 .group-table {
   width: 100%;
   border-collapse: collapse;
