@@ -387,3 +387,44 @@
   color: #6b7280;
   font-size: 16px;
 }
+
+/* Page Header */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  position: relative;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.page-title {
+  font-size: 1.8rem;
+  color: #00205B;
+  font-weight: 700;
+  margin: 0;
+  padding-bottom: 8px;
+  flex-grow: 1;
+  border-bottom: none;
+}
+
+.add-product-btn {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: background 0.2s ease;
+  margin-left: 20px;
+  position: relative;
+  top: 0;
+}
+
+.add-product-btn:hover {
+  background-color: #2563eb;
+}

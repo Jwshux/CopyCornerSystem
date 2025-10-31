@@ -3,24 +3,24 @@ import "./StaffSchedule.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
-import deleteAnimation from "../animations/delete.json"; // Add this import
+import deleteAnimation from "../animations/delete.json";
 
 const API_BASE = "http://localhost:5000/api";
 
-function StaffSchedule() {
+function StaffSchedule({ showAddModal, onAddModalClose }) {
   const [schedules, setSchedules] = useState([]);
   const [staffList, setStaffList] = useState([]);
-  const [tableLoading, setTableLoading] = useState(false); // For initial table load
-  const [tableActionLoading, setTableActionLoading] = useState(false); // For table CRUD operations (edit/delete)
-  const [modalLoading, setModalLoading] = useState(false); // For modal add operation
+  const [tableLoading, setTableLoading] = useState(false);
+  const [tableActionLoading, setTableActionLoading] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
   const [editing, setEditing] = useState({ id: null });
   const [tempTime, setTempTime] = useState({ start: "", end: "" });
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [scheduleToDelete, setScheduleToDelete] = useState(null);
   const [addSuccess, setAddSuccess] = useState(false);
-  const [deleting, setDeleting] = useState(false); // New state for delete animation
-  const [deleteSuccess, setDeleteSuccess] = useState(false); // New state for delete success
+  const [deleting, setDeleting] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [newEntry, setNewEntry] = useState({
     day: "Monday",
     staff_id: "",
@@ -28,7 +28,13 @@ function StaffSchedule() {
     end_time: "",
   });
 
-  // Fetch schedules from backend - ONLY for initial load
+  // Handle modal from parent
+  useEffect(() => {
+    if (showAddModal) {
+      setShowModal(true);
+    }
+  }, [showAddModal]);
+
   const fetchSchedules = async (isInitialLoad = false) => {
     if (isInitialLoad) {
       setTableLoading(true);
@@ -50,7 +56,6 @@ function StaffSchedule() {
     }
   };
 
-  // Fetch available staff from backend
   const fetchStaff = async () => {
     try {
       const response = await fetch(`${API_BASE}/schedules/staff`);
@@ -69,25 +74,25 @@ function StaffSchedule() {
   };
 
   useEffect(() => {
-    fetchSchedules(true); // Pass true for initial load
+    fetchSchedules(true);
     fetchStaff();
   }, []);
 
-  // Reset add success state when modal closes
   useEffect(() => {
     if (!showModal) {
       setAddSuccess(false);
+      if (onAddModalClose) {
+        onAddModalClose();
+      }
     }
   }, [showModal]);
 
-  // Reset delete success state when modal closes
   useEffect(() => {
     if (!showDeleteModal) {
       setDeleteSuccess(false);
     }
   }, [showDeleteModal]);
 
-  // Group schedules by day
   const scheduleByDay = {
     Monday: schedules.filter(s => s.day === "Monday"),
     Tuesday: schedules.filter(s => s.day === "Tuesday"),
@@ -123,7 +128,7 @@ function StaffSchedule() {
       });
 
       if (response.ok) {
-        await fetchSchedules(); // No loading for refresh
+        await fetchSchedules();
         setEditing({ id: null });
       } else {
         const error = await response.json();
@@ -137,13 +142,11 @@ function StaffSchedule() {
     }
   };
 
-  // Open delete confirmation modal
   const openDeleteModal = (schedule) => {
     setScheduleToDelete(schedule);
     setShowDeleteModal(true);
   };
 
-  // Close delete confirmation modal
   const closeDeleteModal = () => {
     setShowDeleteModal(false);
     setScheduleToDelete(null);
@@ -151,7 +154,6 @@ function StaffSchedule() {
     setDeleteSuccess(false);
   };
 
-  // Delete schedule
   const handleDeleteSchedule = async () => {
     if (!scheduleToDelete) return;
 
@@ -163,9 +165,8 @@ function StaffSchedule() {
 
       if (response.ok) {
         setDeleteSuccess(true);
-        // Wait for animation to complete before closing and refreshing
         setTimeout(async () => {
-          await fetchSchedules(); // No loading for refresh
+          await fetchSchedules();
           closeDeleteModal();
         }, 1500);
       } else {
@@ -198,9 +199,8 @@ function StaffSchedule() {
 
       if (response.ok) {
         setAddSuccess(true);
-        // Wait for animation to complete before refreshing and closing
         setTimeout(async () => {
-          await fetchSchedules(); // No loading for refresh
+          await fetchSchedules();
           setShowModal(false);
           setNewEntry({ day: "Monday", staff_id: "", start_time: "", end_time: "" });
           setAddSuccess(false);
@@ -218,14 +218,11 @@ function StaffSchedule() {
     }
   };
 
-  // Convert military time to 12-hour format with AM/PM
   const formatTimeForDisplay = (time) => {
     if (!time) return '';
     
-    // Remove seconds if present
     const timeWithoutSeconds = time.slice(0, 5);
     
-    // Convert to 12-hour format
     const [hours, minutes] = timeWithoutSeconds.split(':');
     const hour = parseInt(hours, 10);
     const ampm = hour >= 12 ? 'PM' : 'AM';
@@ -236,11 +233,7 @@ function StaffSchedule() {
 
   return (
     <div className="schedule-container">
-      <div className="schedule-header">
-        <button className="add-btn main-add" onClick={() => setShowModal(true)}>
-          ➕ Add Schedule
-        </button>
-      </div>
+      {/* REMOVED THE HEADER - Now handled by Dashboard.jsx */}
 
       <table className="schedule-table">
         <colgroup>
@@ -256,7 +249,7 @@ function StaffSchedule() {
           </tr>
         </thead>
         <tbody>
-          {tableLoading ? ( // Only show loading for initial table load
+          {tableLoading ? (
             <tr>
               <td colSpan="3" style={{ textAlign: "center", padding: "40px 0" }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -356,7 +349,6 @@ function StaffSchedule() {
           <div className="modal-box">
             <h3>Add New Schedule</h3>
             
-            {/* Show only loading animation when adding, then checkmark */}
             {modalLoading ? (
               <div className="form-animation-center">
                 {!addSuccess ? (
@@ -430,7 +422,6 @@ function StaffSchedule() {
       {showDeleteModal && scheduleToDelete && (
         <div className="modal-backdrop">
           <div className="modal-box delete-confirmation">
-            {/* Show delete animation when deleting, otherwise show normal content */}
             {deleting ? (
               <div className="delete-animation-center">
                 {!deleteSuccess ? (

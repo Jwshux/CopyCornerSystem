@@ -21,15 +21,14 @@ function AdminDashboard({ user, onLogout }) {
     Transactions: false
   });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [userRoleLevel, setUserRoleLevel] = useState(0); // Default to admin level
+  const [userRoleLevel, setUserRoleLevel] = useState(0);
   const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [showAddScheduleModal, setShowAddScheduleModal] = useState(false);
   const profileRef = useRef(null);
 
-  // Get user role level immediately from user data or localStorage
   useEffect(() => {
     const getUserRoleLevel = async () => {
       try {
-        // First try to get from localStorage (set during login)
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
           const userData = JSON.parse(storedUser);
@@ -39,14 +38,12 @@ function AdminDashboard({ user, onLogout }) {
           }
         }
         
-        // If not in localStorage, fetch from API
         if (user?.id) {
           const response = await fetch(`http://localhost:5000/api/users/${user.id}/role-level`);
           if (response.ok) {
             const data = await response.json();
             setUserRoleLevel(data.role_level);
             
-            // Update localStorage with role level for future use
             const updatedUser = { ...user, role_level: data.role_level };
             localStorage.setItem("user", JSON.stringify(updatedUser));
           }
@@ -59,7 +56,6 @@ function AdminDashboard({ user, onLogout }) {
     getUserRoleLevel();
   }, [user]);
 
-  // When user clicks outside profile, close dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileRef.current && !profileRef.current.contains(event.target)) {
@@ -70,15 +66,12 @@ function AdminDashboard({ user, onLogout }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Add logout function
   const handleLogout = () => {
-    // Clear any stored user data
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     sessionStorage.removeItem("user");
     sessionStorage.removeItem("token");
     
-    // Call the parent's logout function to go back to login
     if (onLogout) {
       onLogout();
     }
@@ -91,12 +84,9 @@ function AdminDashboard({ user, onLogout }) {
     }));
   };
 
-  // Check if user can access a menu item based on role level
   const canAccessMenu = (menuItem) => {
-    // Level 0 (Admin) can access everything
     if (userRoleLevel === 0) return true;
     
-    // Level 1 (Staff) restrictions
     if (userRoleLevel === 1) {
       const restrictedMenus = [
         "User Management", 
@@ -110,7 +100,6 @@ function AdminDashboard({ user, onLogout }) {
     return false;
   };
 
-  // Get contextual welcome message based on current page
   const getWelcomeMessage = () => {
     const messages = {
       "Dashboard": "Here's your business overview",
@@ -127,7 +116,6 @@ function AdminDashboard({ user, onLogout }) {
     return messages[activePage] || "Manage your business efficiently";
   };
 
-  // Get page title based on current page
   const getPageTitle = () => {
     const titles = {
       "Dashboard": "Dashboard",
@@ -144,9 +132,7 @@ function AdminDashboard({ user, onLogout }) {
     return titles[activePage] || "Dashboard";
   };
 
-  // Display the correct component
   const renderContent = () => {
-    // Check if user has access to the current page
     if (!canAccessMenu(activePage)) {
       return (
         <div className="access-denied">
@@ -173,7 +159,10 @@ function AdminDashboard({ user, onLogout }) {
       case "All Staffs":
         return <AllStaff />;
       case "Staffs Schedule":
-        return <StaffSchedule />;
+        return <StaffSchedule 
+          showAddModal={showAddScheduleModal}
+          onAddModalClose={() => setShowAddScheduleModal(false)}
+        />;
       case "Sales":
         return <Sales />;
       case "Transactions":
@@ -185,7 +174,6 @@ function AdminDashboard({ user, onLogout }) {
     }
   };
 
-  // Menu items configuration
   const menuItems = [
     { 
       name: "Dashboard", 
@@ -225,20 +213,17 @@ function AdminDashboard({ user, onLogout }) {
 
   return (
     <div className="container">
-      {/* Sidebar Menu */}
       <aside className="sidebar">
         <h2 className="logo">Copy Corner Hub</h2>
 
         <nav className="menu">
           {menuItems.map((item) => {
-            // Skip rendering if user doesn't have access
             if (!canAccessMenu(item.name) && !item.subItems?.some(sub => canAccessMenu(sub))) {
               return null;
             }
 
             return (
               <div key={item.name}>
-                {/* Main menu button */}
                 <button
                   className={
                     activePage === item.name ||
@@ -247,13 +232,10 @@ function AdminDashboard({ user, onLogout }) {
                       : ""
                   }
                   onClick={() => {
-                    // For main pages without submenus
                     if (!item.hasSubmenu) {
                       setActivePage(item.name);
                       return;
                     }
-                    
-                    // For pages with submenus - just toggle the submenu
                     toggleSubmenu(item.name);
                   }}
                   disabled={!canAccessMenu(item.name) && item.hasSubmenu}
@@ -267,11 +249,9 @@ function AdminDashboard({ user, onLogout }) {
                   )}
                 </button>
 
-                {/* Submenus */}
                 {item.hasSubmenu && openSubmenus[item.name] && (
                   <div className="submenu">
                     {item.subItems.map((sub) => {
-                      // Skip rendering submenu items user doesn't have access to
                       if (!canAccessMenu(sub)) return null;
                       
                       return (
@@ -301,14 +281,12 @@ function AdminDashboard({ user, onLogout }) {
         </nav>
       </aside>
 
-      {/* Header Section */}
       <header className="header">
         <div className="welcome-section">
           <h1>Welcome, {user?.name || "User"}</h1>
           <p className="welcome-subtitle">{getWelcomeMessage()}</p>
         </div>
         
-        {/* Profile Section */}
         <div className="profile-section" ref={profileRef}>
           <button
             className="profile-trigger"
@@ -353,13 +331,17 @@ function AdminDashboard({ user, onLogout }) {
         </div>
       </header>
 
-      {/* Main Page Content */}
       <main className="main">
         <div className="page-header">
           <h2 className="page-title">{getPageTitle()}</h2>
           {activePage === "All Products" && (
             <button className="add-product-btn" onClick={() => setShowAddProductModal(true)}>
               Add Product
+            </button>
+          )}
+          {activePage === "Staffs Schedule" && (
+            <button className="add-product-btn" onClick={() => setShowAddScheduleModal(true)}>
+              Add Schedule
             </button>
           )}
         </div>
