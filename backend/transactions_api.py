@@ -328,7 +328,7 @@ def archive_transaction(transaction_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# RESTORE TRANSACTION ENDPOINT
+# RESTORE TRANSACTION ENDPOINT - FIXED
 @transactions_bp.route('/api/transactions/<transaction_id>/restore', methods=['PUT'])
 def restore_transaction(transaction_id):
     try:
@@ -339,6 +339,16 @@ def restore_transaction(transaction_id):
         
         if not transaction.get('is_archived'):
             return jsonify({'error': 'Transaction is not archived'}), 400
+        
+        # Check if the service type for this transaction exists and is active
+        service_type = service_types_collection.find_one({
+            'service_name': transaction['service_type'],
+            'is_archived': {'$ne': True}  # Service type must be active
+        })
+        if not service_type:
+            return jsonify({
+                'error': f'Cannot restore transaction. Service type "{transaction["service_type"]}" is archived. Please restore the service type first.'
+            }), 400
         
         # Restore the transaction
         result = transactions_collection.update_one(

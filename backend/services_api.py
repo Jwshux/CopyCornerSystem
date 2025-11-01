@@ -152,7 +152,11 @@ def get_service_type(service_type_id):
                 # Fallback to old category field
                 service_type['category_name'] = service_type['category']
             
-            transaction_count = transactions_collection.count_documents({'service_type': service_type['service_name']})
+            # Count only non-archived transactions
+            transaction_count = transactions_collection.count_documents({
+                'service_type': service_type['service_name'],
+                'is_archived': {'$ne': True}
+            })
             service_type['transaction_count'] = transaction_count
             
             return jsonify(serialize_doc(service_type))
@@ -222,10 +226,14 @@ def update_service_type(service_type_id):
             return jsonify({'error': 'Service type not found'}), 404
         
         if data['service_name'] != current_service['service_name']:
-            transaction_count = transactions_collection.count_documents({'service_type': current_service['service_name']})
+            # Count only non-archived transactions
+            transaction_count = transactions_collection.count_documents({
+                'service_type': current_service['service_name'],
+                'is_archived': {'$ne': True}
+            })
             if transaction_count > 0:
                 return jsonify({
-                    'error': f'Cannot rename service type "{current_service["service_name"]}". {transaction_count} transaction(s) are using this service type. Please update transactions first.'
+                    'error': f'Cannot rename service type "{current_service["service_name"]}". {transaction_count} active transaction(s) are using this service type. Please update transactions first.'
                 }), 400
         
         existing_service = service_types_collection.find_one({
@@ -272,7 +280,7 @@ def update_service_type(service_type_id):
         print(f"Error updating service type: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-# ARCHIVE SERVICE TYPE ENDPOINT
+# ARCHIVE SERVICE TYPE ENDPOINT - FIXED
 @service_types_bp.route('/api/service_types/<service_type_id>/archive', methods=['PUT'])
 def archive_service_type(service_type_id):
     try:
@@ -280,11 +288,14 @@ def archive_service_type(service_type_id):
         if not service_type:
             return jsonify({'error': 'Service type not found'}), 404
         
-        # Check if service type has active transactions
-        transaction_count = transactions_collection.count_documents({'service_type': service_type['service_name']})
+        # Check if service type has ACTIVE transactions (exclude archived ones)
+        transaction_count = transactions_collection.count_documents({
+            'service_type': service_type['service_name'],
+            'is_archived': {'$ne': True}  # Only count non-archived transactions
+        })
         if transaction_count > 0:
             return jsonify({
-                'error': f'Cannot archive service type "{service_type["service_name"]}". {transaction_count} transaction(s) are using this service type. Please update transactions first.'
+                'error': f'Cannot archive service type "{service_type["service_name"]}". {transaction_count} active transaction(s) are using this service type. Please archive these transactions first.'
             }), 400
         
         # Archive the service type

@@ -32,6 +32,9 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   const [restoring, setRestoring] = useState(false);
   const [restoreSuccess, setRestoreSuccess] = useState(false);
 
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
   const [formData, setFormData] = useState({
     queue_number: "",
     transaction_id: "",
@@ -99,6 +102,16 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const showError = (message) => {
+  setErrorMessage(message);
+  setShowErrorModal(true);
+  };
+
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorMessage("");
   };
 
   // Fetch archived transactions
@@ -487,30 +500,30 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   };
 
   const handleRestoreTransaction = async () => {
-    if (!transactionToRestore) return;
+  if (!transactionToRestore) return;
 
-    setRestoring(true);
-    
-    try {
-      const response = await fetch(`${API_BASE}/transactions/${transactionToRestore._id}/restore`, {
-        method: 'PUT',
-      });
+  setRestoring(true);
+  
+  try {
+    const response = await fetch(`${API_BASE}/transactions/${transactionToRestore._id}/restore`, {
+      method: 'PUT',
+    });
 
-      if (response.ok) {
-        setRestoreSuccess(true);
-        setTimeout(async () => {
-          // Remove from archived view instead of refreshing entire table
-          setArchivedTransactions(prev => prev.filter(t => t._id !== transactionToRestore._id));
-          closeRestoreModal();
-        }, 1500);
+    if (response.ok) {
+      setRestoreSuccess(true);
+      setTimeout(async () => {
+        // Remove from archived view instead of refreshing entire table
+        setArchivedTransactions(prev => prev.filter(t => t._id !== transactionToRestore._id));
+        closeRestoreModal();
+      }, 1500);
       } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to restore transaction');
+        const errorData = await response.json();
+        showError(errorData.error || 'Failed to restore transaction');
         setRestoring(false);
       }
     } catch (error) {
       console.error('Error restoring transaction:', error);
-      alert('Error restoring transaction');
+      showError('Error restoring transaction');
       setRestoring(false);
     }
   };
@@ -1224,6 +1237,21 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                 onClick={() => setShowDeleteModal(false)}
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showErrorModal && (
+        <div className="overlay">
+          <div className="modal-content error-modal">
+            <div className="error-icon">⚠️</div>
+            <h3>Operation Failed</h3>
+            <p className="error-message-text">{errorMessage}</p>
+            <div className="form-buttons">
+              <button className="cancel-btn" onClick={closeErrorModal}>
+                OK
               </button>
             </div>
           </div>
