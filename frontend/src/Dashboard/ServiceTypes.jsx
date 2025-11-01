@@ -40,6 +40,7 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
   const [searchTerm, setSearchTerm] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10; // Fixed constant
   const [totalPages, setTotalPages] = useState(1);
 
   // Add error modal functions
@@ -64,7 +65,7 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
   const fetchServiceTypes = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/service_types?page=${page}&per_page=10`);
+      const response = await fetch(`${API_BASE}/service_types?page=${page}&per_page=${ITEMS_PER_PAGE}`);
       if (response.ok) {
         const data = await response.json();
         console.log('Service Types API Response:', data);
@@ -470,174 +471,212 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
   };
 
   return (
-    <div className="service-types-page">
-      <div className="table-container">
-        {/* Table Header with Archive Button and Search */}
-        <div className="table-header">
-          {showArchivedView ? (
-            <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
-              ← Back to Main View
-            </button>
-          ) : (
-            <button className="view-archive-btn" onClick={() => {
-              setShowArchivedView(true);
-              fetchArchivedServiceTypes();
-            }}>
-              📦 View Archived Service Types
-            </button>
-          )}
-          
-          <div className="search-container">
-            <input
-              type="text"
-              placeholder="Search service types..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
-          </div>
-        </div>
-
-        {/* MAIN SERVICE TYPES VIEW */}
-        {!showArchivedView && (
-          <>
-            <table className="service-types-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Service ID</th>
-                  <th>Service Name</th>
-                  <th>Category</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredServiceTypes.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
-                      {loading ? (
-                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
-                          <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
-                        </div>
-                      ) : searchTerm ? (
-                        "No service types found matching your search."
-                      ) : (
-                        "No service types found."
-                      )}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredServiceTypes.map((serviceType, index) => (
-                    <tr key={serviceType._id}>
-                      <td>{(currentPage - 1) * 10 + index + 1}</td>
-                      <td>{serviceType.service_id}</td>
-                      <td>{serviceType.service_name}</td>
-                      <td>{getCategoryName(serviceType)}</td>
-                      <td>
-                        <span
-                          className={`status-tag ${
-                            serviceType.status === "Active"
-                              ? "in-stock"
-                              : "out-stock"
-                          }`}
-                        >
-                          {serviceType.status}
-                        </span>
-                      </td>
-                      <td>
-                        <button className="edit-btn" onClick={() => handleEditServiceType(serviceType)}>Edit</button>
-                        <button className="archive-btn" onClick={() => openArchiveModal(serviceType)}>Archive</button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-
-            <div className="simple-pagination">
-              <button 
-                className="pagination-btn" 
-                onClick={handlePrevPage}
-                disabled={currentPage === 1 || loading}
-              >
-                Previous
+      <div className="service-types-page">
+        <div className="table-container">
+          {/* Table Header with Archive Button and Search */}
+          <div className="table-header">
+            {showArchivedView ? (
+              <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
+                ← Back to Main View
               </button>
-              <span className="page-info">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button 
-                className="pagination-btn" 
-                onClick={handleNextPage}
-                disabled={currentPage === totalPages || loading}
-              >
-                Next
+            ) : (
+              <button className="view-archive-btn" onClick={() => {
+                setShowArchivedView(true);
+                fetchArchivedServiceTypes();
+              }}>
+                📦 View Archived Service Types
               </button>
+            )}
+            
+            <div className="search-container">
+              <input
+                type="text"
+                placeholder="Search service types..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
             </div>
-          </>
-        )}
+          </div>
 
-        {/* ARCHIVED SERVICE TYPES VIEW */}
-        {showArchivedView && (
-          <>
-            <table className="service-types-table">
-              <thead>
-                <tr>
-                  <th>Service ID</th>
-                  <th>Service Name</th>
-                  <th>Category</th>
-                  <th>Status</th>
-                  <th>Archived Date</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredArchivedServiceTypes.length === 0 ? (
+          {/* MAIN SERVICE TYPES VIEW */}
+          {!showArchivedView && (
+            <>
+              <table className="service-types-table">
+                <thead>
                   <tr>
-                    <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
-                      {loading ? (
-                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
-                          <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
-                        </div>
-                      ) : searchTerm ? (
-                        "No archived service types found matching your search."
-                      ) : (
-                        "No archived service types found."
-                      )}
-                    </td>
+                    <th>#</th>
+                    <th>Service ID</th>
+                    <th>Service Name</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
-                ) : (
-                  filteredArchivedServiceTypes.map((serviceType) => (
-                    <tr key={serviceType._id}>
-                      <td>{serviceType.service_id}</td>
-                      <td>{serviceType.service_name}</td>
-                      <td>{getCategoryName(serviceType)}</td>
-                      <td>
-                        <span
-                          className={`status-tag ${
-                            serviceType.status === "Active"
-                              ? "in-stock"
-                              : "out-stock"
-                          }`}
-                        >
-                          {serviceType.status}
-                        </span>
-                      </td>
-                      <td>{formatDate(serviceType.archived_at)}</td>
-                      <td>
-                        <button className="restore-btn" onClick={() => openRestoreModal(serviceType)}>
-                          Restore
-                        </button>
+                </thead>
+                <tbody>
+                  {serviceTypes.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
+                        {loading ? (
+                          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                            <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                          </div>
+                        ) : searchTerm ? (
+                          "No service types found matching your search."
+                        ) : (
+                          "No service types found."
+                        )}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </>
-        )}
-      </div>
+                  ) : (
+                    serviceTypes.map((serviceType, index) => (
+                      <tr key={serviceType._id}>
+                        <td>{(currentPage - 1) * 10 + index + 1}</td>
+                        <td>{serviceType.service_id}</td>
+                        <td>{serviceType.service_name}</td>
+                        <td>{getCategoryName(serviceType)}</td>
+                        <td>
+                          <span
+                            className={`status-tag ${
+                              serviceType.status === "Active"
+                                ? "in-stock"
+                                : "out-stock"
+                            }`}
+                          >
+                            {serviceType.status}
+                          </span>
+                        </td>
+                        <td>
+                          <button className="edit-btn" onClick={() => handleEditServiceType(serviceType)}>Edit</button>
+                          <button className="archive-btn" onClick={() => openArchiveModal(serviceType)}>Archive</button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                  
+                  {/* Add empty rows to maintain consistent height */}
+                  {serviceTypes.length > 0 && serviceTypes.length < 10 &&
+                    Array.from({ length: 10 - serviceTypes.length }).map((_, index) => (
+                      <tr key={`empty-${index}`} style={{ visibility: 'hidden' }}>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
 
+              {/* PAGINATION CONTROLS - ALWAYS SHOWN */}
+              {serviceTypes.length > 0 && (
+                <div className="pagination-controls">
+                  <div className="pagination-info">
+                    <span className="pagination-text">
+                      Showing {(currentPage - 1) * 10 + 1}-{Math.min(currentPage * 10, serviceTypes.length)} of {serviceTypes.length} items
+                    </span>
+                  </div>
+                  
+                  <div className="pagination-buttons">
+                    <button 
+                      onClick={handlePrevPage} 
+                      disabled={currentPage === 1 || loading}
+                      className="pagination-btn"
+                    >
+                      Previous
+                    </button>
+                    <span className="page-info">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button 
+                      onClick={handleNextPage} 
+                      disabled={currentPage === totalPages || loading}
+                      className="pagination-btn"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ARCHIVED SERVICE TYPES VIEW */}
+          {showArchivedView && (
+            <>
+              <table className="service-types-table">
+                <thead>
+                  <tr>
+                    <th>Service ID</th>
+                    <th>Service Name</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Archived Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {archivedServiceTypes.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
+                        {loading ? (
+                          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                            <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                          </div>
+                        ) : searchTerm ? (
+                          "No archived service types found matching your search."
+                        ) : (
+                          "No archived service types found."
+                        )}
+                      </td>
+                    </tr>
+                  ) : (
+                    archivedServiceTypes.map((serviceType, index) => (
+                      <tr key={serviceType._id}>
+                        <td>{serviceType.service_id}</td>
+                        <td>{serviceType.service_name}</td>
+                        <td>{getCategoryName(serviceType)}</td>
+                        <td>
+                          <span
+                            className={`status-tag ${
+                              serviceType.status === "Active"
+                                ? "in-stock"
+                                : "out-stock"
+                            }`}
+                          >
+                            {serviceType.status}
+                          </span>
+                        </td>
+                        <td>{formatDate(serviceType.archived_at)}</td>
+                        <td>
+                          <button className="restore-btn" onClick={() => openRestoreModal(serviceType)}>
+                            Restore
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                  
+                  {/* Add empty rows to maintain consistent height */}
+                  {archivedServiceTypes.length > 0 && archivedServiceTypes.length < 10 &&
+                    Array.from({ length: 10 - archivedServiceTypes.length }).map((_, index) => (
+                      <tr key={`empty-archived-${index}`} style={{ visibility: 'hidden' }}>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
+            </>
+          )}
+        </div>
       {/* ADD SERVICE TYPE MODAL */}
       {showAddForm && (
         <div className="overlay">

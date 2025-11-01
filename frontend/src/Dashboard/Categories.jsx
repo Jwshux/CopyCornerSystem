@@ -21,6 +21,7 @@ const Categories = () => {
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10; // Fixed constant
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   
@@ -50,7 +51,7 @@ const Categories = () => {
   const fetchCategories = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/categories?page=${page}&per_page=10`);
+      const response = await fetch(`${API_BASE}/categories?page=${page}&per_page=${ITEMS_PER_PAGE}`);
       if (response.ok) {
         const data = await response.json();
         setCategories(data.categories || []);
@@ -68,21 +69,40 @@ const Categories = () => {
     }
   };
 
-  // Fetch archived categories
-  const fetchArchivedCategories = async () => {
+  // Fetch archived categories with pagination
+  const fetchArchivedCategories = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/categories/archived`);
+      const response = await fetch(`${API_BASE}/categories/archived?page=${page}&per_page=${ITEMS_PER_PAGE}`);
       if (response.ok) {
         const data = await response.json();
-        setArchivedCategories(Array.isArray(data) ? data : []);
+        
+        // Handle both response formats:
+        if (Array.isArray(data)) {
+          // Simple array format - no pagination info
+          setArchivedCategories(data);
+          setCurrentPage(1);
+          setTotalPages(1);
+        } else if (data.categories && Array.isArray(data.categories)) {
+          // Paginated format
+          setArchivedCategories(data.categories);
+          setCurrentPage(data.pagination.page);
+          setTotalPages(data.pagination.total_pages);
+        } else {
+          // Fallback
+          setArchivedCategories([]);
+          setCurrentPage(1);
+          setTotalPages(1);
+        }
       } else {
         console.error('Failed to fetch archived categories');
         showError('Failed to load archived categories');
+        setArchivedCategories([]); // Set empty array on error
       }
     } catch (error) {
       console.error('Error fetching archived categories:', error);
       showError('Error loading archived categories');
+      setArchivedCategories([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -111,16 +131,24 @@ const Categories = () => {
     }
   }, [showRestoreModal]);
 
-  // Pagination handlers
+  // Pagination handlers - same pattern as others
   const handleNextPage = () => {
     if (currentPage < totalPages) {
-      fetchCategories(currentPage + 1);
+      if (showArchivedView) {
+        fetchArchivedCategories(currentPage + 1);
+      } else {
+        fetchCategories(currentPage + 1);
+      }
     }
   };
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
-      fetchCategories(currentPage - 1);
+      if (showArchivedView) {
+        fetchArchivedCategories(currentPage - 1);
+      } else {
+        fetchCategories(currentPage - 1);
+      }
     }
   };
 
@@ -373,8 +401,8 @@ const Categories = () => {
       if (response.ok) {
         setRestoreSuccess(true);
         setTimeout(async () => {
-          await fetchArchivedCategories();
-          await fetchCategories(currentPage);
+          await fetchArchivedCategories(currentPage);
+          await fetchCategories(1);
           closeRestoreModal();
         }, 1500);
       } else {
@@ -465,7 +493,7 @@ const Categories = () => {
           ) : (
             <button className="view-archive-btn" onClick={() => {
               setShowArchivedView(true);
-              fetchArchivedCategories();
+              fetchArchivedCategories(1);
             }}>
               📦 View Archived Categories
             </button>
@@ -495,7 +523,7 @@ const Categories = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredCategories.length === 0 ? (
+                {categories.length === 0 ? (
                   <tr>
                     <td colSpan="4" style={{ textAlign: "center", color: "#888" }}>
                       {loading ? (
@@ -512,7 +540,7 @@ const Categories = () => {
                 ) : (
                   filteredCategories.map((category, index) => (
                     <tr key={category._id}>
-                      <td>{(currentPage - 1) * 10 + index + 1}</td>
+                      <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                       <td>{category.name}</td>
                       <td>
                         <div className="description-cell">{category.description || "—"}</div>
@@ -534,29 +562,51 @@ const Categories = () => {
                     </tr>
                   ))
                 )}
+                
+                {/* Add empty rows to maintain consistent height */}
+                {categories.length > 0 && categories.length < 10 &&
+                  Array.from({ length: 10 - categories.length }).map((_, index) => (
+                    <tr key={`empty-${index}`} style={{ visibility: 'hidden' }}>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
 
-            {/* PAGINATION CONTROLS */}
-            <div className="simple-pagination">
-              <button 
-                className="pagination-btn" 
-                onClick={handlePrevPage}
-                disabled={currentPage === 1 || loading}
-              >
-                Previous
-              </button>
-              <span className="page-info">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button 
-                className="pagination-btn" 
-                onClick={handleNextPage}
-                disabled={currentPage === totalPages || loading}
-              >
-                Next
-              </button>
-            </div>
+            {/* PAGINATION CONTROLS - ALWAYS SHOWN */}
+            {categories.length > 0 && (
+              <div className="pagination-controls">
+                <div className="pagination-info">
+                  <span className="pagination-text">
+                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, categories.length)} of {categories.length} items
+                  </span>
+                </div>
+                
+                <div className="pagination-buttons">
+                  <button 
+                    onClick={handlePrevPage} 
+                    disabled={currentPage === 1 || loading}
+                    className="pagination-btn"
+                  >
+                    Previous
+                  </button>
+                  <span className="page-info">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button 
+                    onClick={handleNextPage} 
+                    disabled={currentPage === totalPages || loading}
+                    className="pagination-btn"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
 
@@ -573,7 +623,7 @@ const Categories = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredArchivedCategories.length === 0 ? (
+                {archivedCategories.length === 0 ? (
                   <tr>
                     <td colSpan="4" style={{ textAlign: "center", color: "#888" }}>
                       {loading ? (
@@ -588,7 +638,7 @@ const Categories = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredArchivedCategories.map((category) => (
+                  filteredArchivedCategories.map((category, index) => (
                     <tr key={category._id}>
                       <td>{category.name}</td>
                       <td>
@@ -606,8 +656,51 @@ const Categories = () => {
                     </tr>
                   ))
                 )}
+                
+                {/* Add empty rows to maintain consistent height */}
+                {archivedCategories.length > 0 && archivedCategories.length < 10 &&
+                  Array.from({ length: 10 - archivedCategories.length }).map((_, index) => (
+                    <tr key={`empty-archived-${index}`} style={{ visibility: 'hidden' }}>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
+
+            {/* PAGINATION FOR ARCHIVED CATEGORIES - ALWAYS SHOWN */}
+            {archivedCategories.length > 0 && (
+              <div className="pagination-controls">
+                <div className="pagination-info">
+                  <span className="pagination-text">
+                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, archivedCategories.length)} of {archivedCategories.length} items
+                  </span>
+                </div>
+                
+                <div className="pagination-buttons">
+                  <button 
+                    onClick={handlePrevPage} 
+                    disabled={currentPage === 1 || loading}
+                    className="pagination-btn"
+                  >
+                    Previous
+                  </button>
+                  <span className="page-info">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button 
+                    onClick={handleNextPage} 
+                    disabled={currentPage === totalPages || loading}
+                    className="pagination-btn"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

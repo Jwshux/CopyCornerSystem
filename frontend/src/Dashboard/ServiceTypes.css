@@ -7,23 +7,43 @@
   align-items: flex-start;
 }
 
+/* Table container with fixed height */
 .table-container {
   background: #fff;
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   width: 100%;
-  height: auto;
-  overflow: visible;
+  min-height: 600px; /* Fixed height to always show space for 10 rows */
   display: flex;
   flex-direction: column;
 }
 
+/* Table styling */
 .service-types-table {
   width: 100%;
   border-collapse: collapse;
   min-width: 500px;
   table-layout: fixed;
+  flex: 1; /* Take remaining space */
+}
+
+/* Fixed table body height - ALWAYS show 10 rows space */
+.service-types-table tbody {
+  display: block;
+  min-height: 650px; /* Height for exactly 10 rows */
+}
+
+.service-types-table thead,
+.service-types-table tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* Ensure table rows have consistent height */
+.service-types-table tr {
+  height: 40px; /* Fixed row height */
 }
 
 .service-types-table th,
@@ -87,6 +107,133 @@
   text-align: center;
 }
 
+/* Table Header with Archive and Search */
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 10px;
+}
+
+.view-archive-btn, .back-to-main-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.table-container .view-archive-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.table-container .view-archive-btn:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
+}
+
+.back-to-main-btn {
+  background: #6b7280;
+  color: white;
+}
+
+.back-to-main-btn:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  padding: 10px 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 250px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.search-input:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+/* Pagination Styles - Same as others */
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto; /* Push to bottom of container */
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-top: 1px solid #dee2e6;
+  position: sticky;
+  bottom: 0;
+  z-index: 100;
+}
+
+.pagination-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.pagination-text {
+  font-weight: 600;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  border: 1px solid #00205B;
+  background: white;
+  color: #00205B;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #00205B;
+  color: white;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #6c757d;
+  color: #6c757d;
+}
+
+.page-info {
+  font-size: 14px;
+  font-weight: 600;
+  color: #00205B;
+}
+
+/* Remove the old simple pagination styles */
+.simple-pagination {
+  display: none;
+}
+
+/* Modal Styles */
 .overlay {
   position: fixed;
   top: 0;
@@ -210,7 +357,9 @@
 }
 
 .edit-btn,
-.delete-btn {
+.delete-btn,
+.archive-btn,
+.restore-btn {
   border: none;
   padding: 6px 12px;
   border-radius: 6px;
@@ -236,200 +385,6 @@
 
 .delete-btn:hover {
   background-color: #dc2626;
-}
-
-.delete-confirmation {
-  text-align: center;
-  max-width: 400px;
-}
-
-.delete-icon {
-  font-size: 48px;
-  margin-bottom: 15px;
-}
-
-.delete-confirmation h3 {
-  color: #d9534f;
-  margin-bottom: 15px;
-}
-
-.delete-confirmation p {
-  margin-bottom: 10px;
-  color: #555;
-}
-
-.delete-warning {
-  color: #d9534f;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.confirm-delete-btn {
-  background-color: #d9534f;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.confirm-delete-btn:hover:not(:disabled) {
-  background-color: #c9302c;
-}
-
-.confirm-delete-btn:disabled {
-  background-color: #d9534f;
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.error-input {
-  border: 2px solid #ff4444;
-  background-color: #fff8f8;
-}
-
-.error-message {
-  color: #ff4444;
-  font-size: 12px;
-  margin: 4px 0 0 0;
-  padding: 4px 8px;
-  background-color: #fff8f8;
-  border-radius: 4px;
-  border-left: 3px solid #ff4444;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.simple-pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 15px;
-  margin-top: 20px;
-  padding: 15px 0;
-  border-top: 1px solid #eee;
-}
-
-.page-info {
-  color: #666;
-  font-weight: 500;
-}
-
-.pagination-btn {
-  padding: 8px 16px;
-  border: 1px solid #ddd;
-  background: white;
-  color: #333;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.pagination-btn:hover:not(:disabled) {
-  background: #f5f5f5;
-  border-color: #ccc;
-}
-
-.pagination-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: #f9f9f9;
-}
-
-.form-animation-center {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 400px;
-}
-
-.delete-animation-center {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 300px;
-  text-align: center;
-}
-
-.delete-confirmation {
-  min-height: 300px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-/* Add these styles to your existing ServiceTypes.css */
-
-/* Table Header with Archive and Search */
-.table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding: 0 10px;
-}
-
-.view-archive-btn, .back-to-main-btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 14px;
-  transition: all 0.3s ease;
-}
-
-.table-container .view-archive-btn {
-  background: #6c757d;
-  color: white;
-}
-
-.table-container .view-archive-btn:hover {
-  background: #4b5563;
-  transform: translateY(-1px);
-}
-
-.back-to-main-btn {
-  background: #6b7280;
-  color: white;
-}
-
-.back-to-main-btn:hover {
-  background: #4b5563;
-  transform: translateY(-1px);
-}
-
-.search-container {
-  display: flex;
-  align-items: center;
-}
-
-.search-input {
-  padding: 10px 15px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
-  width: 250px;
-  outline: none;
-  transition: border-color 0.3s ease;
-}
-
-.search-input:focus {
-  border-color: #8b5cf6;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
-}
-
-/* Archive and Restore buttons */
-.archive-btn, .restore-btn {
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: background-color 0.2s ease;
-  margin-right: 5px;
 }
 
 .table-container .archive-btn {
@@ -576,7 +531,96 @@
   justify-content: center;
 }
 
-/* Error Modal Styles - Same as Categories */
+/* Delete Confirmation */
+.delete-confirmation {
+  text-align: center;
+  max-width: 400px;
+}
+
+.delete-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.delete-confirmation h3 {
+  color: #d9534f;
+  margin-bottom: 15px;
+}
+
+.delete-confirmation p {
+  margin-bottom: 10px;
+  color: #555;
+}
+
+.delete-warning {
+  color: #d9534f;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.confirm-delete-btn {
+  background-color: #d9534f;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.confirm-delete-btn:hover:not(:disabled) {
+  background-color: #c9302c;
+}
+
+.confirm-delete-btn:disabled {
+  background-color: #d9534f;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Error Styling */
+.error-input {
+  border: 2px solid #ff4444;
+  background-color: #fff8f8;
+}
+
+.error-message {
+  color: #ff4444;
+  font-size: 12px;
+  margin: 4px 0 0 0;
+  padding: 4px 8px;
+  background-color: #fff8f8;
+  border-radius: 4px;
+  border-left: 3px solid #ff4444;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Animation Centers */
+.form-animation-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+}
+
+.delete-animation-center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  text-align: center;
+}
+
+.delete-confirmation {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Error Modal Styles */
 .error-modal {
   text-align: center;
   max-width: 400px;
@@ -600,7 +644,7 @@
   white-space: pre-line;
 }
 
-/* Modal Content - Same as Categories */
+/* Modal Content */
 .modal-content {
   background: white;
   padding: 25px;
@@ -611,7 +655,7 @@
   margin: 0 auto;
 }
 
-/* Form Buttons - Same as Categories */
+/* Form Buttons */
 .form-buttons {
   display: flex;
   justify-content: center;
@@ -641,4 +685,31 @@
   border-color: #4b5563;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .table-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+  
+  .search-container {
+    width: 100%;
+  }
+  
+  .search-input {
+    width: 100%;
+  }
+
+  .pagination-controls {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  .pagination-info {
+    justify-content: center;
+  }
 }

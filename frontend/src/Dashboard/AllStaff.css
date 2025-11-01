@@ -435,3 +435,108 @@ td {
   padding: 10px;
   color: #666;
 }
+
+/* Add these styles to your AllStaff.css */
+
+/* Pagination Styles - Same as ManageUsers and ManageGroup */
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto; /* Push to bottom of container */
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-top: 1px solid #dee2e6;
+  position: sticky;
+  bottom: 0;
+  z-index: 100;
+}
+
+.pagination-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.pagination-text {
+  font-weight: 600;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  border: 1px solid #00205B;
+  background: white;
+  color: #00205B;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #00205B;
+  color: white;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #6c757d;
+  color: #6c757d;
+}
+
+.page-info {
+  font-size: 14px;
+  font-weight: 600;
+  color: #00205B;
+}
+
+/* Remove the old simple pagination styles */
+.simple-pagination {
+  display: none;
+}
+
+/* Table container with fixed height */
+.staff-table {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  min-height: 750px; /* Fixed height to always show space for rows */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Table styling */
+.staff-table table {
+  width: 100%;
+  border-collapse: collapse;
+  flex: 1; /* Take remaining space */
+}
+
+/* Fixed table body height */
+.staff-table tbody {
+  display: block;
+  min-height: 400px; /* Height for rows */
+}
+
+.staff-table thead,
+.staff-table tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* Ensure table rows have consistent height */
+.staff-table tr {
+  height: 40px; /* Fixed row height */
+}

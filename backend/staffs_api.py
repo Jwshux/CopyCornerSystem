@@ -111,11 +111,18 @@ def get_staffs():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Get archived staffs
+# Get archived staffs - UPDATED FOR PAGINATION
 @staffs_bp.route('/api/staffs/archived', methods=['GET'])
 def get_archived_staffs():
     try:
-        # Get archived staff users
+        # Get pagination parameters from query string
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        
+        # Calculate skip value
+        skip = (page - 1) * per_page
+        
+        # Get archived staff users with pagination
         staff_users = list(users_collection.find({
             'group_id': {
                 '$in': [ObjectId(group['_id']) for group in groups_collection.find({
@@ -123,7 +130,20 @@ def get_archived_staffs():
                 })]
             },
             'is_archived': True
-        }))
+        }).skip(skip).limit(per_page))
+        
+        # Get total count for pagination info
+        total_staffs = users_collection.count_documents({
+            'group_id': {
+                '$in': [ObjectId(group['_id']) for group in groups_collection.find({
+                    'group_name': {'$regex': 'staff', '$options': 'i'}
+                })]
+            },
+            'is_archived': True
+        })
+        
+        # Calculate total pages
+        total_pages = (total_staffs + per_page - 1) // per_page  # Ceiling division
         
         # Get staff details for each archived staff user
         staffs = []
@@ -151,7 +171,16 @@ def get_archived_staffs():
             }
             staffs.append(staff_data)
         
-        return jsonify([serialize_doc(staff) for staff in staffs])
+        # Return pagination info along with archived staffs
+        return jsonify({
+            'staffs': [serialize_doc(staff) for staff in staffs],
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_staffs': total_staffs,
+                'total_pages': total_pages
+            }
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

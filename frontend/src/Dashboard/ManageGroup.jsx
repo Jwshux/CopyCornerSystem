@@ -39,6 +39,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5; // Fixed constant
   const [totalPages, setTotalPages] = useState(1);
 
   // Role levels with descriptions - ONLY 2 LEVELS
@@ -64,9 +65,9 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
 
   // Fetch active groups from backend
   const fetchGroups = async (page = 1) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_BASE}/groups?page=${page}&per_page=10`);
+     setLoading(true);
+      try {
+        const response = await fetch(`${API_BASE}/groups?page=${page}&per_page=${ITEMS_PER_PAGE}`);
       if (response.ok) {
         const data = await response.json();
         setGroups(data.groups);
@@ -86,7 +87,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
   const fetchArchivedGroups = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/groups/archived?page=${page}&per_page=10`);
+      const response = await fetch(`${API_BASE}/groups/archived?page=${page}&per_page=${ITEMS_PER_PAGE}`);
       if (response.ok) {
         const data = await response.json();
         setArchivedGroups(data.groups);
@@ -442,36 +443,37 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     getLevelDescription(group.group_level).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  return (
-    <div className="manage-group-page">
-      {/* Table Header with Archive Button and Search */}
-      <div className="table-header">
-        {showArchivedView ? (
-          <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
-            ← Back to Main View
-          </button>
-        ) : (
-          <button className="view-archive-btn" onClick={() => {
-            setShowArchivedView(true);
-            fetchArchivedGroups(1);
-          }}>
-            📦 View Archived Roles
-          </button>
-        )}
-        
-        <div className="search-container">
-          <input
-            type="text"
-            placeholder="Search roles..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-        </div>
+return (
+  <div className="manage-group-page">
+    {/* Table Header with Archive Button and Search */}
+    <div className="table-header">
+      {showArchivedView ? (
+        <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
+          ← Back to Main View
+        </button>
+      ) : (
+        <button className="view-archive-btn" onClick={() => {
+          setShowArchivedView(true);
+          fetchArchivedGroups(1);
+        }}>
+          📦 View Archived Roles
+        </button>
+      )}
+      
+      <div className="search-container">
+        <input
+          type="text"
+          placeholder="Search roles..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="search-input"
+        />
       </div>
+    </div>
 
-      {/* MAIN GROUPS VIEW */}
-      {!showArchivedView && (
+    {/* MAIN GROUPS VIEW */}
+    {!showArchivedView && (
+      <>
         <table className="group-table">
           <thead>
             <tr>
@@ -484,7 +486,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
             </tr>
           </thead>
           <tbody>
-            {filteredGroups.length === 0 ? (
+            {groups.length === 0 ? (
               <tr>
                 <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
                   {loading ? (
@@ -499,9 +501,9 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
                 </td>
               </tr>
             ) : (
-              filteredGroups.map((group, index) => (
+              groups.map((group, index) => (
                 <tr key={group._id}>
-                  <td>{(currentPage - 1) * 10 + index + 1}</td>
+                  <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                   <td>{group.group_name}</td>
                   <td>Level {group.group_level}</td>
                   <td>{getLevelDescription(group.group_level)}</td>
@@ -521,12 +523,59 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
                 </tr>
               ))
             )}
+            
+            {/* Add empty rows to maintain consistent height */}
+            {groups.length > 0 && groups.length < 5 &&
+              Array.from({ length: 5 - groups.length }).map((_, index) => (
+                <tr key={`empty-${index}`} style={{ visibility: 'hidden' }}>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                </tr>
+              ))
+            }
           </tbody>
         </table>
-      )}
 
-      {/* ARCHIVED GROUPS VIEW */}
-      {showArchivedView && (
+        {/* PAGINATION CONTROLS - ALWAYS SHOWN */}
+        {groups.length > 0 && (
+          <div className="pagination-controls">
+            <div className="pagination-info">
+              <span className="pagination-text">
+                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, groups.length)} of {groups.length} items
+              </span>
+            </div>
+            
+            <div className="pagination-buttons">
+              <button 
+                onClick={handlePrevPage} 
+                disabled={currentPage === 1 || loading}
+                className="pagination-btn"
+              >
+                Previous
+              </button>
+              <span className="page-info">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button 
+                onClick={handleNextPage} 
+                disabled={currentPage === totalPages || loading}
+                className="pagination-btn"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </>
+    )}
+
+    {/* ARCHIVED GROUPS VIEW */}
+    {showArchivedView && (
+      <>
         <table className="group-table">
           <thead>
             <tr>
@@ -539,7 +588,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
             </tr>
           </thead>
           <tbody>
-            {filteredArchivedGroups.length === 0 ? (
+            {archivedGroups.length === 0 ? (
               <tr>
                 <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
                   {loading ? (
@@ -554,7 +603,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
                 </td>
               </tr>
             ) : (
-              filteredArchivedGroups.map((group) => (
+              archivedGroups.map((group, index) => (
                 <tr key={group._id}>
                   <td>{group.group_name}</td>
                   <td>Level {group.group_level}</td>
@@ -573,30 +622,55 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
                 </tr>
               ))
             )}
+            
+            {/* Add empty rows to maintain consistent height */}
+            {archivedGroups.length > 0 && archivedGroups.length < 5 &&
+              Array.from({ length: 5 - archivedGroups.length }).map((_, index) => (
+                <tr key={`empty-archived-${index}`} style={{ visibility: 'hidden' }}>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                </tr>
+              ))
+            }
           </tbody>
         </table>
-      )}
 
-      {/* PAGINATION CONTROLS */}
-      <div className="simple-pagination">
-        <button 
-          className="pagination-btn" 
-          onClick={handlePrevPage}
-          disabled={currentPage === 1 || loading}
-        >
-          Previous
-        </button>
-        <span className="page-info">
-          Page {currentPage} of {totalPages}
-        </span>
-        <button 
-          className="pagination-btn" 
-          onClick={handleNextPage}
-          disabled={currentPage === totalPages || loading}
-        >
-          Next
-        </button>
-      </div>
+        {/* PAGINATION FOR ARCHIVED GROUPS - ALWAYS SHOWN */}
+        {archivedGroups.length > 0 && (
+          <div className="pagination-controls">
+            <div className="pagination-info">
+              <span className="pagination-text">
+                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, archivedGroups.length)} of {archivedGroups.length} items
+              </span>
+            </div>
+            
+            <div className="pagination-buttons">
+              <button 
+                onClick={handlePrevPage} 
+                disabled={currentPage === 1 || loading}
+                className="pagination-btn"
+              >
+                Previous
+              </button>
+              <span className="page-info">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button 
+                onClick={handleNextPage} 
+                disabled={currentPage === totalPages || loading}
+                className="pagination-btn"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </>
+    )}
 
       {/* Overlay Form */}
       {showForm && (

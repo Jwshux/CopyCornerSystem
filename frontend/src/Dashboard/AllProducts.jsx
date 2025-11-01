@@ -39,7 +39,9 @@ function AllProducts({ showAddModal, onAddModalClose }) {
     unit_price: ""
   });
 
+  // Pagination state - FIXED ITEMS PER PAGE
   const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10; // Fixed constant
   const [totalPages, setTotalPages] = useState(1);
 
   // Handle modal from parent
@@ -52,7 +54,7 @@ function AllProducts({ showAddModal, onAddModalClose }) {
   const fetchProducts = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/products?page=${page}&per_page=10`);
+      const response = await fetch(`${API_BASE}/products?page=${page}&per_page=${ITEMS_PER_PAGE}`);
       if (response.ok) {
         const data = await response.json();
         console.log('Products API Response:', data);
@@ -80,20 +82,40 @@ function AllProducts({ showAddModal, onAddModalClose }) {
     }
   };
 
-  const fetchArchivedProducts = async () => {
+  // Fetch archived products with pagination
+  const fetchArchivedProducts = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/products/archived`);
+      const response = await fetch(`${API_BASE}/products/archived?page=${page}&per_page=${ITEMS_PER_PAGE}`);
       if (response.ok) {
         const data = await response.json();
-        setArchivedProducts(Array.isArray(data) ? data : []);
+        
+        // Handle both response formats:
+        if (Array.isArray(data)) {
+          // Simple array format - no pagination info
+          setArchivedProducts(data);
+          setCurrentPage(1);
+          setTotalPages(1);
+        } else if (data.products && Array.isArray(data.products)) {
+          // Paginated format
+          setArchivedProducts(data.products);
+          setCurrentPage(data.pagination.page);
+          setTotalPages(data.pagination.total_pages);
+        } else {
+          // Fallback
+          setArchivedProducts([]);
+          setCurrentPage(1);
+          setTotalPages(1);
+        }
       } else {
         console.error('Failed to fetch archived products');
         showError('Failed to load archived products');
+        setArchivedProducts([]); // Set empty array on error
       }
     } catch (error) {
       console.error('Error fetching archived products:', error);
       showError('Error loading archived products');
+      setArchivedProducts([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -153,15 +175,24 @@ function AllProducts({ showAddModal, onAddModalClose }) {
     }
   }, [showRestoreModal]);
 
+  // Pagination handlers - same pattern as others
   const handleNextPage = () => {
     if (currentPage < totalPages) {
-      fetchProducts(currentPage + 1);
+      if (showArchivedView) {
+        fetchArchivedProducts(currentPage + 1);
+      } else {
+        fetchProducts(currentPage + 1);
+      }
     }
   };
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
-      fetchProducts(currentPage - 1);
+      if (showArchivedView) {
+        fetchArchivedProducts(currentPage - 1);
+      } else {
+        fetchProducts(currentPage - 1);
+      }
     }
   };
 
@@ -379,8 +410,8 @@ function AllProducts({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setRestoreSuccess(true);
         setTimeout(async () => {
-          await fetchArchivedProducts();
-          await fetchProducts(currentPage);
+          await fetchArchivedProducts(currentPage);
+          await fetchProducts(1);
           closeRestoreModal();
         }, 700);
       } else {
@@ -459,7 +490,7 @@ function AllProducts({ showAddModal, onAddModalClose }) {
           ) : (
             <button className="view-archive-btn" onClick={() => {
               setShowArchivedView(true);
-              fetchArchivedProducts();
+              fetchArchivedProducts(1);
             }}>
               📦 View Archived Products
             </button>
@@ -494,7 +525,7 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                 </tr>
               </thead>
               <tbody>
-                {filteredProducts.length === 0 ? (
+                {products.length === 0 ? (
                   <tr>
                     <td colSpan="9" style={{ textAlign: "center", color: "#888" }}>
                       {loading ? (
@@ -511,7 +542,7 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                 ) : (
                   filteredProducts.map((product, index) => (
                     <tr key={product._id}>
-                      <td>{(currentPage - 1) * 10 + index + 1}</td>
+                      <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                       <td>{product.product_id}</td>
                       <td>{product.product_name}</td>
                       <td>{getCategoryName(product)}</td>
@@ -538,28 +569,56 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                     </tr>
                   ))
                 )}
+                
+                {/* Add empty rows to maintain consistent height */}
+                {products.length > 0 && products.length < 10 &&
+                  Array.from({ length: 10 - products.length }).map((_, index) => (
+                    <tr key={`empty-${index}`} style={{ visibility: 'hidden' }}>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
 
-            <div className="simple-pagination">
-              <button 
-                className="pagination-btn" 
-                onClick={handlePrevPage}
-                disabled={currentPage === 1 || loading}
-              >
-                Previous
-              </button>
-              <span className="page-info">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button 
-                className="pagination-btn" 
-                onClick={handleNextPage}
-                disabled={currentPage === totalPages || loading}
-              >
-                Next
-              </button>
-            </div>
+            {/* PAGINATION CONTROLS - ALWAYS SHOWN */}
+            {products.length > 0 && (
+              <div className="pagination-controls">
+                <div className="pagination-info">
+                  <span className="pagination-text">
+                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, products.length)} of {products.length} items
+                  </span>
+                </div>
+                
+                <div className="pagination-buttons">
+                  <button 
+                    onClick={handlePrevPage} 
+                    disabled={currentPage === 1 || loading}
+                    className="pagination-btn"
+                  >
+                    Previous
+                  </button>
+                  <span className="page-info">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button 
+                    onClick={handleNextPage} 
+                    disabled={currentPage === totalPages || loading}
+                    className="pagination-btn"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
 
@@ -579,7 +638,7 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                 </tr>
               </thead>
               <tbody>
-                {filteredArchivedProducts.length === 0 ? (
+                {archivedProducts.length === 0 ? (
                   <tr>
                     <td colSpan="7" style={{ textAlign: "center", color: "#888" }}>
                       {loading ? (
@@ -594,7 +653,7 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                     </td>
                   </tr>
                 ) : (
-                  filteredArchivedProducts.map((product) => (
+                  filteredArchivedProducts.map((product, index) => (
                     <tr key={product._id}>
                       <td>{product.product_id}</td>
                       <td>{product.product_name}</td>
@@ -610,8 +669,54 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                     </tr>
                   ))
                 )}
+                
+                {/* Add empty rows to maintain consistent height */}
+                {archivedProducts.length > 0 && archivedProducts.length < 10 &&
+                  Array.from({ length: 10 - archivedProducts.length }).map((_, index) => (
+                    <tr key={`empty-archived-${index}`} style={{ visibility: 'hidden' }}>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
+
+            {/* PAGINATION FOR ARCHIVED PRODUCTS - ALWAYS SHOWN */}
+            {archivedProducts.length > 0 && (
+              <div className="pagination-controls">
+                <div className="pagination-info">
+                  <span className="pagination-text">
+                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, archivedProducts.length)} of {archivedProducts.length} items
+                  </span>
+                </div>
+                
+                <div className="pagination-buttons">
+                  <button 
+                    onClick={handlePrevPage} 
+                    disabled={currentPage === 1 || loading}
+                    className="pagination-btn"
+                  >
+                    Previous
+                  </button>
+                  <span className="page-info">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button 
+                    onClick={handleNextPage} 
+                    disabled={currentPage === totalPages || loading}
+                    className="pagination-btn"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

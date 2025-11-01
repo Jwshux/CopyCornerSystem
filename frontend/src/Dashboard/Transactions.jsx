@@ -53,6 +53,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   });
 
   const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10; // Fixed constant
   const [totalPages, setTotalPages] = useState(1);
   const [showArchivedView, setShowArchivedView] = useState(false);
 
@@ -81,7 +82,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   const fetchTransactions = async (page = 1, status = "Completed") => {
     setLoading(true);
     try {
-      const url = `${API_BASE}/transactions/status/${status}?page=${page}&per_page=10`;
+      const url = `${API_BASE}/transactions/status/${status}?page=${page}&per_page=${ITEMS_PER_PAGE}`;
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
@@ -118,7 +119,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   const fetchArchivedTransactions = async (page = 1) => {
     setLoading(true);
     try {
-      const url = `${API_BASE}/transactions/archived?page=${page}&per_page=10`;
+      const url = `${API_BASE}/transactions/archived?page=${page}&per_page=${ITEMS_PER_PAGE}`;
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
@@ -722,238 +723,321 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
 
   const serviceTypeOptions = serviceTypes.map(service => service.service_name);
 
-  return (
-    <div className="transactions-container">
-      {/* Table Header with Archive Button and Search */}
-      <div className="table-header">
-        {showArchivedView ? (
-          <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
-            ← Back to Main View
-          </button>
-        ) : (
-          <button className="view-archive-btn" onClick={() => {
-            setShowArchivedView(true);
-            fetchArchivedTransactions(1);
-          }}>
-            📦 View Archived Transactions
-          </button>
-        )}
-        
-        <div className="search-container">
-          <input
-            type="text"
-            placeholder="Search transactions..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
+return (
+  <div className="transactions-container">
+    {/* Table Header with Archive Button and Search */}
+    <div className="table-header">
+      {showArchivedView ? (
+        <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
+          ← Back to Main View
+        </button>
+      ) : (
+        <button className="view-archive-btn" onClick={() => {
+          setShowArchivedView(true);
+          fetchArchivedTransactions(1);
+        }}>
+          📦 View Archived Transactions
+        </button>
+      )}
+      
+      <div className="search-container">
+        <input
+          type="text"
+          placeholder="Search transactions..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="search-input"
+        />
+      </div>
+    </div>
+
+    {/* MAIN TRANSACTIONS VIEW */}
+    {!showArchivedView && (
+      <>
+        {/* Tabs - Order: Completed, Pending, Cancelled */}
+        <div className="transaction-tabs">
+          {["Completed", "Pending", "Cancelled"].map((tab) => (
+            <button
+              key={tab}
+              className={`tab-btn ${activeTab === tab ? "active" : ""}`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
-      </div>
 
-      {/* MAIN TRANSACTIONS VIEW */}
-      {!showArchivedView && (
-        <>
-          {/* Tabs - Order: Completed, Pending, Cancelled */}
-          <div className="transaction-tabs">
-            {["Completed", "Pending", "Cancelled"].map((tab) => (
-              <button
-                key={tab}
-                className={`tab-btn ${activeTab === tab ? "active" : ""}`}
-                onClick={() => setActiveTab(tab)}
+        {/* Table */}
+        <table className="transactions-table">
+          <thead>
+            <tr>
+              <th>Queue #</th>
+              <th>Transaction ID</th>
+              <th>Customer</th>
+              <th>Service Type</th>
+              <th>Product</th>
+              <th>Details</th>
+              <th>Price</th>
+              <th>Qty</th>
+              <th>Total</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
+                  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                    <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                  </div>
+                </td>
+              </tr>
+            ) : filteredTransactions.length > 0 ? (
+              filteredTransactions.map((t, index) => {
+                const serviceInfo = getServiceSpecificInfo(t);
+                return (
+                  <tr key={t._id}>
+                    <td className="queue-number">{t.queue_number}</td>
+                    <td>{t.transaction_id}</td>
+                    <td>{t.customer_name}</td>
+                    <td>{t.service_type}</td>
+                    <td>{serviceInfo.type}</td>
+                    <td>{serviceInfo.details}</td>
+                    <td>{formatPeso(t.price_per_unit)}</td>
+                    <td>{t.quantity}</td>
+                    <td>{formatPeso(t.total_amount)}</td>
+                    <td>{t.date}</td>
+                    <td>
+                      <span
+                        className={`status-tag ${
+                          t.status === "Completed"
+                            ? "completed"
+                            : t.status === "Cancelled"
+                            ? "cancelled"
+                            : "pending"
+                        }`}
+                      >
+                        {t.status}
+                      </span>
+                    </td>
+                    <td>
+                      {/* PENDING TRANSACTIONS - Full actions */}
+                      {t.status === "Pending" && (
+                        <>
+                          <button className="edit-btn" onClick={() => handleEdit(t)}>Edit</button>
+                          <button className="complete-btn" onClick={() => handleComplete(t)}>Complete</button>
+                          <button className="cancel-btn-table" onClick={() => handleCancel(t)}>Cancel</button>
+                        </>
+                      )}
+
+                      {/* COMPLETED TRANSACTIONS - Archive only */}
+                      {t.status === "Completed" && (
+                        <button className="archive-btn" onClick={() => openArchiveModal(t)}>Archive</button>
+                      )}
+
+                      {/* CANCELLED TRANSACTIONS - Delete only (NO RESTORE) */}
+                      {t.status === "Cancelled" && (
+                        <button className="delete-btn" onClick={() => handleDelete(t)}>Delete</button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
+                  No {activeTab.toLowerCase()} transactions found.
+                </td>
+              </tr>
+            )}
+            
+            {/* Add empty rows to maintain consistent height */}
+            {filteredTransactions.length > 0 && filteredTransactions.length < 10 &&
+              Array.from({ length: 10 - filteredTransactions.length }).map((_, index) => (
+                <tr key={`empty-${index}`} style={{ visibility: 'hidden' }}>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+
+        {/* PAGINATION CONTROLS - ALWAYS SHOWN */}
+        {filteredTransactions.length > 0 && (
+          <div className="pagination-controls">
+            <div className="pagination-info">
+              <span className="pagination-text">
+                Showing {(currentPage - 1) * 10 + 1}-{Math.min(currentPage * 10, filteredTransactions.length)} of {filteredTransactions.length} items
+              </span>
+            </div>
+            
+            <div className="pagination-buttons">
+              <button 
+                onClick={handlePrevPage} 
+                disabled={currentPage === 1 || loading}
+                className="pagination-btn"
               >
-                {tab}
+                Previous
               </button>
-            ))}
+              <span className="page-info">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button 
+                onClick={handleNextPage} 
+                disabled={currentPage === totalPages || loading}
+                className="pagination-btn"
+              >
+                Next
+              </button>
+            </div>
           </div>
+        )}
+      </>
+    )}
 
-          {/* Table */}
-          <table className="transactions-table">
-            <thead>
+    {/* ARCHIVED TRANSACTIONS VIEW */}
+    {showArchivedView && (
+      <>
+        <table className="transactions-table">
+          <thead>
+            <tr>
+              <th>Queue #</th>
+              <th>Transaction ID</th>
+              <th>Customer</th>
+              <th>Service Type</th>
+              <th>Product</th>
+              <th>Details</th>
+              <th>Price</th>
+              <th>Qty</th>
+              <th>Total</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Archived Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
               <tr>
-                <th>Queue #</th>
-                <th>Transaction ID</th>
-                <th>Customer</th>
-                <th>Service Type</th>
-                <th>Product</th>
-                <th>Details</th>
-                <th>Price</th>
-                <th>Qty</th>
-                <th>Total</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <td colSpan="13" style={{ textAlign: "center", padding: "20px" }}>
+                  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                    <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
-                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
-                      <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredTransactions.length > 0 ? (
-                filteredTransactions.map((t, index) => {
-                  const serviceInfo = getServiceSpecificInfo(t);
-                  return (
-                    <tr key={t._id}>
-                      <td className="queue-number">{t.queue_number}</td>
-                      <td>{t.transaction_id}</td>
-                      <td>{t.customer_name}</td>
-                      <td>{t.service_type}</td>
-                      <td>{serviceInfo.type}</td>
-                      <td>{serviceInfo.details}</td>
-                      <td>{formatPeso(t.price_per_unit)}</td>
-                      <td>{t.quantity}</td>
-                      <td>{formatPeso(t.total_amount)}</td>
-                      <td>{t.date}</td>
-                      <td>
-                        <span
-                          className={`status-tag ${
-                            t.status === "Completed"
-                              ? "completed"
-                              : t.status === "Cancelled"
-                              ? "cancelled"
-                              : "pending"
-                          }`}
-                        >
-                          {t.status}
-                        </span>
-                      </td>
-                      <td>
-                        {/* PENDING TRANSACTIONS - Full actions */}
-                        {t.status === "Pending" && (
-                          <>
-                            <button className="edit-btn" onClick={() => handleEdit(t)}>Edit</button>
-                            <button className="complete-btn" onClick={() => handleComplete(t)}>Complete</button>
-                            <button className="cancel-btn-table" onClick={() => handleCancel(t)}>Cancel</button>
-                          </>
-                        )}
-
-                        {/* COMPLETED TRANSACTIONS - Archive only */}
-                        {t.status === "Completed" && (
-                          <button className="archive-btn" onClick={() => openArchiveModal(t)}>Archive</button>
-                        )}
-
-                        {/* CANCELLED TRANSACTIONS - Delete only (NO RESTORE) */}
-                        {t.status === "Cancelled" && (
-                          <button className="delete-btn" onClick={() => handleDelete(t)}>Delete</button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
-                    No {activeTab.toLowerCase()} transactions found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </>
-      )}
-
-      {/* ARCHIVED TRANSACTIONS VIEW */}
-      {showArchivedView && (
-        <>
-          <table className="transactions-table">
-            <thead>
+            ) : filteredArchivedTransactions.length > 0 ? (
+              filteredArchivedTransactions.map((t) => {
+                const serviceInfo = getServiceSpecificInfo(t);
+                return (
+                  <tr key={t._id}>
+                    <td className="queue-number">{t.queue_number}</td>
+                    <td>{t.transaction_id}</td>
+                    <td>{t.customer_name}</td>
+                    <td>{t.service_type}</td>
+                    <td>{serviceInfo.type}</td>
+                    <td>{serviceInfo.details}</td>
+                    <td>{formatPeso(t.price_per_unit)}</td>
+                    <td>{t.quantity}</td>
+                    <td>{formatPeso(t.total_amount)}</td>
+                    <td>{t.date}</td>
+                    <td>
+                      <span
+                        className={`status-tag ${
+                          t.status === "Completed"
+                            ? "completed"
+                            : t.status === "Cancelled"
+                            ? "cancelled"
+                            : "pending"
+                        }`}
+                      >
+                        {t.status}
+                      </span>
+                    </td>
+                    <td>{formatDate(t.archived_at)}</td>
+                    <td>
+                      <button className="restore-btn" onClick={() => openRestoreModal(t)}>
+                        ↩️ Restore
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
               <tr>
-                <th>Queue #</th>
-                <th>Transaction ID</th>
-                <th>Customer</th>
-                <th>Service Type</th>
-                <th>Product</th>
-                <th>Details</th>
-                <th>Price</th>
-                <th>Qty</th>
-                <th>Total</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Archived Date</th>
-                <th>Actions</th>
+                <td colSpan="13" style={{ textAlign: "center", padding: "20px" }}>
+                  No archived transactions found.
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="13" style={{ textAlign: "center", padding: "20px" }}>
-                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
-                      <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
-                    </div>
-                  </td>
+            )}
+            
+            {/* Add empty rows to maintain consistent height */}
+            {filteredArchivedTransactions.length > 0 && filteredArchivedTransactions.length < 10 &&
+              Array.from({ length: 10 - filteredArchivedTransactions.length }).map((_, index) => (
+                <tr key={`empty-archived-${index}`} style={{ visibility: 'hidden' }}>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
                 </tr>
-              ) : filteredArchivedTransactions.length > 0 ? (
-                filteredArchivedTransactions.map((t) => {
-                  const serviceInfo = getServiceSpecificInfo(t);
-                  return (
-                    <tr key={t._id}>
-                      <td className="queue-number">{t.queue_number}</td>
-                      <td>{t.transaction_id}</td>
-                      <td>{t.customer_name}</td>
-                      <td>{t.service_type}</td>
-                      <td>{serviceInfo.type}</td>
-                      <td>{serviceInfo.details}</td>
-                      <td>{formatPeso(t.price_per_unit)}</td>
-                      <td>{t.quantity}</td>
-                      <td>{formatPeso(t.total_amount)}</td>
-                      <td>{t.date}</td>
-                      <td>
-                        <span
-                          className={`status-tag ${
-                            t.status === "Completed"
-                              ? "completed"
-                              : t.status === "Cancelled"
-                              ? "cancelled"
-                              : "pending"
-                          }`}
-                        >
-                          {t.status}
-                        </span>
-                      </td>
-                      <td>{formatDate(t.archived_at)}</td>
-                      <td>
-                        <button className="restore-btn" onClick={() => openRestoreModal(t)}>
-                          ↩️ Restore
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan="13" style={{ textAlign: "center", padding: "20px" }}>
-                    No archived transactions found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </>
-      )}
+              ))
+            }
+          </tbody>
+        </table>
 
-      <div className="simple-pagination">
-        <button 
-          className="pagination-btn" 
-          onClick={handlePrevPage}
-          disabled={currentPage === 1 || loading}
-        >
-          Previous
-        </button>
-        <span className="page-info">
-          Page {currentPage} of {totalPages}
-        </span>
-        <button 
-          className="pagination-btn" 
-          onClick={handleNextPage}
-          disabled={currentPage === totalPages || loading}
-        >
-          Next
-        </button>
-      </div>
+        {/* PAGINATION FOR ARCHIVED TRANSACTIONS - ALWAYS SHOWN */}
+        {filteredArchivedTransactions.length > 0 && (
+          <div className="pagination-controls">
+            <div className="pagination-info">
+              <span className="pagination-text">
+                Showing {(currentPage - 1) * 10 + 1}-{Math.min(currentPage * 10, filteredArchivedTransactions.length)} of {filteredArchivedTransactions.length} items
+              </span>
+            </div>
+            
+            <div className="pagination-buttons">
+              <button 
+                onClick={handlePrevPage} 
+                disabled={currentPage === 1 || loading}
+                className="pagination-btn"
+              >
+                Previous
+              </button>
+              <span className="page-info">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button 
+                onClick={handleNextPage} 
+                disabled={currentPage === totalPages || loading}
+                className="pagination-btn"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </>
+    )}
 
       {/* ADD / EDIT MODAL */}
       {showFormModal && (

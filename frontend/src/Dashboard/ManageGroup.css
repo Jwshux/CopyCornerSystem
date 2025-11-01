@@ -364,16 +364,6 @@
   text-align: center;
 }
 
-.simple-pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 15px;
-  margin-top: 20px;
-  padding: 15px 0;
-  border-top: 1px solid #eee;
-}
-
 .page-info {
   color: #666;
   font-weight: 500;
@@ -455,4 +445,105 @@
   .search-input {
     width: 100%;
   }
+}
+
+/* Table container with fixed height */
+.manage-group-page {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  min-height: 400px; /* Fixed height to always show space for 5 rows */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Table styling */
+.group-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  flex: 1; /* Take remaining space */
+}
+
+/* Fixed table body height - ALWAYS show 10 rows space */
+.group-table tbody {
+  display: block;
+  min-height: 400px; /* Height for exactly 10 rows */
+}
+
+.group-table thead,
+.group-table tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* Ensure table rows have consistent height */
+.group-table tr {
+  height: 40px; /* Fixed row height */
+}
+
+/* Pagination Styles - Same as ManageUsers */
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto; /* Push to bottom of container */
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-top: 1px solid #dee2e6;
+  position: sticky;
+  bottom: 0;
+  z-index: 100;
+}
+
+.pagination-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.pagination-text {
+  font-weight: 600;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  border: 1px solid #00205B;
+  background: white;
+  color: #00205B;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #00205B;
+  color: white;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #6c757d;
+  color: #6c757d;
+}
+
+.page-info {
+  font-size: 14px;
+  font-weight: 600;
+  color: #00205B;
 }

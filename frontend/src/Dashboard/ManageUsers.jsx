@@ -43,15 +43,16 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
   const [showArchivedView, setShowArchivedView] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Pagination state
+  // Pagination state - FIXED TO 10 ONLY
   const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10; // Fixed constant, no state needed
   const [totalPages, setTotalPages] = useState(1);
 
   // Fetch active users from backend
   const fetchUsers = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/users?page=${page}&per_page=10`);
+      const response = await fetch(`${API_BASE}/users?page=${page}&per_page=${ITEMS_PER_PAGE}`);
       if (response.ok) {
         const data = await response.json();
         console.log('Users data from API:', data);
@@ -72,7 +73,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
   const fetchArchivedUsers = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/users/archived?page=${page}&per_page=10`);
+      const response = await fetch(`${API_BASE}/users/archived?page=${page}&per_page=${ITEMS_PER_PAGE}`);
       if (response.ok) {
         const data = await response.json();
         setArchivedUsers(data.users);
@@ -561,107 +562,109 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     return formData[field] || '';
   };
 
-  // Filter users based on search term
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredArchivedUsers = archivedUsers.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
     <div className="manage-users">
-      <div className="user-table">
-        {/* Table Header with Archive Button and Search */}
-        <div className="table-header">
-          {showArchivedView ? (
-            <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
-              ← Back to Main View
-            </button>
-          ) : (
+      {/* MAIN USERS VIEW */}
+      {!showArchivedView && (
+        <div className="user-table">
+          {/* Table Header with Archive Button and Search */}
+          <div className="table-header">
             <button className="view-archive-btn" onClick={() => {
               setShowArchivedView(true);
               fetchArchivedUsers(1);
             }}>
               📦 View Archived Users
             </button>
-          )}
-          
-          <div className="search-container">
-            <input
-              type="text"
-              placeholder="Search users..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
+            
+            <div className="search-container">
+              <input
+                type="text"
+                placeholder="Search users..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
+            </div>
           </div>
-        </div>
 
-        {/* MAIN USERS VIEW */}
-        {!showArchivedView && (
-          <>
-            <table>
-              <thead>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Username</th>
+                <th>User Role</th>
+                <th>Status</th>
+                <th>Last Login</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.length === 0 ? (
                 <tr>
-                  <th>#</th>
-                  <th>Name</th>
-                  <th>Username</th>
-                  <th>User Role</th>
-                  <th>Status</th>
-                  <th>Last Login</th>
-                  <th>Actions</th>
+                  <td colSpan="7" style={{ textAlign: "center", color: "#888" }}>
+                    {loading ? (
+                      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                        <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                      </div>
+                    ) : searchTerm ? (
+                      "No users found matching your search."
+                    ) : (
+                      "No users found."
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan="7" style={{ textAlign: "center", color: "#888" }}>
-                      {loading ? (
-                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
-                          <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
-                        </div>
-                      ) : searchTerm ? (
-                        "No users found matching your search."
-                      ) : (
-                        "No users found."
-                      )}
+              ) : (
+                users.map((user, index) => (
+                  <tr key={user._id}>
+                    <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
+                    <td>{user.name}</td>
+                    <td>{user.username}</td>
+                    <td>{user.role}</td>
+                    <td>
+                      <span className={user.status === "Active" ? "active-status" : "inactive-status"}>
+                        {user.status}
+                      </span>
+                    </td>
+                    <td>{formatDate(user.last_login)}</td>
+                    <td>
+                      <button className="edit-btn" onClick={() => handleEditUser(user)}>Edit</button>
+                      <button className="archive-btn" onClick={() => openArchiveModal(user)}>Archive</button>
                     </td>
                   </tr>
-                ) : (
-                  filteredUsers.map((user, index) => (
-                    <tr key={user._id}>
-                      <td>{(currentPage - 1) * 10 + index + 1}</td>
-                      <td>{user.name}</td>
-                      <td>{user.username}</td>
-                      <td>{user.role}</td>
-                      <td>
-                        <span className={user.status === "Active" ? "active-status" : "inactive-status"}>
-                          {user.status}
-                        </span>
-                      </td>
-                      <td>{formatDate(user.last_login)}</td>
-                      <td>
-                        <button className="edit-btn" onClick={() => handleEditUser(user)}>Edit</button>
-                        <button className="archive-btn" onClick={() => openArchiveModal(user)}>Archive</button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                ))
+              )}
+              
+              {/* Add empty rows to maintain consistent height */}
+              {users.length > 0 && users.length < 10 &&
+                Array.from({ length: 10 - users.length }).map((_, index) => (
+                  <tr key={`empty-${index}`} style={{ visibility: 'hidden' }}>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
 
-            {/* PAGINATION CONTROLS */}
-            <div className="simple-pagination">
+          {/* PAGINATION CONTROLS - ALWAYS SHOWN */}
+          <div className="pagination-controls">
+            <div className="pagination-info">
+              <span className="pagination-text">
+                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, users.length)} of {users.length} items
+              </span>
+            </div>
+            
+            <div className="pagination-buttons">
               <button 
-                className="pagination-btn" 
-                onClick={handlePrevPage}
+                onClick={handlePrevPage} 
                 disabled={currentPage === 1 || loading}
+                className="pagination-btn"
               >
                 Previous
               </button>
@@ -669,70 +672,129 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                 Page {currentPage} of {totalPages}
               </span>
               <button 
-                className="pagination-btn" 
-                onClick={handleNextPage}
+                onClick={handleNextPage} 
                 disabled={currentPage === totalPages || loading}
+                className="pagination-btn"
               >
                 Next
               </button>
             </div>
-          </>
-        )}
+          </div>
+        </div>
+      )}
 
-        {/* ARCHIVED USERS VIEW */}
-        {showArchivedView && (
-          <>
-            <table>
-              <thead>
+      {/* ARCHIVED USERS VIEW */}
+      {showArchivedView && (
+        <div className="user-table">
+          <div className="table-header">
+            <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
+              ← Back to Main View
+            </button>
+            
+            <div className="search-container">
+              <input
+                type="text"
+                placeholder="Search archived users..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>User Role</th>
+                <th>Status</th>
+                <th>Archived Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {archivedUsers.length === 0 ? (
                 <tr>
-                  <th>Name</th>
-                  <th>Username</th>
-                  <th>User Role</th>
-                  <th>Status</th>
-                  <th>Archived Date</th>
-                  <th>Actions</th>
+                  <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
+                    {loading ? (
+                      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                        <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                      </div>
+                    ) : searchTerm ? (
+                      "No archived users found matching your search."
+                    ) : (
+                      "No archived users found."
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredArchivedUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
-                      {loading ? (
-                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
-                          <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
-                        </div>
-                      ) : searchTerm ? (
-                        "No archived users found matching your search."
-                      ) : (
-                        "No archived users found."
-                      )}
+              ) : (
+                archivedUsers.map((user, index) => (
+                  <tr key={user._id}>
+                    <td>{user.name}</td>
+                    <td>{user.username}</td>
+                    <td>{user.role}</td>
+                    <td>
+                      <span className={user.status === "Active" ? "active-status" : "inactive-status"}>
+                        {user.status}
+                      </span>
+                    </td>
+                    <td>{formatDate(user.archived_at)}</td>
+                    <td>
+                      <button className="restore-btn" onClick={() => openRestoreModal(user)}>
+                        Restore
+                      </button>
                     </td>
                   </tr>
-                ) : (
-                  filteredArchivedUsers.map((user) => (
-                    <tr key={user._id}>
-                      <td>{user.name}</td>
-                      <td>{user.username}</td>
-                      <td>{user.role}</td>
-                      <td>
-                        <span className={user.status === "Active" ? "active-status" : "inactive-status"}>
-                          {user.status}
-                        </span>
-                      </td>
-                      <td>{formatDate(user.archived_at)}</td>
-                      <td>
-                        <button className="restore-btn" onClick={() => openRestoreModal(user)}>
-                          Restore
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </>
-        )}
-      </div>
+                ))
+              )}
+              
+              {/* Add empty rows to maintain consistent height */}
+              {archivedUsers.length > 0 && archivedUsers.length < 10 &&
+                Array.from({ length: 10 - archivedUsers.length }).map((_, index) => (
+                  <tr key={`empty-archived-${index}`} style={{ visibility: 'hidden' }}>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+
+          {/* PAGINATION FOR ARCHIVED USERS - ALWAYS SHOWN */}
+          <div className="pagination-controls">
+            <div className="pagination-info">
+              <span className="pagination-text">
+                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, archivedUsers.length)} of {archivedUsers.length} items
+              </span>
+            </div>
+            
+            <div className="pagination-buttons">
+              <button 
+                onClick={handlePrevPage} 
+                disabled={currentPage === 1 || loading}
+                className="pagination-btn"
+              >
+                Previous
+              </button>
+              <span className="page-info">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button 
+                onClick={handleNextPage} 
+                disabled={currentPage === totalPages || loading}
+                className="pagination-btn"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ADD USER MODAL */}
       {showAddModal && (
