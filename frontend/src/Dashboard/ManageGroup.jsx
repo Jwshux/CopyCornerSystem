@@ -512,10 +512,10 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
                   </td>
                   <td>
                     <button className="edit-btn" onClick={() => handleEdit(group)}>
-                      ✏️ Edit
+                      Edit
                     </button>
                     <button className="archive-btn" onClick={() => openArchiveModal(group)}>
-                      📦 Archive
+                      Archive
                     </button>
                   </td>
                 </tr>

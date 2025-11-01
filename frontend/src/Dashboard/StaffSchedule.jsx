@@ -324,9 +324,9 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
                           disabled={tableActionLoading}
                         >
                           {editing.id === schedule._id ? (
-                            tableActionLoading ? "⏳" : "💾 Save"
+                            tableActionLoading ? "⏳" : "Save"
                           ) : (
-                            "✏️ Edit"
+                            "Edit"
                           )}
                         </button>
                         <button
@@ -334,7 +334,7 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
                           onClick={() => openDeleteModal(schedule)}
                           disabled={tableActionLoading}
                         >
-                          ❌
+                          Delete
                         </button>
                       </td>
                     </tr>
@@ -466,7 +466,7 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
                 
                 <div className="modal-actions">
                   <button className="confirm-delete-btn" onClick={handleDeleteSchedule}>
-                    Yes, Delete
+                    Yes
                   </button>
                   <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
                 </div>

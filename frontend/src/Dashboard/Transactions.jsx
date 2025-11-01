@@ -825,20 +825,20 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                         {/* PENDING TRANSACTIONS - Full actions */}
                         {t.status === "Pending" && (
                           <>
-                            <button className="edit-btn" onClick={() => handleEdit(t)}>✏️ Edit</button>
-                            <button className="complete-btn" onClick={() => handleComplete(t)}>✅ Complete</button>
-                            <button className="cancel-btn-table" onClick={() => handleCancel(t)}>❌ Cancel</button>
+                            <button className="edit-btn" onClick={() => handleEdit(t)}>Edit</button>
+                            <button className="complete-btn" onClick={() => handleComplete(t)}>Complete</button>
+                            <button className="cancel-btn-table" onClick={() => handleCancel(t)}>Cancel</button>
                           </>
                         )}
 
                         {/* COMPLETED TRANSACTIONS - Archive only */}
                         {t.status === "Completed" && (
-                          <button className="archive-btn" onClick={() => openArchiveModal(t)}>📦 Archive</button>
+                          <button className="archive-btn" onClick={() => openArchiveModal(t)}>Archive</button>
                         )}
 
                         {/* CANCELLED TRANSACTIONS - Delete only (NO RESTORE) */}
                         {t.status === "Cancelled" && (
-                          <button className="delete-btn" onClick={() => handleDelete(t)}>🗑️ Delete</button>
+                          <button className="delete-btn" onClick={() => handleDelete(t)}>Delete</button>
                         )}
                       </td>
                     </tr>

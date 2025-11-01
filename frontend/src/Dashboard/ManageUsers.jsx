@@ -647,8 +647,8 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                       </td>
                       <td>{formatDate(user.last_login)}</td>
                       <td>
-                        <button className="edit-btn" onClick={() => handleEditUser(user)}>✏️ Edit</button>
-                        <button className="archive-btn" onClick={() => openArchiveModal(user)}>📦 Archive</button>
+                        <button className="edit-btn" onClick={() => handleEditUser(user)}>Edit</button>
+                        <button className="archive-btn" onClick={() => openArchiveModal(user)}>Archive</button>
                       </td>
                     </tr>
                   ))
@@ -722,7 +722,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                       <td>{formatDate(user.archived_at)}</td>
                       <td>
                         <button className="restore-btn" onClick={() => openRestoreModal(user)}>
-                          ↩️ Restore
+                          Restore
                         </button>
                       </td>
                     </tr>

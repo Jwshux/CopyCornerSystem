@@ -165,23 +165,23 @@
   flex-shrink: 0;
 }
 
-.edit-btn {
-  background: #f0ad4e;
+.schedule-container .edit-btn {
+  background: #3B82F6;
   color: white;
 }
 
-.edit-btn:hover:not(:disabled) {
-  background: #ec971f;
+.schedule-container .edit-btn:hover:not(:disabled) {
+  background: #2563EB;
   transform: translateY(-1px);
 }
 
-.save-btn {
-  background: #007bff;
+.modal-actions .save-btn {
+  background: #198754;
   color: white;
 }
 
-.save-btn:hover:not(:disabled) {
-  background: #0056b3;
+.modal-actions .save-btn:hover:not(:disabled) {
+  background: #157347;
   transform: translateY(-1px);
 }
 
