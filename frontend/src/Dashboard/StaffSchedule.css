@@ -121,7 +121,7 @@
 }
 
 .time-input {
-  width: 100px !important;
+  width: 100px;
   height: 36px;
   border: 1px solid #ccc;
   border-radius: 6px;
@@ -198,7 +198,7 @@
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none !important;
+  transform: none;
 }
 
 .modal-backdrop {
@@ -260,7 +260,7 @@ button:disabled {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 10px !important;
+  margin-top: 10px;
 }
 
 .modal-actions button {

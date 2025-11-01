@@ -162,7 +162,7 @@ td {
 }
 
 .delete-warning {
-  color: #d9534f !important;
+  color: #d9534f;
   font-weight: bold;
   font-size: 14px;
 }
@@ -459,7 +459,7 @@ td {
 }
 
 .archive-warning {
-  color: #8b5cf6 !important;
+  color: #8b5cf6;
   font-weight: bold;
   font-size: 14px;
 }
@@ -501,7 +501,7 @@ td {
 }
 
 .restore-warning {
-  color: #10b981 !important;
+  color: #10b981;
   font-weight: bold;
   font-size: 14px;
 }
@@ -531,7 +531,7 @@ td {
 }
 
 .centered-buttons {
-  justify-content: center !important;
+  justify-content: center;
 }
 
 /* Archive Animation Center */

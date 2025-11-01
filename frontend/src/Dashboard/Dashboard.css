@@ -399,10 +399,10 @@
   border-bottom: 2px solid #e2e8f0;
 }
 
-.page-title {
+.main .page-header .page-title {
   font-size: 1.8rem;
   color: #00205B;
-  font-weight: 1000 !important;
+  font-weight: 1000;
   margin: 0;
   padding-bottom: 8px;
   flex-grow: 1;
@@ -497,57 +497,57 @@
 /* FIX FOR SAVE/UPDATE/CANCEL BUTTONS - ADD THIS AT THE END OF YOUR CSS FILE */
 .save-btn,
 .update-btn {
-  background: #00205B !important;
-  color: white !important;
-  border: 2px solid #00205B !important;
-  padding: 8px 16px !important;
-  border-radius: 6px !important;
-  cursor: pointer !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-  transition: all 0.3s ease !important;
-  box-shadow: 0 2px 6px rgba(0, 32, 91, 0.1) !important;
-  min-width: 100px !important;
-  height: 36px !important;
-  box-sizing: border-box !important;
+  background: #00205B;
+  color: white;
+  border: 2px solid #00205B;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 32, 91, 0.1);
+  min-width: 100px;
+  height: 36px;
+  box-sizing: border-box;
 }
 
 .save-btn:hover,
 .update-btn:hover {
-  background: #001a47 !important;
-  border-color: #001a47 !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 4px 12px rgba(0, 32, 91, 0.3) !important;
+  background: #001a47;
+  border-color: #001a47;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 32, 91, 0.3);
 }
 
 .cancel-btn {
-  background: #6b7280 !important;
-  color: white !important;
-  border: 2px solid #6b7280 !important;
-  padding: 8px 16px !important;
-  border-radius: 6px !important;
-  cursor: pointer !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-  transition: all 0.3s ease !important;
-  box-shadow: 0 2px 6px rgba(107, 114, 128, 0.1) !important;
-  min-width: 100px !important;
-  height: 36px !important;
-  box-sizing: border-box !important;
+  background: #6b7280;
+  color: white;
+  border: 2px solid #6b7280;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(107, 114, 128, 0.1);
+  min-width: 100px;
+  height: 36px;
+  box-sizing: border-box;
 }
 
 .cancel-btn:hover {
-  background: #4b5563 !important;
-  border-color: #4b5563 !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3) !important;
+  background: #4b5563;
+  border-color: #4b5563;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
 }
 
 .form-buttons {
-  display: flex !important;
-  justify-content: flex-end !important;
-  gap: 12px !important;
-  margin-top: 20px !important;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
 }

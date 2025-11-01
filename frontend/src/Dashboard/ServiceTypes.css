@@ -108,7 +108,7 @@
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
 }
 
-.add-form h3 {
+.service-types-page .add-form h3 {
   margin: 0 0 15px 0;
   color: #00205B;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -117,14 +117,14 @@
   text-align: left;
 }
 
-.form-field {
+.service-types-page .form-field {
   margin-bottom: 12px;
   width: 100%;
   display: flex;
   flex-direction: column;
 }
 
-.form-field label {
+.service-types-page .form-field label {
   display: block;
   margin-bottom: 5px;
   font-weight: 500;
@@ -132,8 +132,8 @@
   font-size: 14px;
 }
 
-.form-field input,
-.form-field select {
+.service-types-page .form-field input,
+.service-types-page .form-field select {
   width: 100%;
   padding: 10px;
   border-radius: 6px;
@@ -141,18 +141,19 @@
   outline: none;
   font-size: 14px;
   box-sizing: border-box;
+  margin-bottom: 3px;
 }
 
-.form-field select {
+.service-types-page .form-field select {
   background-color: white;
   cursor: pointer;
 }
 
-.form-buttons {
+.service-types-page .form-buttons {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 10px !important;
+  margin-top: 20px;
 }
 
 .save-btn {
@@ -258,7 +259,7 @@
 }
 
 .delete-warning {
-  color: #d9534f !important;
+  color: #d9534f;
   font-weight: bold;
   font-size: 14px;
 }
@@ -284,7 +285,7 @@
 }
 
 .error-input {
-  border: 2px solid #ff4444 !important;
+  border: 2px solid #ff4444;
   background-color: #fff8f8;
 }
 
@@ -471,7 +472,7 @@
 }
 
 .archive-warning {
-  color: #8b5cf6 !important;
+  color: #8b5cf6;
   font-weight: bold;
   font-size: 14px;
 }
@@ -513,7 +514,7 @@
 }
 
 .restore-warning {
-  color: #10b981 !important;
+  color: #10b981;
   font-weight: bold;
   font-size: 14px;
 }
@@ -543,7 +544,7 @@
 }
 
 .centered-buttons {
-  justify-content: center !important;
+  justify-content: center;
 }
 
 /* Archive Animation Center */

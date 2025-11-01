@@ -63,46 +63,46 @@ td {
 
 /* Modal Content Box */
 .modal-content {
-  background: #fff !important;
-  padding: 20px !important;
-  border-radius: 12px !important;
-  width: 400px !important;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2) !important;
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  width: 400px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
 }
 
-.modal-content h3 {
-  margin: 0 0 5px 0 !important;
-  color: #00205B !important;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-  font-size: 1.5rem !important;
-  font-weight: 500 !important;
-  text-align: left !important;
+.modal-overlay .modal-content h3 {
+  margin: 0 0 5px 0;
+  color: #00205B;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+  text-align: left;
 }
 
-.modal-content label {
-  display: block !important;
-  margin-bottom: 5px !important;
-  font-weight: 500 !important;
-  color: #333 !important;
-  font-size: 14px !important;
+.modal-overlay .modal-content label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
 }
 
 .modal-content input,
 .modal-content select {
-  width: 100% !important;
-  padding: 10px !important;
-  margin-bottom: 12px !important;
-  border-radius: 6px !important;
-  border: 1px solid #d1d5db !important;
-  font-size: 14px !important;
-  box-sizing: border-box !important;
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+  box-sizing: border-box;
 }
 
-.modal-buttons {
-  display: flex !important;
-  justify-content: flex-end !important;
-  gap: 12px !important;
-  margin-top: 10px !important;
+.manage-users .modal-content .modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
 }
 
 .save-btn {
@@ -132,7 +132,7 @@ td {
 }
 
 .error-input {
-  border: 2px solid #ff4444 !important;
+  border: 2px solid #ff4444;
   background-color: #fff8f8;
 }
 
@@ -157,7 +157,7 @@ td {
 
 .modal-content form label {
   font-size: 14px;
-  margin-top: 0 !important;
+  margin-top: 0;
   color: #333;
   font-weight: 500;
 }
@@ -201,7 +201,7 @@ td {
 }
 
 .delete-warning {
-  color: #d9534f !important;
+  color: #d9534f;
   font-weight: bold;
   font-size: 14px;
 }

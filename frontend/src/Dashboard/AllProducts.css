@@ -85,7 +85,7 @@
 }
 
 /* Ensure all modal content is centered */
-.add-form {
+.product-page .add-form {
   background: white;
   padding: 20px;
   border-radius: 12px;
@@ -95,8 +95,8 @@
   margin: 0 auto;
 }
 
-.add-form h3 {
-  margin: 0 0 5px 0;
+.product-page .add-form h3 {
+  margin: 0 0 15px 0;
   color: #00205B;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-size: 1.5rem;
@@ -104,21 +104,22 @@
   text-align: left;
 }
 
-.add-form input,
-.add-form select {
+.product-page .add-form input,
+.product-page .add-form select {
   width: 93%;
   padding: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 0px;
   border-radius: 6px;
   border: 1px solid #d1d5db;
   outline: none;
 }
 
-.form-buttons {
+
+.product-page .form-buttons {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 10px !important;
+  margin-top: 25px;
 }
 
 .save-btn,
@@ -243,7 +244,7 @@
 }
 
 .delete-warning {
-  color: #d9534f !important;
+  color: #d9534f;
   font-weight: bold;
   font-size: 14px;
 }
@@ -269,7 +270,7 @@
 }
 
 .error-input {
-  border: 2px solid #ff4444 !important;
+  border: 2px solid #ff4444;
   background-color: #fff8f8;
 }
 
@@ -285,14 +286,14 @@
 }
 
 .form-field {
-  margin-bottom: 0px !important;
+  margin-bottom: 15px;
 }
 
 .form-field label {
   display: block;
   margin-bottom: 5px;
   font-weight: 500;
-  color: #2d60b3;
+  color: #333;
   font-size: 14px;
 }
 
@@ -443,7 +444,7 @@
 }
 
 .archive-warning {
-  color: #8b5cf6 !important;
+  color: #8b5cf6;
   font-weight: bold;
   font-size: 14px;
 }
@@ -547,7 +548,7 @@
 }
 
 .centered-buttons {
-  justify-content: center !important;
+  justify-content: center;
 }
 
 /* Restore Confirmation */
@@ -567,7 +568,7 @@
 }
 
 .restore-warning {
-  color: #10b981 !important;
+  color: #10b981;
   font-weight: bold;
   font-size: 14px;
 }
