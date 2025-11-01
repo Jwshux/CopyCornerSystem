@@ -84,32 +84,45 @@ def login():
 
     user = users_collection.find_one({"username": username})
     
-    if user and user.get("password") == password:
+    if user:
+        # Check if account is archived
+        if user.get("is_archived"):
+            return jsonify({"error": "Your account has been archived. Please contact an administrator."}), 401
+        
+        # Check if account is inactive
         if user.get("status") != "Active":
-            return jsonify({"error": "Your account is inactive. Please contact administrator."}), 401
+            return jsonify({"error": "Your account is inactive. Please contact an administrator."}), 401
         
-        group = groups_collection.find_one({"_id": user["group_id"]})
-        if group and group.get("status") != "Active":
-            return jsonify({"error": "Your user role has been deactivated. Please contact administrator."}), 401
-        
-        users_collection.update_one(
-            {"_id": user["_id"]},
-            {"$set": {
-                "last_login": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
-            }}
-        )
-        
-        return jsonify({
-            "message": "Login successful!",
-            "user": {
-                "username": user["username"],
-                "name": user.get("name", ""),
-                "id": str(user["_id"]),
-                "role": group["group_name"] if group else "User",
-                "role_level": group.get("group_level", 1)
-            }
-        }), 200
+        # Check password
+        if user.get("password") == password:
+            # Get user's group
+            group = groups_collection.find_one({"_id": user["group_id"]})
+            
+            # Check if role is inactive
+            if group and group.get("status") != "Active":
+                return jsonify({"error": "Your user role has been deactivated. Please contact an administrator."}), 401
+            
+            # Update last login
+            users_collection.update_one(
+                {"_id": user["_id"]},
+                {"$set": {
+                    "last_login": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+            
+            return jsonify({
+                "message": "Login successful!",
+                "user": {
+                    "username": user["username"],
+                    "name": user.get("name", ""),
+                    "id": str(user["_id"]),
+                    "role": group["group_name"] if group else "User",
+                    "role_level": group.get("group_level", 1)
+                }
+            }), 200
+        else:
+            return jsonify({"error": "Invalid credentials"}), 401
     else:
         return jsonify({"error": "Invalid credentials"}), 401
 

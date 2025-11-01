@@ -442,8 +442,8 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setArchiveSuccess(true);
         setTimeout(async () => {
-          // Remove from current view instead of refreshing entire table
-          setUsers(prev => prev.filter(u => u._id !== userToArchive._id));
+          // Refresh from server instead of local filtering
+          await fetchUsers(currentPage);
           closeArchiveModal();
         }, 1500);
       } else {
@@ -501,8 +501,9 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setRestoreSuccess(true);
         setTimeout(async () => {
-          // Remove from archived view instead of refreshing entire table
-          setArchivedUsers(prev => prev.filter(u => u._id !== userToRestore._id));
+          // Refresh from server instead of local filtering
+          await fetchArchivedUsers(currentPage);
+          await fetchUsers(1); // Also refresh main users list
           closeRestoreModal();
         }, 1500);
       } else {

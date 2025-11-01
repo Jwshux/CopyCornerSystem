@@ -31,11 +31,12 @@ function Login({ onLoginSuccess }) {
           onLoginSuccess(data.user);
         }, 1800);
       } else {
+        // Use the specific error message from backend
         setError(data.error || "Incorrect username or password");
       }
     } catch (error) {
       console.error("Error logging in:", error);
-      setError("Could not connect to the server");
+      setError("Could not connect to the server. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -78,6 +79,7 @@ function Login({ onLoginSuccess }) {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       required
+                      disabled={loading}
                     />
                   </div>
 
@@ -89,13 +91,23 @@ function Login({ onLoginSuccess }) {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      disabled={loading}
                     />
                   </div>
 
-                  {error && <p className="error-message">{error}</p>}
+                  {error && (
+                    <div className={`error-message ${error.includes('archived') || error.includes('inactive') || error.includes('deactivated') ? 'account-status-error' : ''}`}>
+                      {error}
+                    </div>
+                  )}
 
-                  <button type="submit" className="login-btn">Log In</button>
-
+                  <button 
+                    type="submit" 
+                    className="login-btn"
+                    disabled={loading}
+                  >
+                    {loading ? "Logging in..." : "Log In"}
+                  </button>
                 </form>
               </>
             ) : (

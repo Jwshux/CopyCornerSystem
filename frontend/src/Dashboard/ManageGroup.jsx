@@ -314,8 +314,8 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setArchiveSuccess(true);
         setTimeout(async () => {
-          // Remove from current view instead of refreshing entire table
-          setGroups(prev => prev.filter(g => g._id !== groupToArchive._id));
+          // Refresh from server instead of local filtering
+          await fetchGroups(currentPage);
           closeArchiveModal();
         }, 1500);
       } else {
@@ -356,8 +356,9 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setRestoreSuccess(true);
         setTimeout(async () => {
-          // Remove from archived view instead of refreshing entire table
-          setArchivedGroups(prev => prev.filter(g => g._id !== groupToRestore._id));
+          // Refresh BOTH views
+          await fetchArchivedGroups(currentPage); // Remove from archive view
+          await fetchGroups(1); // Add to main view (go to page 1 to see it)
           closeRestoreModal();
         }, 1500);
       } else {
