@@ -31,13 +31,13 @@
   transition: all 0.3s ease;
 }
 
-.view-archive-btn {
-  background: #8b5cf6;
+.manage-users .view-archive-btn {
+  background: #6b7280;
   color: white;
 }
 
-.view-archive-btn:hover {
-  background: #7c3aed;
+.manage-users .view-archive-btn:hover {
+  background: #4b5563;
   transform: translateY(-1px);
 }
 
@@ -104,22 +104,22 @@ td {
   transition: all 0.2s ease;
 }
 
-.edit-btn {
-  background: #f0ad4e;
+.manage-users .edit-btn {
+  background: #3B82F6;
   color: white;
 }
 
-.edit-btn:hover {
-  background: #ec971f;
+.manage-users .edit-btn:hover {
+  background: #2563EB;
 }
 
-.archive-btn {
-  background: #8b5cf6;
+.manage-users .archive-btn {
+  background: #A16207;
   color: white;
 }
 
-.archive-btn:hover {
-  background: #7c3aed;
+.manage-users .archive-btn:hover {
+  background: #854D0E;
 }
 
 .restore-btn {
@@ -274,8 +274,8 @@ td {
   margin-bottom: 15px;
 }
 
-.archive-confirmation h3 {
-  color: #8b5cf6;
+.modal-overlay .archive-confirmation h3 {
+  color: #0d6efd;
   margin-bottom: 15px;
 }
 
@@ -284,14 +284,14 @@ td {
   color: #555;
 }
 
-.archive-warning {
-  color: #8b5cf6;
+.modal-overlay .archive-warning {
+  color: #0d6efd;
   font-weight: bold;
   font-size: 14px;
 }
 
-.confirm-archive-btn {
-  background-color: #8b5cf6;
+.modal-overlay .confirm-archive-btn {
+  background-color: #0d6efd;
   color: white;
   padding: 10px 20px;
   border: none;
@@ -300,8 +300,8 @@ td {
   font-weight: bold;
 }
 
-.confirm-archive-btn:hover:not(:disabled) {
-  background-color: #7c3aed;
+.modal-overlay .confirm-archive-btn:hover:not(:disabled) {
+  background-color: #0d6efd;
 }
 
 /* Restore Confirmation Modal */

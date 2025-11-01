@@ -644,3 +644,9 @@
   align-items: center;
   text-align: center;
 }
+.table td:last-child,
+.table th:last-child {
+  padding-right: 16px;
+  padding-left: 12px;
+  text-align: center;
+}

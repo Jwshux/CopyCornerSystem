@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 20px;
+  padding: 20px 20px;
   font-family: "Poppins", sans-serif;
   align-items: flex-start;
 }
@@ -220,13 +220,13 @@
   margin-right: 5px;
 }
 
-.edit-btn {
-  background-color: #f59e0b;
+.table-container .edit-btn {
+  background-color: #3B82F6;
   color: white;
 }
 
-.edit-btn:hover {
-  background-color: #d97706;
+.table-container .edit-btn:hover {
+  background-color: #2563EB;
 }
 
 .delete-btn {
@@ -381,13 +381,13 @@
   transition: all 0.3s ease;
 }
 
-.view-archive-btn {
-  background: #8b5cf6;
+.table-container .view-archive-btn {
+  background: #6c757d;
   color: white;
 }
 
-.view-archive-btn:hover {
-  background: #7c3aed;
+.table-container .view-archive-btn:hover {
+  background: #4b5563;
   transform: translateY(-1px);
 }
 
@@ -432,13 +432,13 @@
   margin-right: 5px;
 }
 
-.archive-btn {
-  background-color: #8b5cf6;
+.table-container .archive-btn {
+  background-color: #A16207;
   color: white;
 }
 
-.archive-btn:hover {
-  background-color: #7c3aed;
+.table-container .archive-btn:hover {
+  background-color: #854D0E;
 }
 
 .restore-btn {

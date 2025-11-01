@@ -45,22 +45,22 @@ td {
   margin-right: 5px;
 }
 
-.all-staff button.edit-btn {
+.all-staff .edit-btn {
   background: #3B82F6;
   color: white;
 }
 
-.edit-btn:hover {
-  background: #d97706;
+.all-staff button.edit-btn:hover {
+  background: #2563EB;
 }
 
 .all-staff .archive-btn {
-  background:#A16207;
+  background:#A16207;;
   color: white;
 }
 
 .all-staff .archive-btn:hover {
-  background: #854D0E;
+  background:#854D0E ;
 }
 
 .restore-btn {
@@ -91,13 +91,13 @@ td {
   transition: all 0.3s ease;
 }
 
-.view-archive-btn {
-  background: #8b5cf6;
+.all-staff .view-archive-btn {
+  background: #6c757d;
   color: white;
 }
 
-.view-archive-btn:hover {
-  background: #7c3aed;
+.all-staff .view-archive-btn:hover {
+  background: #5a6268;
   transform: translateY(-1px);
 }
 
@@ -126,8 +126,8 @@ td {
   transition: border-color 0.3s ease;
 }
 
-.search-input:focus {
-  border-color: #8b5cf6;
+.all-staff.search-input:focus {
+  border-color: #0d6efd;
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
@@ -284,8 +284,8 @@ td {
   margin-bottom: 15px;
 }
 
-.archive-confirmation h3 {
-  color: #8b5cf6;
+.all-staff .archive-confirmation h3 {
+  color: #0d6efd;
   margin-bottom: 15px;
 }
 
@@ -294,14 +294,14 @@ td {
   color: #555;
 }
 
-.archive-warning {
-  color: #8b5cf6;
+.all-staff .archive-warning {
+  color: #495057;
   font-weight: bold;
   font-size: 14px;
 }
 
-.confirm-archive-btn {
-  background-color: #8b5cf6;
+.all-staff .confirm-archive-btn {
+  background-color: #0d6efd;
   color: white;
   padding: 10px 20px;
   border: none;
@@ -310,12 +310,12 @@ td {
   font-weight: bold;
 }
 
-.confirm-archive-btn:hover:not(:disabled) {
-  background-color: #7c3aed;
+.all-staff .confirm-archive-btn:hover:not(:disabled) {
+  background-color: #0b5ed7;
 }
 
-.confirm-archive-btn:disabled {
-  background-color: #8b5cf6;
+.all-staff .confirm-archive-btn:disabled {
+  background-color: #0b5ed7;
   opacity: 0.6;
   cursor: not-allowed;
 }
