@@ -213,10 +213,9 @@ function AllStaff() {
           let errorMessage = errorData.error;
           
           if (errorData.schedules && errorData.schedules.length > 0) {
-            errorMessage += '\n\nActive Schedules:';
-            errorData.schedules.forEach((schedule, index) => {
-              errorMessage += `\n${index + 1}. ${schedule.day}: ${schedule.start_time} - ${schedule.end_time}`;
-            });
+            // Get unique days only
+            const uniqueDays = [...new Set(errorData.schedules.map(schedule => schedule.day))];
+            errorMessage += `\nActive Schedules: ${uniqueDays.join(', ')}`;
             errorMessage += '\n\nPlease remove or reassign these schedules first.';
           }
           
@@ -278,10 +277,9 @@ function AllStaff() {
           let errorMessage = errorData.error;
           
           if (errorData.schedules && errorData.schedules.length > 0) {
-            errorMessage += '\n\nActive Schedules:';
-            errorData.schedules.forEach((schedule, index) => {
-              errorMessage += `\n${index + 1}. ${schedule.day}: ${schedule.start_time} - ${schedule.end_time}`;
-            });
+            // Get unique days only
+            const uniqueDays = [...new Set(errorData.schedules.map(schedule => schedule.day))];
+            errorMessage += `\nActive Schedules: ${uniqueDays.join(', ')}`;
             errorMessage += '\n\nPlease remove or reassign these schedules first.';
           }
           
@@ -535,7 +533,7 @@ function AllStaff() {
 
       {/* EDIT STAFF MODAL */}
       {showEditModal && (
-        <div className="modal-overlay">
+        <div className="overlay">
           <div className="modal-content">
             <h3><b>Edit Staff Member</b></h3>
             
@@ -616,7 +614,7 @@ function AllStaff() {
                   <option>Inactive</option>
                 </select>
 
-                <div className="modal-buttons">
+                <div className="form-buttons">
                   <button type="submit" className="save-btn">
                     Update
                   </button>
@@ -630,7 +628,7 @@ function AllStaff() {
 
       {/* ARCHIVE CONFIRMATION MODAL */}
       {showArchiveModal && staffToArchive && (
-        <div className="modal-overlay">
+        <div className="overlay">
           <div className="modal-content archive-confirmation centered-modal">
             {archiving ? (
               <div className="archive-animation-center">
@@ -658,7 +656,7 @@ function AllStaff() {
                 <p className="centered-text">Are you sure you want to archive staff member <strong>"{staffToArchive.name}"</strong>?</p>
                 <p className="archive-warning centered-text">This staff member will be moved to archives and hidden from the main list.</p>
                 
-                <div className="modal-buttons centered-buttons">
+                <div className="form-buttons centered-buttons">
                   <button className="confirm-archive-btn" onClick={handleArchiveStaff}>
                     Yes, Archive
                   </button>
@@ -672,7 +670,7 @@ function AllStaff() {
 
       {/* RESTORE CONFIRMATION MODAL */}
       {showRestoreModal && staffToRestore && (
-        <div className="modal-overlay">
+        <div className="overlay">
           <div className="modal-content restore-confirmation centered-modal">
             {restoring ? (
               <div className="restore-animation-center">
@@ -700,7 +698,7 @@ function AllStaff() {
                 <p className="centered-text">Are you sure you want to restore staff member <strong>"{staffToRestore.name}"</strong>?</p>
                 <p className="restore-warning centered-text">This staff member will be moved back to the main staff list.</p>
                 
-                <div className="modal-buttons centered-buttons">
+                <div className="form-buttons centered-buttons">
                   <button className="confirm-restore-btn" onClick={handleRestoreStaff}>
                     Yes, Restore
                   </button>
@@ -714,36 +712,16 @@ function AllStaff() {
 
       {/* ERROR MODAL */}
       {showErrorModal && (
-        <div className="error-modal-overlay">
-          <div className="error-modal-content">
-            <div className="error-modal-header">Operation Failed</div>
-            <div className="error-modal-title">
-              {errorMessage.includes('archive') ? 'Cannot archive staff member' : 
-               errorMessage.includes('inactive') ? 'Cannot set staff to inactive' : 'Operation Failed'}
+        <div className="overlay">
+          <div className="modal-content error-modal">
+            <div className="error-icon">⚠️</div>
+            <h3>Operation Failed</h3>
+            <p className="error-message-text">{errorMessage}</p>
+            <div className="form-buttons">
+              <button className="cancel-btn" onClick={closeErrorModal}>
+                OK
+              </button>
             </div>
-            <div className="error-modal-message">
-              {errorMessage.split('\n\n')[0]}
-              {errorMessage.includes('Active Schedules:') && (
-                <div className="error-modal-schedules">
-                  {errorMessage.split('Active Schedules:')[1]?.split('\n\n')[0]?.split('\n').map((schedule, index) => (
-                    <div key={index} className="error-schedule-item">
-                      {schedule.trim()}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {errorMessage.split('\n\n')[1] && (
-                <div style={{ marginTop: '15px', color: '#d9534f', fontWeight: 'bold' }}>
-                  {errorMessage.split('\n\n')[1]}
-                </div>
-              )}
-            </div>
-            <button 
-              className="error-modal-ok-btn" 
-              onClick={closeErrorModal}
-            >
-              OK
-            </button>
           </div>
         </div>
       )}

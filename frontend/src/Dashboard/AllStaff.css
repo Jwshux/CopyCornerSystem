@@ -34,283 +34,43 @@ td {
 }
 
 .edit-btn,
-.delete-btn {
+.archive-btn,
+.restore-btn {
   margin: 5px;
-  padding: 5px 10px;
+  padding: 6px 12px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s ease;
 }
 
 .edit-btn {
-  background: #f0ad4e;
+  background: #f59e0b;
   color: white;
 }
 
-.delete-btn {
-  background: #d9534f;
+.edit-btn:hover {
+  background: #d97706;
+}
+
+.archive-btn {
+  background: #8b5cf6;
   color: white;
 }
 
-.table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
+.archive-btn:hover {
+  background: #7c3aed;
 }
 
-/* Modal Overlay */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-/* Modal Content Box */
-.modal-content {
-  background: #fff;
-  padding: 25px 30px;
-  border-radius: 10px;
-  width: 400px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.modal-content h3 {
-  margin-bottom: 15px;
-  color: #333;
-}
-
-.modal-content label {
-  font-size: 14px;
-  margin-top: 10px;
-  color: #333;
-  font-weight: 500;
-}
-
-.modal-content input,
-.modal-content select {
-  width: 100%;
-  padding: 8px;
-  margin-top: 5px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.modal-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.save-btn {
-  background-color: #007bff;
-  color: #fff;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.cancel-btn {
-  background-color: #6c757d;
-  color: #fff;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.save-btn:hover {
-  background-color: #0069d9;
-}
-
-.cancel-btn:hover {
-  background-color: #5a6268;
-}
-
-/* Delete Confirmation Modal */
-.delete-confirmation {
-  text-align: center;
-  max-width: 400px;
-}
-
-.delete-icon {
-  font-size: 48px;
-  margin-bottom: 15px;
-}
-
-.delete-confirmation h3 {
-  color: #d9534f;
-  margin-bottom: 15px;
-}
-
-.delete-confirmation p {
-  margin-bottom: 10px;
-  color: #555;
-}
-
-.delete-warning {
-  color: #d9534f;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.confirm-delete-btn {
-  background-color: #d9534f;
+.restore-btn {
+  background: #10b981;
   color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
 }
 
-.confirm-delete-btn:hover:not(:disabled) {
-  background-color: #c9302c;
+.restore-btn:hover {
+  background: #059669;
 }
-
-.confirm-delete-btn:disabled {
-  background-color: #d9534f;
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.loading {
-  text-align: center;
-  padding: 10px;
-  color: #666;
-}
-
-/* Form Animation Center */
-.form-animation-center {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 400px;
-}
-
-/* Delete Animation Center */
-.delete-animation-center {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 300px;
-  text-align: center;
-}
-
-/* Make sure the delete confirmation modal has enough height */
-.delete-confirmation {
-  min-height: 300px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-/* Error Modal Styling - Same as Categories */
-.error-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-}
-
-.error-modal-content {
-  background: #fff;
-  padding: 30px;
-  border-radius: 8px;
-  width: 450px;
-  max-width: 90%;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  text-align: center;
-  border-top: 5px solid #d9534f;
-}
-
-.error-modal-header {
-  color: #d9534f;
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 15px;
-  text-transform: uppercase;
-}
-
-.error-modal-title {
-  color: #333;
-  font-size: 20px;
-  font-weight: bold;
-  margin-bottom: 20px;
-}
-
-.error-modal-message {
-  color: #666;
-  font-size: 16px;
-  line-height: 1.5;
-  margin-bottom: 25px;
-  text-align: left;
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 6px;
-  border-left: 4px solid #d9534f;
-}
-
-.error-modal-schedules {
-  background: #fff3f3;
-  border: 1px solid #ffcdd2;
-  border-radius: 6px;
-  padding: 15px;
-  margin: 15px 0;
-  text-align: left;
-}
-
-.error-schedule-item {
-  padding: 8px 0;
-  border-bottom: 1px solid #ffebee;
-  color: #666;
-  font-size: 14px;
-}
-
-.error-schedule-item:last-child {
-  border-bottom: none;
-}
-
-.error-modal-ok-btn {
-  background-color: #d9534f;
-  color: white;
-  padding: 12px 30px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
-  margin-top: 10px;
-  min-width: 120px;
-}
-
-.error-modal-ok-btn:hover {
-  background-color: #c9302c;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(217, 83, 79, 0.3);
-}
-
-/* Add these styles to your existing AllStaff.css */
 
 /* Table Header with Archive and Search */
 .table-header {
@@ -371,35 +131,6 @@ td {
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
-/* Archive and Restore buttons */
-.archive-btn, .restore-btn {
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: background-color 0.2s ease;
-  margin-right: 5px;
-}
-
-.archive-btn {
-  background-color: #8b5cf6;
-  color: white;
-}
-
-.archive-btn:hover {
-  background-color: #7c3aed;
-}
-
-.restore-btn {
-  background-color: #10b981;
-  color: white;
-}
-
-.restore-btn:hover {
-  background-color: #059669;
-}
-
 /* Simple Pagination Styles */
 .simple-pagination {
   display: flex;
@@ -435,6 +166,111 @@ td {
   opacity: 0.5;
   cursor: not-allowed;
   background: #f9f9f9;
+}
+
+/* Overlay - Same as Categories */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Modal Content - Same as Categories */
+.modal-content {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  width: 400px;
+  max-width: 90vw;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  margin: 0 auto;
+}
+
+.modal-content h3 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.modal-content label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #374151;
+  font-size: 14px;
+}
+
+.modal-content input,
+.modal-content select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* Form Buttons - Same as Categories */
+.form-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.save-btn {
+  background: #00205B;
+  color: white;
+  border: 2px solid #00205B;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 32, 91, 0.1);
+  min-width: 100px;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+.save-btn:hover {
+  background: #001a47;
+  border-color: #001a47;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 32, 91, 0.3);
+}
+
+.cancel-btn {
+  background: #6b7280;
+  color: white;
+  border: 2px solid #6b7280;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(107, 114, 128, 0.1);
+  min-width: 100px;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+.cancel-btn:hover {
+  background: #4b5563;
+  border-color: #4b5563;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
 }
 
 /* Archive Confirmation Modal */
@@ -520,6 +356,29 @@ td {
   background-color: #059669;
 }
 
+/* Error Modal Styles - Same as Categories */
+.error-modal {
+  text-align: center;
+  max-width: 400px;
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.error-modal h3 {
+  color: #d9534f;
+  margin-bottom: 15px;
+}
+
+.error-message-text {
+  color: #555;
+  margin-bottom: 20px;
+  line-height: 1.5;
+  padding: 0 10px;
+}
+
 /* Centered Modals */
 .centered-modal {
   text-align: center;
@@ -532,6 +391,14 @@ td {
 
 .centered-buttons {
   justify-content: center;
+}
+
+/* Form Animation Center */
+.form-animation-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
 }
 
 /* Archive Animation Center */
@@ -561,4 +428,10 @@ td {
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+.loading {
+  text-align: center;
+  padding: 10px;
+  color: #666;
 }

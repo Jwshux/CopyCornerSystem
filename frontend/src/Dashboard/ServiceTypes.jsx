@@ -12,6 +12,7 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false); // Add this
   const [serviceTypes, setServiceTypes] = useState([]);
   const [archivedServiceTypes, setArchivedServiceTypes] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -26,6 +27,7 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
   const [archiveSuccess, setArchiveSuccess] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [restoreSuccess, setRestoreSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(""); // Add this
   
   const [formData, setFormData] = useState({
     service_name: "",
@@ -39,6 +41,17 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Add error modal functions
+  const showError = (message) => {
+    setErrorMessage(message);
+    setShowErrorModal(true);
+  };
+
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorMessage("");
+  };
 
   // Handle modal from parent
   useEffect(() => {
@@ -151,6 +164,12 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
     }
   }, [showRestoreModal]);
 
+  useEffect(() => {
+    if (!showErrorModal) {
+      setErrorMessage("");
+    }
+  }, [showErrorModal]);
+
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       fetchServiceTypes(currentPage + 1);
@@ -209,7 +228,7 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
     e.preventDefault();
     
     if (serviceNameError) {
-      alert("Please fix the service name error before saving.");
+      showError("Please fix the service name error before saving.");
       return;
     }
 
@@ -234,12 +253,12 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
         }, 1500);
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to create service type');
+        showError(error.error || 'Failed to create service type');
         setLoading(false);
       }
     } catch (error) {
       console.error('Error creating service type:', error);
-      alert('Error creating service type');
+      showError('Error creating service type');
       setLoading(false);
     }
   };
@@ -259,7 +278,7 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
     e.preventDefault();
     
     if (serviceNameError) {
-      alert("Please fix the service name error before updating.");
+      showError("Please fix the service name error before updating.");
       return;
     }
 
@@ -283,13 +302,25 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
           setLoading(false);
         }, 1500);
       } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to update service type');
+        const errorData = await response.json();
+        
+        // Handle the case where service type has active transactions when trying to set to inactive
+        if (errorData.error && errorData.error.includes('transaction(s) are using this service type')) {
+          let errorMessage = errorData.error;
+          
+          // Fix grammar and format the message in one line
+          errorMessage = errorMessage.replace('transaction(s) are using', 'transaction(s) are using');
+          errorMessage += '\nPlease update or archive these transactions first.';
+          
+          showError(errorMessage);
+        } else {
+          showError(errorData.error || 'Failed to update service type');
+        }
         setLoading(false);
       }
     } catch (error) {
       console.error('Error updating service type:', error);
-      alert('Error updating service type');
+      showError('Error updating service type');
       setLoading(false);
     }
   };
@@ -324,13 +355,25 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
           closeArchiveModal();
         }, 1500);
       } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to archive service type');
+        const errorData = await response.json();
+        
+        // Handle the case where service type has active transactions
+        if (errorData.error && errorData.error.includes('transaction(s) are using this service type')) {
+          let errorMessage = errorData.error;
+          
+          // Fix grammar and format the message in one line
+          errorMessage = errorMessage.replace('transaction(s) are using', 'transaction(s) are using');
+          errorMessage += '\nPlease update or archive these transactions first.';
+          
+          showError(errorMessage);
+        } else {
+          showError(errorData.error || 'Failed to archive service type');
+        }
         setArchiving(false);
       }
     } catch (error) {
       console.error('Error archiving service type:', error);
-      alert('Error archiving service type');
+      showError('Error archiving service type');
       setArchiving(false);
     }
   };
@@ -367,12 +410,12 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
         }, 1500);
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to restore service type');
+        showError(error.error || 'Failed to restore service type');
         setRestoring(false);
       }
     } catch (error) {
       console.error('Error restoring service type:', error);
-      alert('Error restoring service type');
+      showError('Error restoring service type');
       setRestoring(false);
     }
   };
@@ -873,6 +916,22 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ERROR MODAL */}
+      {showErrorModal && (
+        <div className="overlay">
+          <div className="modal-content error-modal">
+            <div className="error-icon">⚠️</div>
+            <h3>Operation Failed</h3>
+            <p className="error-message-text">{errorMessage}</p>
+            <div className="form-buttons">
+              <button className="cancel-btn" onClick={closeErrorModal}>
+                OK
+              </button>
+            </div>
           </div>
         </div>
       )}
