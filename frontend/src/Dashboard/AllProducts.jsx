@@ -382,10 +382,10 @@ function AllProducts({ showAddModal, onAddModalClose }) {
           await fetchArchivedProducts();
           await fetchProducts(currentPage);
           closeRestoreModal();
-        }, 1500);
+        }, 700);
       } else {
-        const error = await response.json();
-        showError(error.error || 'Failed to restore product');
+        const errorData = await response.json();
+        showError(errorData.error || 'Failed to restore product');
         setRestoring(false);
       }
     } catch (error) {

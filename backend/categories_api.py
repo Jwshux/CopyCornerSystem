@@ -185,7 +185,7 @@ def archive_category(category_id):
         # Check if category has active products
         product_count = products_collection.count_documents({
             'category_id': ObjectId(category_id),
-            'is_archived': {'$ne': True}
+            'is_archived': {'$ne': True}  # Only count non-archived products
         })
         if product_count > 0:
             return jsonify({

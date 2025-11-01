@@ -290,6 +290,29 @@ def restore_product(product_id):
         if not product.get('is_archived'):
             return jsonify({'error': 'Product is not archived'}), 400
         
+        # Check if the category for this product exists and is active
+        if product.get('category_id'):
+            # First check if category exists in active categories
+            category = categories_collection.find_one({
+                '_id': ObjectId(product['category_id']),
+                'is_archived': {'$ne': True}  # Category must be active
+            })
+            
+            if not category:
+                # If not found in active categories, check archived categories to get the actual name
+                archived_category = categories_collection.find_one({
+                    '_id': ObjectId(product['category_id']),
+                    'is_archived': True
+                })
+                
+                category_name = "Unknown"
+                if archived_category:
+                    category_name = archived_category['name']
+                
+                return jsonify({
+                    'error': f'Cannot restore product. Category "{category_name}" is archived. Please restore the category first.'
+                }), 400
+        
         # Check if product name already exists in active products
         existing_product = products_collection.find_one({
             'product_name': product['product_name'],
