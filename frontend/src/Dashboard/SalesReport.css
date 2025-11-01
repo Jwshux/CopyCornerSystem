@@ -448,3 +448,25 @@
   overflow-x: auto;
   position: relative;
 }
+
+/* Add to InventoryReport.css */
+.report-footer {
+  display: none; /* Hidden on web */
+}
+
+/* Expand tables for html2pdf (not print) */
+.inventory-table-container,
+.inventory-details-table,
+.table-wrapper {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Prevent badges from wrapping */
+.status-badge {
+  white-space: nowrap !important;
+  display: inline-block !important;
+  line-height: 1.2 !important;
+  padding: 3px 6px !important;
+}

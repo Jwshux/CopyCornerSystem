@@ -462,3 +462,51 @@
   overflow-x: auto;
   position: relative;
 }
+
+/* Add to InventoryReport.css */
+.report-footer {
+  display: none; /* Hidden on web */
+}
+
+@media print {
+  .report-footer {
+    display: block !important; /* Show when printing/PDF */
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 30px;
+    text-align: center;
+    color: #7f8c8d;
+    font-size: 14px;
+    border-top: 2px solid #ecf0f1;
+  }
+  
+  .report-footer p {
+    margin: 5px 0;
+  }
+  
+  .report-footer strong {
+    color: #00205B;
+  }
+}
+
+/* Force expansion when html2pdf renders */
+html2pdf-container,
+html2pdf-container * {
+  max-height: none !important;
+  overflow: visible !important;
+  position: static !important;
+}
+
+/* Stop flex parents from clipping */
+.inventory-report-container,
+.inventory-report-content {
+  display: block !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* Force bottom border for final row in PDF */
+.inventory-details-table tr:last-child td {
+  border-bottom: 1px solid #ddd !important;
+}

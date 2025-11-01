@@ -301,9 +301,9 @@
 .main {
   grid-area: main;
   padding: 20px;
-  overflow-y: auto;
   background-color: #f5f6fa;
   height: calc(100vh - 100px);
+  /* Remove this: overflow-y: auto; */
 }
 
 /* Page Header */
@@ -323,7 +323,9 @@
 /* Content Container for all pages */
 .content-container {
   min-height: calc(100vh - 200px);
-  overflow-y: auto;
+  /* Remove this: overflow-y: auto; */
+  display: flex;
+  flex-direction: column;
 }
 
 /* Submenu */

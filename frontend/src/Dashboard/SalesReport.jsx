@@ -76,20 +76,68 @@ function SalesReport() {
     return `₱${parseFloat(amount).toFixed(2)}`;
   };
 
-  const exportToPDF = () => {
-    const printContent = document.getElementById('sales-report-content').innerHTML;
-    const originalContent = document.body.innerHTML;
-    document.body.innerHTML = printContent;
-    window.print();
-    document.body.innerHTML = originalContent;
-    window.location.reload();
+const exportToPDF = () => {
+  // Clone content container
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = document.getElementById("sales-report-content").innerHTML;
+
+  // Replace paginated tbody
+  const currentTable = tempDiv.querySelector(".breakdown-table tbody");
+  if (currentTable) {
+    currentTable.innerHTML = "";
+
+    reportData.serviceTypeBreakdown.forEach((service, index) => {
+      currentTable.innerHTML += `
+        <tr key="${index}">
+          <td class="service-name">${service.service_name}</td>
+          <td class="transaction-count">${service.transaction_count}</td>
+          <td class="revenue-amount">${formatCurrency(service.revenue)}</td>
+          <td class="percentage">
+            ${reportData.totalRevenue > 0
+              ? `${((service.revenue / reportData.totalRevenue) * 100).toFixed(1)}%`
+              : "0%"
+            }
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  // Remove pagination
+  const pagination = tempDiv.querySelector(".pagination-controls");
+  if (pagination) pagination.remove();
+
+  // Remove scroll limits
+const wrapper = tempDiv.querySelector(".table-wrapper");
+if (wrapper) {
+  const parent = wrapper.parentNode;
+  while (wrapper.firstChild) {
+    parent.insertBefore(wrapper.firstChild, wrapper);
+  }
+  parent.removeChild(wrapper);
+}
+
+  // html2pdf config
+  const opt = {
+    margin: 10,
+    filename: `sales-report-${dateRange.startDate}-to-${dateRange.endDate}.pdf`,
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
   };
+
+  // Generate PDF
+  import("html2pdf.js").then(html2pdf => {
+    html2pdf.default().from(tempDiv).set(opt).save();
+  });
+};
+
 
   const exportToCSV = () => {
     const headers = ['Service Type', 'Transactions', 'Revenue'];
     const csvData = [
       headers,
-      ...reportData.serviceTypeBreakdown.map(item => [
+      ...reportData.serviceTypeBreakdown.map(item => [ // Use ALL data, not currentItems
         item.service_name,
         item.transaction_count,
         item.revenue
@@ -266,10 +314,10 @@ function SalesReport() {
           </div>
 
           {/* Report Footer */}
-          {/* <div className="report-footer">
+          <div className="report-footer">
             <p>Report Period: {new Date(dateRange.startDate).toLocaleDateString()} to {new Date(dateRange.endDate).toLocaleDateString()}</p>
             <p>Generated on: {new Date().toLocaleDateString()}</p>
-          </div> */}
+          </div>
         </div>
       )}
     </div>

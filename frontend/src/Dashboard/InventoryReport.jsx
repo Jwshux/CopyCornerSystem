@@ -91,39 +91,84 @@ function InventoryReport() {
     fetchInventoryReport();
   };
 
-  const exportToPDF = () => {
-    const printContent = document.getElementById('inventory-report-content').innerHTML;
-    const originalContent = document.body.innerHTML;
-    document.body.innerHTML = printContent;
-    window.print();
-    document.body.innerHTML = originalContent;
-    window.location.reload();
+const exportToPDF = () => {
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = document.getElementById("inventory-report-content").innerHTML;
+
+  const allProducts = getFilteredProducts();
+
+  const tbody = tempDiv.querySelector(".inventory-details-table tbody");
+  if (tbody) {
+    tbody.innerHTML = "";
+    allProducts.forEach(product => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${product.product_name}</td>
+          <td>${product.category_name || "Uncategorized"}</td>
+          <td>${product.stock_quantity}</td>
+          <td>${product.minimum_stock || 5}</td>
+          <td>${formatCurrency(product.unit_price)}</td>
+          <td>${formatCurrency(product.stock_quantity * product.unit_price)}</td>
+          <td>
+            <span class="status-badge ${getStockStatus(product).toLowerCase().replace(" ", "-")}">
+              ${getStockStatus(product)}
+            </span>
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  // remove pagination + controls
+  tempDiv.querySelectorAll(".pagination-controls, .report-controls-section").forEach(e => e.remove());
+
+  // unwrap scroll/flex parents
+  tempDiv.querySelectorAll(
+    ".inventory-table-container, .inventory-report-content"
+  ).forEach((node) => {
+    const parent = node.parentNode;
+    while (node.firstChild) parent.insertBefore(node.firstChild, node);
+    parent.removeChild(node);
+  });
+
+  const opt = {
+    margin: 5,
+    filename: `inventory-report-${new Date().toISOString().split("T")[0]}.pdf`,
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
   };
 
-  const exportToCSV = () => {
-    const headers = ['Product Name', 'Category', 'Stock Quantity', 'Min Stock', 'Unit Price', 'Stock Value', 'Status'];
-    const csvData = [
-      headers,
-      ...filteredProducts.map(product => [
-        product.product_name,
-        product.category_name || 'Uncategorized',
-        product.stock_quantity,
-        product.minimum_stock || 5,
-        product.unit_price,
-        (product.stock_quantity * product.unit_price).toFixed(2),
-        getStockStatus(product)
-      ])
-    ];
+  import("html2pdf.js").then((html2pdf) => {
+    html2pdf.default().from(tempDiv).set(opt).save();
+  });
+};
 
-    const csvContent = csvData.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `inventory-report-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
+
+
+const exportToCSV = () => {
+  const headers = ['Product Name', 'Category', 'Stock Quantity', 'Min Stock', 'Unit Price', 'Stock Value', 'Status'];
+  const csvData = [
+    headers,
+    ...reportData.currentStock.map(product => [ // Use ALL data from currentStock
+      product.product_name,
+      product.category_name || 'Uncategorized',
+      product.stock_quantity,
+      product.minimum_stock || 5,
+      product.unit_price,
+      (product.stock_quantity * product.unit_price).toFixed(2),
+      getStockStatus(product)
+    ])
+  ];
+
+  const csvContent = csvData.map(row => row.join(',')).join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `inventory-report-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  window.URL.revokeObjectURL(url);
+};
 
   return (
     <div className="inventory-report-container">
@@ -287,6 +332,12 @@ function InventoryReport() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Report Footer - SAME AS SALES REPORT */}
+          <div className="report-footer">
+            <p>Report generated on: {new Date().toLocaleDateString()}</p>
+            <p>Total inventory value: <strong>{formatCurrency(reportData.totalValue)}</strong></p>
           </div>
         </div>
       )}
