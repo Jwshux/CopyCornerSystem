@@ -50,24 +50,23 @@
   font-weight: 600;
 }
 
-.status-tag {
+.product-page .status-tag {
   padding: 5px 10px;
   border-radius: 20px;
   font-size: 0.85rem;
   color: white;
 }
 
-.in-stock {
-  background-color: #22c55e;
+.product-page .status-tag.in-stock {
+  background-color: #22C55E ;
 }
 
-.low-stock {
-  background-color: #facc15;
-  color: #333;
+.product-page .status-tag.low-stock {
+  background-color: #EAB308;
 }
 
-.out-stock {
-  background-color: #ef4444;
+.product-page .status-tag.out-stock {
+  background-color: #EF4444
 }
 
 /* FIXED OVERLAY - Center all modals properly */
@@ -85,7 +84,7 @@
 }
 
 /* Ensure all modal content is centered */
-.product-page .add-form {
+.add-form {
   background: white;
   padding: 20px;
   border-radius: 12px;
@@ -95,8 +94,8 @@
   margin: 0 auto;
 }
 
-.product-page .add-form h3 {
-  margin: 0 0 15px 0;
+.add-form h3 {
+  margin: 0 0 5px 0;
   color: #00205B;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-size: 1.5rem;
@@ -104,22 +103,21 @@
   text-align: left;
 }
 
-.product-page .add-form input,
-.product-page .add-form select {
+.add-form input,
+.add-form select {
   width: 93%;
   padding: 10px;
-  margin-bottom: 0px;
+  margin-bottom: 10px;
   border-radius: 6px;
   border: 1px solid #d1d5db;
   outline: none;
 }
 
-
-.product-page .form-buttons {
+.form-buttons {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 25px;
+  margin-top: 10px !important;
 }
 
 .save-btn,
@@ -196,30 +194,28 @@
   margin-right: 5px;
 }
 
-.edit-btn {
-  background-color: #f59e0b;
+.product-page .edit-btn {
+  background-color: #3B82F6;
   color: white;
 }
 
-.edit-btn:hover {
-  background-color: #d97706;
+.product-page button.edit-btn:hover {
+  background-color: #2563EB;
 }
 
-.archive-btn {
-  background-color: #8b5cf6;
+.product-page .archive-btn {
+  background-color: #A16207;
   color: white;
 }
-
-.archive-btn:hover {
-  background-color: #7c3aed;
+.product-page .archive-btn:hover {
+  background-color: #854D0E;
 }
-
-.restore-btn {
+.product-page .restore-btn {
   background-color: #10b981;
   color: white;
 }
 
-.restore-btn:hover {
+.product-page .restore-btn:hover {
   background-color: #059669;
 }
 
@@ -244,7 +240,7 @@
 }
 
 .delete-warning {
-  color: #d9534f;
+  color: #d9534f !important;
   font-weight: bold;
   font-size: 14px;
 }
@@ -270,7 +266,7 @@
 }
 
 .error-input {
-  border: 2px solid #ff4444;
+  border: 2px solid #ff4444 !important;
   background-color: #fff8f8;
 }
 
@@ -286,14 +282,14 @@
 }
 
 .form-field {
-  margin-bottom: 15px;
+  margin-bottom: 0px !important;
 }
 
 .form-field label {
   display: block;
   margin-bottom: 5px;
   font-weight: 500;
-  color: #333;
+  color: #2d60b3;
   font-size: 14px;
 }
 
@@ -433,8 +429,8 @@
   margin-bottom: 15px;
 }
 
-.archive-confirmation h3 {
-  color: #8b5cf6;
+.product-page .archive-confirmation h3 {
+  color: #0d6efd;
   margin-bottom: 15px;
 }
 
@@ -443,14 +439,14 @@
   color: #555;
 }
 
-.archive-warning {
-  color: #8b5cf6;
+.product-page .archive-warning {
+  color: #495057;
   font-weight: bold;
   font-size: 14px;
 }
 
-.confirm-archive-btn {
-  background-color: #8b5cf6;
+.product-page .confirm-archive-btn {
+  background-color: #0d6efd;
   color: white;
   padding: 10px 20px;
   border: none;
@@ -459,12 +455,12 @@
   font-weight: bold;
 }
 
-.confirm-archive-btn:hover:not(:disabled) {
-  background-color: #7c3aed;
+.product-page .confirm-archive-btn:hover:not(:disabled) {
+  background-color: #0b5ed7;
 }
 
-.confirm-archive-btn:disabled {
-  background-color: #8b5cf6;
+.product-page .confirm-archive-btn:disabled {
+  background-color: #0b5ed7;
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -497,29 +493,30 @@
   transition: all 0.3s ease;
 }
 
-.view-archive-btn {
-  background: #8b5cf6;
+.product-page .view-archive-btn {
+  background: #6c757d;
   color: white;
 }
 
-.view-archive-btn:hover {
-  background: #7c3aed;
+.product-page .view-archive-btn:hover {
+  background: #5a6268;
   transform: translateY(-1px);
 }
 
-.back-to-main-btn {
-  background: #6b7280;
+.product-page .back-to-main-btn {
+  background: #6c757d;
   color: white;
 }
 
-.back-to-main-btn:hover {
-  background: #4b5563;
+.product-page .back-to-main-btn:hover {
+  background:#5a6268;
   transform: translateY(-1px);
 }
 
 .search-container {
   display: flex;
   align-items: center;
+  padding: 0 20px;
 }
 
 .search-input {
@@ -532,8 +529,8 @@
   transition: border-color 0.3s ease;
 }
 
-.search-input:focus {
-  border-color: #8b5cf6;
+.product-page .search-input:focus {
+  border-color: #0d6efd;
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
@@ -548,7 +545,7 @@
 }
 
 .centered-buttons {
-  justify-content: center;
+  justify-content: center !important;
 }
 
 /* Restore Confirmation */
@@ -568,7 +565,7 @@
 }
 
 .restore-warning {
-  color: #10b981;
+  color: #10b981 !important;
   font-weight: bold;
   font-size: 14px;
 }
@@ -645,5 +642,11 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  text-align: center;
+}
+.table td:last-child,
+.table th:last-child {
+  padding-right: 16px;
+  padding-left: 12px;
   text-align: center;
 }

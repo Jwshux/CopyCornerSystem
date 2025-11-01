@@ -24,17 +24,17 @@
   transition: all 0.3s ease;
 }
 
-.view-archive-btn {
-  background: #8b5cf6;
+.manage-group-page .view-archive-btn {
+  background: #6c757d;
   color: white;
 }
 
-.view-archive-btn:hover {
-  background: #7c3aed;
+.manage-group-page .view-archive-btn:hover {
+  background: #4b5563;
   transform: translateY(-1px);
 }
 
-.back-to-main-btn {
+.manage-group-page .back-to-main-btn {
   background: #6b7280;
   color: white;
 }
@@ -60,7 +60,7 @@
 }
 
 .search-input:focus {
-  border-color: #8b5cf6;
+  border-color: #0b5ed7;
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
@@ -112,23 +112,24 @@
   transition: all 0.2s ease;
 }
 
-.edit-btn {
-  background-color: #4caf50;
+.group-table .edit-btn {
+  background: #0d6efd;
   color: white;
 }
 
-.edit-btn:hover {
-  background-color: #45a049;
+.group-table .edit-btn:hover:not(:disabled) {
+  background: #0b5ed7;
 }
 
-.archive-btn {
-  background-color: #8b5cf6;
+.group-table .archive-btn {
+  background: #A16207;
   color: white;
 }
 
-.archive-btn:hover {
-  background-color: #7c3aed;
+.group-table .archive-btn:hover:not(:disabled) {
+  background: #854D0E;
 }
+
 
 .restore-btn {
   background-color: #10b981;
@@ -263,8 +264,8 @@
   margin-bottom: 15px;
 }
 
-.archive-confirmation h3 {
-  color: #8b5cf6;
+.overlay .archive-confirmation h3 {
+  color: #0b5ed7;
   margin-bottom: 15px;
 }
 
@@ -273,14 +274,14 @@
   color: #555;
 }
 
-.archive-warning {
-  color: #8b5cf6;
+.overlay .archive-warning {
+  color: #0b5ed7;
   font-weight: bold;
   font-size: 14px;
 }
 
-.confirm-archive-btn {
-  background-color: #8b5cf6;
+.overlay .confirm-archive-btn {
+  background-color: #0b5ed7;
   color: white;
   padding: 10px 20px;
   border: none;
@@ -289,8 +290,8 @@
   font-weight: bold;
 }
 
-.confirm-archive-btn:hover:not(:disabled) {
-  background-color: #7c3aed;
+.overlay .confirm-archive-btn:hover:not(:disabled) {
+  background-color: #0b5ed7;
 }
 
 /* Restore Confirmation Modal */
