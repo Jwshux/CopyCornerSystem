@@ -14,6 +14,19 @@
   align-items: center;
 }
 
+.product-table td {
+  padding: 16px;
+  border-bottom: 1px solid #ecf0f1;
+  font-size: 14px;
+  background: white;
+}
+
+/* Table Row Hover Effects */
+.product-table tbody tr:hover td {
+  background-color: #f1f5f9;
+  color: #1d4ed8;
+}
+
 .header-right {
   display: flex;
   align-items: center;
@@ -45,28 +58,44 @@
 }
 
 .product-table th {
-  background-color: #f9fafb;
-  color: #374151;
+  background: #34495e !important;
+  color: white !important;
+  padding: 16px;
+  text-align: left;
   font-weight: 600;
+  font-size: 14px;
+  border-bottom: 2px solid #001a47;
 }
 
+
 .product-page .status-tag {
-  padding: 5px 10px;
+  padding: 6px 12px;
   border-radius: 20px;
-  font-size: 0.85rem;
-  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+  text-align: center;
+  min-width: 100px;
 }
 
 .product-page .status-tag.in-stock {
-  background-color: #22C55E ;
+  background-color: #d5f4e6;
+  color: #27ae60;
+  border: 1px solid #27ae60;
 }
 
 .product-page .status-tag.low-stock {
-  background-color: #EAB308;
+  background-color: #fef9e7;
+  color: #f39c12;
+  border: 1px solid #f39c12;
 }
 
 .product-page .status-tag.out-stock {
-  background-color: #EF4444
+  background-color: #fdeaea;
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
 }
 
 /* FIXED OVERLAY - Center all modals properly */
@@ -182,41 +211,56 @@
   cursor: pointer;
 }
 
+/* Button Styles - Consistent Size and Colors */
 .edit-btn,
 .archive-btn,
 .restore-btn {
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: background-color 0.2s ease;
-  margin-right: 5px;
+  border: none !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  transition: all 0.3s ease !important;
+  margin-right: 8px !important;
+  min-width: 80px !important;
+  height: 30px !important;
 }
 
 .product-page .edit-btn {
-  background-color: #3B82F6;
-  color: white;
+  background-color: #3498db !important;  /* Blue that matches your theme */
+  color: white !important;
+  border: 1px solid #3498db !important;
 }
 
 .product-page button.edit-btn:hover {
-  background-color: #2563EB;
+  background-color: #2980b9 !important;
+  border-color: #2980b9 !important;
+  transform: translateY(-1px) !important;
 }
 
 .product-page .archive-btn {
-  background-color: #A16207;
-  color: white;
+  background-color: #e74c3c !important;  /* Red for archive */
+  color: white !important;
+  border: 1px solid #e74c3c !important;
 }
+
 .product-page .archive-btn:hover {
-  background-color: #854D0E;
+  background-color: #c0392b !important;
+  border-color: #c0392b !important;
+  transform: translateY(-1px) !important;
 }
+
 .product-page .restore-btn {
-  background-color: #10b981;
-  color: white;
+  background-color: #2ecc71 !important;  /* Green for restore */
+  color: white !important;
+  border: 1px solid #2ecc71 !important;
 }
 
 .product-page .restore-btn:hover {
-  background-color: #059669;
+  background-color: #27ae60 !important;
+  border-color: #27ae60 !important;
+  transform: translateY(-1px) !important;
 }
 
 .delete-confirmation {
@@ -709,7 +753,7 @@
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  min-height: 750px; /* Fixed height to always show space for rows */
+  min-height: 675px; /* Fixed height to always show space for rows */
   display: flex;
   flex-direction: column;
 }
@@ -721,10 +765,11 @@
   flex: 1; /* Take remaining space */
 }
 
+
 /* Fixed table body height */
 .table-container tbody {
   display: block;
-  min-height: 400px; /* Height for rows */
+  min-height: 675px; /* Height for rows */
 }
 
 .table-container thead,

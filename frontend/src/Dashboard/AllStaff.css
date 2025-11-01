@@ -1,75 +1,94 @@
 .all-staff {
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 20px;
+  padding: 20px;
+  font-family: "Poppins", sans-serif;
 }
 
-.staff-table {
+/* Table Container */
+.table-container {
   background: #fff;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-table {
+/* Table Styling - Like Categories */
+.staff-table {
   width: 100%;
   border-collapse: collapse;
+  background-color: white;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-th,
-td {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
+.staff-table th {
+  background: #34495e !important;
+  color: white !important;
+  padding: 16px;
   text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 2px solid #001a47;
+  position: relative;
 }
 
-.active-status {
-  color: green;
-  font-weight: bold;
+.staff-table td {
+  padding: 16px;
+  border-bottom: 1px solid #ecf0f1;
+  font-size: 14px;
+  background: white;
+  position: relative;
+  z-index: 1;
+  vertical-align: middle;
 }
 
-.inactive-status {
-  color: red;
-  font-weight: bold;
+/* Table Row Hover Effects */
+.staff-table tbody tr {
+  transition: all 0.2s ease;
 }
 
-.edit-btn,
-.archive-btn,
-.restore-btn {
-  border: none;
+.staff-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.staff-table tbody tr:hover td {
+  background-color: #f1f5f9;
+  color: #1d4ed8;
+  transform: translateX(4px);
+}
+
+/* Update status tags to match products design */
+.all-staff .status-tag {
   padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: background-color 0.2s ease;
-  margin-right: 5px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+  text-align: center;
+  min-width: 100px; /* Match products width */
 }
 
-.all-staff .edit-btn {
-  background: #3B82F6;
-  color: white;
+
+.all-staff .status-tag.active-status {
+  background-color: #d5f4e6;
+  color: #27ae60;
+  border: 1px solid #27ae60;
 }
 
-.all-staff button.edit-btn:hover {
-  background: #2563EB;
-}
-
-.all-staff .archive-btn {
-  background:#A16207;;
-  color: white;
-}
-
-.all-staff .archive-btn:hover {
-  background:#854D0E ;
-}
-
-.restore-btn {
-  background: #10b981;
-  color: white;
-}
-
-.restore-btn:hover {
-  background: #059669;
+.all-staff .status-tag.inactive-status {
+  background-color: #fdeaea;
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
 }
 
 /* Table Header with Archive and Search */
@@ -126,49 +145,123 @@ td {
   transition: border-color 0.3s ease;
 }
 
-.all-staff.search-input:focus {
+.all-staff .search-input:focus {
   border-color: #0d6efd;
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
-/* Simple Pagination Styles */
-.simple-pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 15px;
-  margin-top: 20px;
-  padding: 15px 0;
-  border-top: 1px solid #eee;
+/* Buttons - Same as Categories */
+.edit-btn,
+.archive-btn,
+.restore-btn {
+  border: none !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  transition: all 0.3s ease !important;
+  margin-right: 8px !important;
+  min-width: 80px !important;
+  height: 30px !important;
 }
 
-.page-info {
-  color: #666;
-  font-weight: 500;
+.all-staff .edit-btn {
+  background-color: #3498db !important;
+  color: white !important;
+  border: 1px solid #3498db !important;
+}
+
+.all-staff button.edit-btn:hover {
+  background-color: #2980b9 !important;
+  border-color: #2980b9 !important;
+  transform: translateY(-1px) !important;
+}
+
+.all-staff .archive-btn {
+  background-color: #e74c3c !important;
+  color: white !important;
+  border: 1px solid #e74c3c !important;
+}
+
+.all-staff .archive-btn:hover {
+  background-color: #c0392b !important;
+  border-color: #c0392b !important;
+  transform: translateY(-1px) !important;
+}
+
+.restore-btn {
+  background-color: #2ecc71 !important;
+  color: white !important;
+  border: 1px solid #2ecc71 !important;
+}
+
+.restore-btn:hover {
+  background-color: #27ae60 !important;
+  border-color: #27ae60 !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Pagination Styles - Same as Categories */
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-top: 1px solid #dee2e6;
+}
+
+.pagination-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.pagination-text {
+  font-weight: 600;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
 .pagination-btn {
   padding: 8px 16px;
-  border: 1px solid #ddd;
+  border: 1px solid #00205B;
   background: white;
-  color: #333;
+  color: #00205B;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: #f5f5f5;
-  border-color: #ccc;
+  background: #00205B;
+  color: white;
 }
 
 .pagination-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: #f9f9f9;
+  border-color: #6c757d;
+  color: #6c757d;
 }
 
-/* Overlay - Same as Categories */
+.page-info {
+  font-size: 14px;
+  font-weight: 600;
+  color: #00205B;
+}
+
+/* Overlay and Modal Styles - Same as Categories */
 .overlay {
   position: fixed;
   top: 0;
@@ -182,7 +275,6 @@ td {
   z-index: 1000;
 }
 
-/* Modal Content - Same as Categories */
 .modal-content {
   background: white;
   padding: 25px;
@@ -198,26 +290,24 @@ td {
   color: #333;
 }
 
-.modal-content label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
-  color: #374151;
-  font-size: 14px;
+.modal-content .input-with-error {
+  width: 100%;
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-content input,
 .modal-content select {
   width: 100%;
   padding: 10px;
-  margin-bottom: 15px;
+  margin-bottom: 0;
   border-radius: 6px;
   border: 1px solid #d1d5db;
   outline: none;
   box-sizing: border-box;
 }
 
-/* Form Buttons - Same as Categories */
 .form-buttons {
   display: flex;
   justify-content: flex-end;
@@ -234,7 +324,6 @@ td {
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   transition: all 0.3s ease;
   box-shadow: 0 2px 6px rgba(0, 32, 91, 0.1);
   min-width: 100px;
@@ -258,7 +347,6 @@ td {
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   transition: all 0.3s ease;
   box-shadow: 0 2px 6px rgba(107, 114, 128, 0.1);
   min-width: 100px;
@@ -356,7 +444,7 @@ td {
   background-color: #059669;
 }
 
-/* Error Modal Styles - Same as Categories */
+/* Error Modal */
 .error-modal {
   text-align: center;
   max-width: 400px;
@@ -430,113 +518,98 @@ td {
   justify-content: center;
 }
 
-.loading {
+/* FIXED: Table header corners */
+.staff-table thead tr:first-child th:first-child {
+  border-top-left-radius: 8px;
+}
+
+.staff-table thead tr:first-child th:last-child {
+  border-top-right-radius: 8px;
+}
+
+/* Column widths */
+.staff-table th:nth-child(1),
+.staff-table td:nth-child(1) {
+  width: 60px;
   text-align: center;
-  padding: 10px;
-  color: #666;
 }
 
-/* Add these styles to your AllStaff.css */
-
-/* Pagination Styles - Same as ManageUsers and ManageGroup */
-.pagination-controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: auto; /* Push to bottom of container */
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border-top: 1px solid #dee2e6;
-  position: sticky;
-  bottom: 0;
-  z-index: 100;
+.staff-table th:nth-child(2),
+.staff-table td:nth-child(2) {
+  width: 150px;
 }
 
-.pagination-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  color: #6c757d;
+.staff-table th:nth-child(3),
+.staff-table td:nth-child(3) {
+  width: 120px;
 }
 
-.pagination-text {
-  font-weight: 600;
+.staff-table th:nth-child(4),
+.staff-table td:nth-child(4) {
+  width: 140px;
 }
 
-.pagination-buttons {
-  display: flex;
-  align-items: center;
-  gap: 15px;
+.staff-table th:nth-child(5),
+.staff-table td:nth-child(5) {
+  width: 100px;
 }
 
-.pagination-btn {
-  padding: 8px 16px;
-  border: 1px solid #00205B;
-  background: white;
-  color: #00205B;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
+.staff-table th:nth-child(6),
+.staff-table td:nth-child(6) {
+  width: 80px;
 }
 
-.pagination-btn:hover:not(:disabled) {
-  background: #00205B;
-  color: white;
+.staff-table th:nth-child(7),
+.staff-table td:nth-child(7) {
+  width: 100px;
+  text-align: center;
 }
 
-.pagination-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  border-color: #6c757d;
-  color: #6c757d;
+.staff-table th:nth-child(8),
+.staff-table td:nth-child(8) {
+  width: 180px;
+  text-align: center;
 }
 
-.page-info {
-  font-size: 14px;
-  font-weight: 600;
-  color: #00205B;
+/* For archived staff view - different column structure */
+.staff-table.archived-view th:nth-child(1),
+.staff-table.archived-view td:nth-child(1) {
+  width: 60px;
+  text-align: center;
 }
 
-/* Remove the old simple pagination styles */
-.simple-pagination {
-  display: none;
+.staff-table.archived-view th:nth-child(2),
+.staff-table.archived-view td:nth-child(2) {
+  width: 150px;
 }
 
-/* Table container with fixed height */
-.staff-table {
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  min-height: 750px; /* Fixed height to always show space for rows */
-  display: flex;
-  flex-direction: column;
+.staff-table.archived-view th:nth-child(3),
+.staff-table.archived-view td:nth-child(3) {
+  width: 120px;
 }
 
-/* Table styling */
-.staff-table table {
-  width: 100%;
-  border-collapse: collapse;
-  flex: 1; /* Take remaining space */
+.staff-table.archived-view th:nth-child(4),
+.staff-table.archived-view td:nth-child(4) {
+  width: 140px;
 }
 
-/* Fixed table body height */
-.staff-table tbody {
-  display: block;
-  min-height: 400px; /* Height for rows */
+.staff-table.archived-view th:nth-child(5),
+.staff-table.archived-view td:nth-child(5) {
+  width: 100px;
 }
 
-.staff-table thead,
-.staff-table tbody tr {
-  display: table;
-  width: 100%;
-  table-layout: fixed;
+.staff-table.archived-view th:nth-child(6),
+.staff-table.archived-view td:nth-child(6) {
+  width: 80px;
 }
 
-/* Ensure table rows have consistent height */
-.staff-table tr {
-  height: 40px; /* Fixed row height */
+.staff-table.archived-view th:nth-child(7),
+.staff-table.archived-view td:nth-child(7) {
+  width: 150px;
+}
+
+.staff-table.archived-view th:nth-child(8),
+.staff-table.archived-view td:nth-child(8) {
+  width: 120px;
+  text-align: center;
 }

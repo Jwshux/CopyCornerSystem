@@ -19,10 +19,14 @@ const Categories = () => {
   const [categoryToRestore, setCategoryToRestore] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   
-  // Pagination state
+  // Separate pagination state for each view
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10; // Fixed constant
+  const [archivedCurrentPage, setArchivedCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
   const [totalPages, setTotalPages] = useState(1);
+  const [archivedTotalPages, setArchivedTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [archivedTotalCount, setArchivedTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   
   // Separate loading states for different actions
@@ -57,6 +61,7 @@ const Categories = () => {
         setCategories(data.categories || []);
         setCurrentPage(data.pagination?.page || 1);
         setTotalPages(data.pagination?.total_pages || 1);
+        setTotalCount(data.pagination?.total_count || data.categories?.length || 0);
       } else {
         console.error('Failed to fetch categories');
         showError('Failed to load categories');
@@ -77,32 +82,36 @@ const Categories = () => {
       if (response.ok) {
         const data = await response.json();
         
-        // Handle both response formats:
         if (Array.isArray(data)) {
           // Simple array format - no pagination info
           setArchivedCategories(data);
-          setCurrentPage(1);
-          setTotalPages(1);
+          setArchivedCurrentPage(1);
+          setArchivedTotalPages(1);
+          setArchivedTotalCount(data.length);
         } else if (data.categories && Array.isArray(data.categories)) {
           // Paginated format
           setArchivedCategories(data.categories);
-          setCurrentPage(data.pagination.page);
-          setTotalPages(data.pagination.total_pages);
+          setArchivedCurrentPage(data.pagination?.page || 1);
+          setArchivedTotalPages(data.pagination?.total_pages || 1);
+          setArchivedTotalCount(data.pagination?.total_count || data.categories.length);
         } else {
           // Fallback
           setArchivedCategories([]);
-          setCurrentPage(1);
-          setTotalPages(1);
+          setArchivedCurrentPage(1);
+          setArchivedTotalPages(1);
+          setArchivedTotalCount(0);
         }
       } else {
         console.error('Failed to fetch archived categories');
         showError('Failed to load archived categories');
-        setArchivedCategories([]); // Set empty array on error
+        setArchivedCategories([]);
+        setArchivedTotalCount(0);
       }
     } catch (error) {
       console.error('Error fetching archived categories:', error);
       showError('Error loading archived categories');
-      setArchivedCategories([]); // Set empty array on error
+      setArchivedCategories([]);
+      setArchivedTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -131,22 +140,26 @@ const Categories = () => {
     }
   }, [showRestoreModal]);
 
-  // Pagination handlers - same pattern as others
+  // Pagination handlers - separate for each view
   const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      if (showArchivedView) {
-        fetchArchivedCategories(currentPage + 1);
-      } else {
+    if (showArchivedView) {
+      if (archivedCurrentPage < archivedTotalPages) {
+        fetchArchivedCategories(archivedCurrentPage + 1);
+      }
+    } else {
+      if (currentPage < totalPages) {
         fetchCategories(currentPage + 1);
       }
     }
   };
 
   const handlePrevPage = () => {
-    if (currentPage > 1) {
-      if (showArchivedView) {
-        fetchArchivedCategories(currentPage - 1);
-      } else {
+    if (showArchivedView) {
+      if (archivedCurrentPage > 1) {
+        fetchArchivedCategories(archivedCurrentPage - 1);
+      }
+    } else {
+      if (currentPage > 1) {
         fetchCategories(currentPage - 1);
       }
     }
@@ -401,7 +414,7 @@ const Categories = () => {
       if (response.ok) {
         setRestoreSuccess(true);
         setTimeout(async () => {
-          await fetchArchivedCategories(currentPage);
+          await fetchArchivedCategories(archivedCurrentPage);
           await fetchCategories(1);
           closeRestoreModal();
         }, 1500);
@@ -487,7 +500,10 @@ const Categories = () => {
         {/* Table Header with Archive Button and Search */}
         <div className="table-header">
           {showArchivedView ? (
-            <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
+            <button className="back-to-main-btn" onClick={() => {
+              setShowArchivedView(false);
+              fetchCategories(1);
+            }}>
               ← Back to Main View
             </button>
           ) : (
@@ -513,7 +529,7 @@ const Categories = () => {
         {/* MAIN CATEGORIES VIEW */}
         {!showArchivedView && (
           <>
-            <table className="category-table">
+           <table className="category-table main-view">
               <thead>
                 <tr>
                   <th>#</th>
@@ -562,27 +578,15 @@ const Categories = () => {
                     </tr>
                   ))
                 )}
-                
-                {/* Add empty rows to maintain consistent height */}
-                {categories.length > 0 && categories.length < 10 &&
-                  Array.from({ length: 10 - categories.length }).map((_, index) => (
-                    <tr key={`empty-${index}`} style={{ visibility: 'hidden' }}>
-                      <td>&nbsp;</td>
-                      <td>&nbsp;</td>
-                      <td>&nbsp;</td>
-                      <td>&nbsp;</td>
-                    </tr>
-                  ))
-                }
               </tbody>
             </table>
 
-            {/* PAGINATION CONTROLS - ALWAYS SHOWN */}
+            {/* PAGINATION CONTROLS - FIXED */}
             {categories.length > 0 && (
               <div className="pagination-controls">
                 <div className="pagination-info">
                   <span className="pagination-text">
-                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, categories.length)} of {categories.length} items
+                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, totalCount)} of {totalCount} items
                   </span>
                 </div>
                 
@@ -613,9 +617,10 @@ const Categories = () => {
         {/* ARCHIVED CATEGORIES VIEW */}
         {showArchivedView && (
           <>
-            <table className="category-table">
+             <table className="category-table archived-view">
               <thead>
                 <tr>
+                  <th>#</th>
                   <th>Category Name</th>
                   <th>Description</th>
                   <th>Archived Date</th>
@@ -625,7 +630,7 @@ const Categories = () => {
               <tbody>
                 {archivedCategories.length === 0 ? (
                   <tr>
-                    <td colSpan="4" style={{ textAlign: "center", color: "#888" }}>
+                    <td colSpan="5" style={{ textAlign: "center", color: "#888" }}>
                       {loading ? (
                         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
                           <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
@@ -640,6 +645,7 @@ const Categories = () => {
                 ) : (
                   filteredArchivedCategories.map((category, index) => (
                     <tr key={category._id}>
+                      <td>{(archivedCurrentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                       <td>{category.name}</td>
                       <td>
                         <div className="description-cell">{category.description || "—"}</div>
@@ -656,44 +662,32 @@ const Categories = () => {
                     </tr>
                   ))
                 )}
-                
-                {/* Add empty rows to maintain consistent height */}
-                {archivedCategories.length > 0 && archivedCategories.length < 10 &&
-                  Array.from({ length: 10 - archivedCategories.length }).map((_, index) => (
-                    <tr key={`empty-archived-${index}`} style={{ visibility: 'hidden' }}>
-                      <td>&nbsp;</td>
-                      <td>&nbsp;</td>
-                      <td>&nbsp;</td>
-                      <td>&nbsp;</td>
-                    </tr>
-                  ))
-                }
               </tbody>
             </table>
 
-            {/* PAGINATION FOR ARCHIVED CATEGORIES - ALWAYS SHOWN */}
+            {/* PAGINATION FOR ARCHIVED CATEGORIES - FIXED */}
             {archivedCategories.length > 0 && (
               <div className="pagination-controls">
                 <div className="pagination-info">
                   <span className="pagination-text">
-                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, archivedCategories.length)} of {archivedCategories.length} items
+                    Showing {(archivedCurrentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(archivedCurrentPage * ITEMS_PER_PAGE, archivedTotalCount)} of {archivedTotalCount} items
                   </span>
                 </div>
                 
                 <div className="pagination-buttons">
                   <button 
                     onClick={handlePrevPage} 
-                    disabled={currentPage === 1 || loading}
+                    disabled={archivedCurrentPage === 1 || loading}
                     className="pagination-btn"
                   >
                     Previous
                   </button>
                   <span className="page-info">
-                    Page {currentPage} of {totalPages}
+                    Page {archivedCurrentPage} of {archivedTotalPages}
                   </span>
                   <button 
                     onClick={handleNextPage} 
-                    disabled={currentPage === totalPages || loading}
+                    disabled={archivedCurrentPage === archivedTotalPages || loading}
                     className="pagination-btn"
                   >
                     Next

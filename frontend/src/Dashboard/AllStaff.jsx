@@ -39,10 +39,14 @@ function AllStaff() {
   const [showArchivedView, setShowArchivedView] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Pagination state - FIXED ITEMS PER PAGE
+  // Pagination state - SEPARATE for main and archived views
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10; // Fixed constant like ManageUsers
+  const [archivedCurrentPage, setArchivedCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const [totalPages, setTotalPages] = useState(1);
+  const [archivedTotalPages, setArchivedTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [archivedTotalCount, setArchivedTotalCount] = useState(0);
 
   // Fetch all active staffs
   const fetchStaffs = async (page = 1) => {
@@ -52,16 +56,32 @@ function AllStaff() {
       if (response.ok) {
         const data = await response.json();
         console.log('Staffs data from API:', data);
-        setStaffs(data.staffs);
-        setCurrentPage(data.pagination.page);
-        setTotalPages(data.pagination.total_pages);
+        
+        if (Array.isArray(data)) {
+          setStaffs(data);
+          setCurrentPage(1);
+          setTotalPages(1);
+          setTotalCount(data.length);
+        } else if (data.staffs) {
+          setStaffs(data.staffs || []);
+          setCurrentPage(data.pagination?.page || 1);
+          setTotalPages(data.pagination?.total_pages || 1);
+          setTotalCount(data.pagination?.total_staffs || data.staffs.length);
+        } else {
+          setStaffs([]);
+          setTotalCount(0);
+        }
       } else {
         console.error('Failed to fetch staffs');
         showError('Failed to load staffs');
+        setStaffs([]);
+        setTotalCount(0);
       }
     } catch (error) {
       console.error('Error fetching staffs:', error);
       showError('Error loading staffs');
+      setStaffs([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -76,33 +96,36 @@ function AllStaff() {
         const data = await response.json();
         
         // Handle both response formats:
-        // Format 1: { staffs: [], pagination: {} } (with pagination)
-        // Format 2: [] (simple array without pagination)
         if (Array.isArray(data)) {
           // Simple array format - no pagination info
           setArchivedStaffs(data);
-          setCurrentPage(1);
-          setTotalPages(1);
+          setArchivedCurrentPage(1);
+          setArchivedTotalPages(1);
+          setArchivedTotalCount(data.length);
         } else if (data.staffs && Array.isArray(data.staffs)) {
           // Paginated format
           setArchivedStaffs(data.staffs);
-          setCurrentPage(data.pagination.page);
-          setTotalPages(data.pagination.total_pages);
+          setArchivedCurrentPage(data.pagination?.page || 1);
+          setArchivedTotalPages(data.pagination?.total_pages || 1);
+          setArchivedTotalCount(data.pagination?.total_staffs || data.staffs.length);
         } else {
           // Fallback
           setArchivedStaffs([]);
-          setCurrentPage(1);
-          setTotalPages(1);
+          setArchivedCurrentPage(1);
+          setArchivedTotalPages(1);
+          setArchivedTotalCount(0);
         }
       } else {
         console.error('Failed to fetch archived staffs');
         showError('Failed to load archived staffs');
-        setArchivedStaffs([]); // Set empty array on error
+        setArchivedStaffs([]);
+        setArchivedTotalCount(0);
       }
     } catch (error) {
       console.error('Error fetching archived staffs:', error);
       showError('Error loading archived staffs');
-      setArchivedStaffs([]); // Set empty array on error
+      setArchivedStaffs([]);
+      setArchivedTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -131,22 +154,26 @@ function AllStaff() {
     }
   }, [showRestoreModal]);
 
-  // Pagination handlers - same pattern as ManageUsers
+  // Pagination handlers - SEPARATE for each view
   const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      if (showArchivedView) {
-        fetchArchivedStaffs(currentPage + 1);
-      } else {
+    if (showArchivedView) {
+      if (archivedCurrentPage < archivedTotalPages) {
+        fetchArchivedStaffs(archivedCurrentPage + 1);
+      }
+    } else {
+      if (currentPage < totalPages) {
         fetchStaffs(currentPage + 1);
       }
     }
   };
 
   const handlePrevPage = () => {
-    if (currentPage > 1) {
-      if (showArchivedView) {
-        fetchArchivedStaffs(currentPage - 1);
-      } else {
+    if (showArchivedView) {
+      if (archivedCurrentPage > 1) {
+        fetchArchivedStaffs(archivedCurrentPage - 1);
+      }
+    } else {
+      if (currentPage > 1) {
         fetchStaffs(currentPage - 1);
       }
     }
@@ -354,7 +381,7 @@ function AllStaff() {
       if (response.ok) {
         setRestoreSuccess(true);
         setTimeout(async () => {
-          await fetchArchivedStaffs(currentPage);
+          await fetchArchivedStaffs(archivedCurrentPage);
           await fetchStaffs(1);
           closeRestoreModal();
         }, 1500);
@@ -395,19 +422,37 @@ function AllStaff() {
     staff.section.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Calculate display ranges CORRECTLY
+  const getDisplayRange = () => {
+    if (showArchivedView) {
+      const start = (archivedCurrentPage - 1) * ITEMS_PER_PAGE + 1;
+      const end = Math.min(archivedCurrentPage * ITEMS_PER_PAGE, archivedTotalCount);
+      return { start, end, total: archivedTotalCount };
+    } else {
+      const start = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+      const end = Math.min(currentPage * ITEMS_PER_PAGE, totalCount);
+      return { start, end, total: totalCount };
+    }
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'Unknown';
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
 
+  const displayRange = getDisplayRange();
+
   return (
     <div className="all-staff">
-      <div className="staff-table">
+      <div className="table-container">
         {/* Table Header with Archive Button and Search */}
         <div className="table-header">
           {showArchivedView ? (
-            <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
+            <button className="back-to-main-btn" onClick={() => {
+              setShowArchivedView(false);
+              fetchStaffs(1);
+            }}>
               ← Back to Main View
             </button>
           ) : (
@@ -433,7 +478,7 @@ function AllStaff() {
         {/* MAIN STAFF VIEW */}
         {!showArchivedView && (
           <>
-            <table>
+            <table className="staff-table main-view">
               <thead>
                 <tr>
                   <th>#</th>
@@ -462,7 +507,7 @@ function AllStaff() {
                     </td>
                   </tr>
                 ) : (
-                  staffs.map((staff, index) => (
+                  filteredStaffs.map((staff, index) => (
                     <tr key={staff._id}>
                       <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                       <td>{staff.name}</td>
@@ -471,7 +516,7 @@ function AllStaff() {
                       <td>{staff.course || "—"}</td>
                       <td>{staff.section || "—"}</td>
                       <td>
-                        <span className={staff.status === "Active" ? "active-status" : "inactive-status"}>
+                        <span className={`status-tag ${staff.status === "Active" ? "active-status" : "inactive-status"}`}>
                           {staff.status}
                         </span>
                       </td>
@@ -501,12 +546,12 @@ function AllStaff() {
               </tbody>
             </table>
 
-            {/* PAGINATION CONTROLS - ALWAYS SHOWN */}
+            {/* PAGINATION CONTROLS - FIXED */}
             {staffs.length > 0 && (
               <div className="pagination-controls">
                 <div className="pagination-info">
                   <span className="pagination-text">
-                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, staffs.length)} of {staffs.length} items
+                    Showing {displayRange.start}-{displayRange.end} of {displayRange.total} items
                   </span>
                 </div>
                 
@@ -537,9 +582,10 @@ function AllStaff() {
         {/* ARCHIVED STAFF VIEW */}
         {showArchivedView && (
           <>
-            <table>
+            <table className="staff-table archived-view">
               <thead>
                 <tr>
+                  <th>#</th>
                   <th>Name</th>
                   <th>Username</th>
                   <th>Student Number</th>
@@ -552,7 +598,7 @@ function AllStaff() {
               <tbody>
                 {archivedStaffs.length === 0 ? (
                   <tr>
-                    <td colSpan="7" style={{ textAlign: "center", color: "#888" }}>
+                    <td colSpan="8" style={{ textAlign: "center", color: "#888" }}>
                       {loading ? (
                         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
                           <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
@@ -565,8 +611,9 @@ function AllStaff() {
                     </td>
                   </tr>
                 ) : (
-                  archivedStaffs.map((staff, index) => (
+                  filteredArchivedStaffs.map((staff, index) => (
                     <tr key={staff._id}>
+                      <td>{(archivedCurrentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                       <td>{staff.name}</td>
                       <td>{staff.username || "—"}</td>
                       <td>{staff.studentNumber || "—"}</td>
@@ -593,35 +640,36 @@ function AllStaff() {
                       <td>&nbsp;</td>
                       <td>&nbsp;</td>
                       <td>&nbsp;</td>
+                      <td>&nbsp;</td>
                     </tr>
                   ))
                 }
               </tbody>
             </table>
 
-            {/* PAGINATION FOR ARCHIVED STAFF - ALWAYS SHOWN */}
+            {/* PAGINATION FOR ARCHIVED STAFF - FIXED */}
             {archivedStaffs.length > 0 && (
               <div className="pagination-controls">
                 <div className="pagination-info">
                   <span className="pagination-text">
-                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, archivedStaffs.length)} of {archivedStaffs.length} items
+                    Showing {displayRange.start}-{displayRange.end} of {displayRange.total} items
                   </span>
                 </div>
                 
                 <div className="pagination-buttons">
                   <button 
                     onClick={handlePrevPage} 
-                    disabled={currentPage === 1 || loading}
+                    disabled={archivedCurrentPage === 1 || loading}
                     className="pagination-btn"
                   >
                     Previous
                   </button>
                   <span className="page-info">
-                    Page {currentPage} of {totalPages}
+                    Page {archivedCurrentPage} of {archivedTotalPages}
                   </span>
                   <button 
                     onClick={handleNextPage} 
-                    disabled={currentPage === totalPages || loading}
+                    disabled={archivedCurrentPage === archivedTotalPages || loading}
                     className="pagination-btn"
                   >
                     Next
@@ -657,68 +705,82 @@ function AllStaff() {
               </div>
             ) : (
               <form onSubmit={handleUpdateStaff}>
-                <label>Full Name</label>
-                <input 
-                  name="name" 
-                  value={formData.name} 
-                  onChange={handleInputChange} 
-                  required 
-                />
+                <div className="input-with-error">
+                  <label>Full Name</label>
+                  <input 
+                    name="name" 
+                    value={formData.name} 
+                    onChange={handleInputChange} 
+                    required 
+                  />
+                </div>
                 
-                <label>Username</label>
-                <input 
-                  name="username" 
-                  value={formData.username} 
-                  onChange={handleInputChange} 
-                  placeholder="Username" 
-                  required
-                />
+                <div className="input-with-error">
+                  <label>Username</label>
+                  <input 
+                    name="username" 
+                    value={formData.username} 
+                    onChange={handleInputChange} 
+                    placeholder="Username" 
+                    required
+                  />
+                </div>
                 
-                <label>Password</label>
-                <input 
-                  type="password" 
-                  name="password" 
-                  value={formData.password} 
-                  onChange={handleInputChange} 
-                  placeholder="New Password (optional)" 
-                />
+                <div className="input-with-error">
+                  <label>Password</label>
+                  <input 
+                    type="password" 
+                    name="password" 
+                    value={formData.password} 
+                    onChange={handleInputChange} 
+                    placeholder="New Password (optional)" 
+                  />
+                </div>
                 
-                <label>Student Number</label>
-                <input 
-                  name="studentNumber" 
-                  value={formData.studentNumber} 
-                  onChange={handleInputChange} 
-                  placeholder="e.g., 2023-00123" 
-                  required
-                />
+                <div className="input-with-error">
+                  <label>Student Number</label>
+                  <input 
+                    name="studentNumber" 
+                    value={formData.studentNumber} 
+                    onChange={handleInputChange} 
+                    placeholder="e.g., 2023-00123" 
+                    required
+                  />
+                </div>
                 
-                <label>Course</label>
-                <input 
-                  name="course" 
-                  value={formData.course} 
-                  onChange={handleInputChange} 
-                  placeholder="e.g., BSIT, BSCS, BSIS" 
-                  required
-                />
+                <div className="input-with-error">
+                  <label>Course</label>
+                  <input 
+                    name="course" 
+                    value={formData.course} 
+                    onChange={handleInputChange} 
+                    placeholder="e.g., BSIT, BSCS, BSIS" 
+                    required
+                  />
+                </div>
                 
-                <label>Section</label>
-                <input 
-                  name="section" 
-                  value={formData.section} 
-                  onChange={handleInputChange} 
-                  placeholder="e.g., 3A, 2B" 
-                  required
-                />
+                <div className="input-with-error">
+                  <label>Section</label>
+                  <input 
+                    name="section" 
+                    value={formData.section} 
+                    onChange={handleInputChange} 
+                    placeholder="e.g., 3A, 2B" 
+                    required
+                  />
+                </div>
                 
-                <label>Status</label>
-                <select name="status" value={formData.status} onChange={handleInputChange}>
-                  <option>Active</option>
-                  <option>Inactive</option>
-                </select>
+                <div className="input-with-error">
+                  <label>Status</label>
+                  <select name="status" value={formData.status} onChange={handleInputChange}>
+                    <option>Active</option>
+                    <option>Inactive</option>
+                  </select>
+                </div>
 
                 <div className="form-buttons">
-                  <button type="submit" className="save-btn">
-                    Update
+                  <button type="submit" className="save-btn" disabled={updating}>
+                    {updating ? "Updating..." : "Update"}
                   </button>
                   <button type="button" className="cancel-btn" onClick={closeEditModal}>Cancel</button>
                 </div>

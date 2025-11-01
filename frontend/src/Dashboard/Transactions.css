@@ -3,6 +3,9 @@
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  min-height: 800px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Table Header with Archive and Search */
@@ -30,7 +33,7 @@
 }
 
 .transactions-container .view-archive-btn:hover {
-  background: #4b5563;
+  background: #5a6268;
   transform: translateY(-1px);
 }
 
@@ -59,7 +62,7 @@
   transition: border-color 0.3s ease;
 }
 
-.transactions-table .search-input:focus {
+.transactions-container .search-input:focus {
   border-color: #0d6efd;
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
@@ -91,38 +94,122 @@
   color: white;
 }
 
-/* Table */
-.transactions-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+/* FIXED TABLE SIZE AND LAYOUT */
+.table-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 600px;
   background: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.transactions-table th,
-.transactions-table td {
-  padding: 14px 12px;
-  border-bottom: 1px solid #e2e8f0;
-  font-size: 14px;
-  text-align: left;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  white-space: normal;
+.transactions-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  table-layout: fixed;
 }
 
 .transactions-table th {
-  background: #f1f5f9;
+  background: #34495e !important;
+  color: white !important;
+  padding: 16px 12px;
+  text-align: left;
   font-weight: 600;
-  color: #475569;
+  font-size: 14px;
+  border-bottom: 2px solid #001a47;
+  height: 60px;
+  vertical-align: middle;
 }
 
 .transactions-table td {
-  color: #334155;
-  white-space: normal;
-  word-wrap: break-word;
-  word-break: break-word;
+  padding: 16px 12px;
+  border-bottom: 1px solid #ecf0f1;
+  font-size: 14px;
+  background: white;
+  height: 40px;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Fixed column widths for better layout */
+.transactions-table th:nth-child(1), /* Queue # */
+.transactions-table td:nth-child(1) {
+  width: 80px;
+  text-align: center;
+}
+
+.transactions-table th:nth-child(2), /* Transaction ID */
+.transactions-table td:nth-child(2) {
+  width: 120px;
+}
+
+.transactions-table th:nth-child(3), /* Customer */
+.transactions-table td:nth-child(3) {
+  width: 150px;
+}
+
+.transactions-table th:nth-child(4), /* Service Type */
+.transactions-table td:nth-child(4) {
+  width: 140px;
+}
+
+.transactions-table th:nth-child(5), /* Product */
+.transactions-table td:nth-child(5) {
+  width: 130px;
+}
+
+.transactions-table th:nth-child(6), /* Details */
+.transactions-table td:nth-child(6) {
+  width: 100px;
+}
+
+.transactions-table th:nth-child(7), /* Price */
+.transactions-table td:nth-child(7) {
+  width: 100px;
+}
+
+.transactions-table th:nth-child(8), /* Qty */
+.transactions-table td:nth-child(8) {
+  width: 70px;
+  text-align: center;
+}
+
+.transactions-table th:nth-child(9), /* Total */
+.transactions-table td:nth-child(9) {
+  width: 110px;
+}
+
+.transactions-table th:nth-child(10), /* Date */
+.transactions-table td:nth-child(10) {
+  width: 120px;
+}
+
+.transactions-table th:nth-child(11), /* Status */
+.transactions-table td:nth-child(11) {
+  width: 120px;
+}
+
+.transactions-table th:nth-child(12), /* Actions */
+.transactions-table td:nth-child(12) {
+  width: 200px;
+}
+
+/* Archived table specific widths */
+.transactions-table th:nth-child(13), /* Archived Date */
+.transactions-table td:nth-child(13) {
+  width: 150px;
+}
+
+/* Table Row Hover Effects */
+.transactions-table tbody tr:hover td {
+  background-color: #f1f5f9;
+  color: #1d4ed8;
 }
 
 /* Queue number styling */
@@ -135,112 +222,169 @@
   border-right: 2px solid #e2e8f0;
 }
 
-.transactions-table tr:hover {
-  background-color: #f9fafb;
-}
-
 /* Status tags */
 .status-tag {
-  padding: 5px 10px;
-  border-radius: 6px;
-  font-weight: 500;
-  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+  height: 28px;
 }
 
 .status-tag.completed {
-  background: #dcfce7;
-  color: #166534;
+  background-color: #d5f4e6;
+  color: #27ae60;
+  border: 1px solid #27ae60;
 }
 
 .status-tag.pending {
-  background: #fef9c3;
-  color: #854d0e;
+  background-color: #fef9e7;
+  color: #f39c12;
+  border: 1px solid #f39c12;
 }
 
 .status-tag.cancelled {
-  background: #fee2e2;
-  color: #991b1b;
+  background-color: #fdeaea;
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
 }
 
-/* Action Buttons */
-.edit-btn,
-.delete-btn,
-.archive-btn,
-.restore-btn,
-.complete-btn,
-.cancel-btn-table {
-  border: none;
-  padding: 6px 10px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 12px;
-  margin-right: 4px;
-  transition: all 0.2s ease;
+/* Button Styles - Consistent with other components */
+.transactions-table .edit-btn,
+.transactions-table .archive-btn,
+.transactions-table .restore-btn,
+.transactions-table .complete-btn,
+.transactions-table .cancel-btn-table,
+.transactions-table .delete-btn {
+  border: none !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-size: 0.80rem !important;
+  font-weight: 600 !important;
+  transition: all 0.3s ease !important;
+  margin-right: 6px !important;
+  margin-bottom: 0 !important;
+  min-width: 70px !important;
+  height: 32px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
+/* Edit Button - Blue */
 .transactions-table .edit-btn {
-  background-color: #3B82F6;
-  color: white;
+  background-color: #3498db !important;
+  color: white !important;
+  border: 1px solid #3498db !important;
 }
 
 .transactions-table .edit-btn:hover {
-  background-color: #2563EB;
+  background-color: #2980b9 !important;
+  border-color: #2980b9 !important;
+  transform: translateY(-1px) !important;
 }
 
-.delete-btn {
-  background-color: #dc2626;
-  color: white;
-}
-
-.delete-btn:hover {
-  background-color: #b91c1c;
-}
-
+/* Archive Button - Red */
 .transactions-table .archive-btn {
-  background-color: #A16207;
-  color: white;
+  background-color: #e74c3c !important;
+  color: white !important;
+  border: 1px solid #e74c3c !important;
 }
 
 .transactions-table .archive-btn:hover {
-  background-color: #854D0E;
+  background-color: #c0392b !important;
+  border-color: #c0392b !important;
+  transform: translateY(-1px) !important;
 }
 
-.restore-btn {
-  background-color: #10b981;
-  color: white;
+/* Restore Button - Green */
+.transactions-table .restore-btn {
+  background-color: #2ecc71 !important;
+  color: white !important;
+  border: 1px solid #2ecc71 !important;
 }
 
-.restore-btn:hover {
-  background-color: #059669;
+.transactions-table .restore-btn:hover {
+  background-color: #27ae60 !important;
+  border-color: #27ae60 !important;
+  transform: translateY(-1px) !important;
 }
 
-.complete-btn {
-  background-color: #16a34a;
-  color: white;
+/* Complete Button - Green */
+.transactions-table .complete-btn {
+  background-color: #16a34a !important;
+  color: white !important;
+  border: 1px solid #16a34a !important;
 }
 
-.complete-btn:hover {
-  background-color: #15803d;
+.transactions-table .complete-btn:hover {
+  background-color: #15803d !important;
+  border-color: #15803d !important;
+  transform: translateY(-1px) !important;
 }
 
-.cancel-btn-table {
-  background-color: #dc2626;
-  color: white;
+/* Cancel Button - Red */
+.transactions-table .cancel-btn-table {
+  background-color: #e74c3c !important;
+  color: white !important;
+  border: 1px solid #e74c3c !important;
 }
 
-.cancel-btn-table:hover {
-  background-color: #b91c1c;
+.transactions-table .cancel-btn-table:hover {
+  background-color: #c0392b !important;
+  border-color: #c0392b !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Delete Button - Dark Red */
+.transactions-table .delete-btn {
+  background-color: #dc2626 !important;
+  color: white !important;
+  border: 1px solid #dc2626 !important;
+}
+
+.transactions-table .delete-btn:hover {
+  background-color: #b91c1c !important;
+  border-color: #b91c1c !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Empty state styling */
+.empty-state {
+  height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+.empty-state td {
+  height: 400px !important;
+  text-align: center;
+  vertical-align: middle;
 }
 
 /* Modal Styles */
 .overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 999;
+  z-index: 1000;
 }
 
 .add-form {
@@ -358,23 +502,23 @@
   margin-bottom: 15px;
 }
 
-.transaction-table .archive-confirmation h3 {
+.archive-confirmation h3 {
   color: #0d6efd;
   margin-bottom: 15px;
 }
 
-.transaction-table .archive-confirmation p {
+.archive-confirmation p {
   margin-bottom: 10px;
   color: #555;
 }
 
-.transaction-table .archive-warning {
+.archive-warning {
   color: #495057;
   font-weight: bold;
   font-size: 14px;
 }
 
-.transaction-table .confirm-archive-btn {
+.confirm-archive-btn {
   background-color: #0d6efd;
   color: white;
   padding: 10px 20px;
@@ -384,11 +528,11 @@
   font-weight: bold;
 }
 
-.transaction-table .confirm-archive-btn:hover:not(:disabled) {
+.confirm-archive-btn:hover:not(:disabled) {
   background-color: #0b5ed7;
 }
 
-.transaction-table .confirm-archive-btn:disabled {
+.confirm-archive-btn:disabled {
   background-color: #0b5ed7;
   opacity: 0.6;
   cursor: not-allowed;
@@ -514,138 +658,12 @@
   box-sizing: border-box;
 }
 
-.pagination-btn {
-  background-color: #2563eb;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.pagination-btn:hover:not(:disabled) {
-  background-color: #1d4ed8;
-}
-
-.pagination-btn:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
-
-.page-info {
-  font-size: 14px;
-  color: #6b7280;
-  font-weight: 500;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .table-header {
-    flex-direction: column;
-    gap: 15px;
-    align-items: flex-start;
-  }
-  
-  .search-container {
-    width: 100%;
-  }
-  
-  .search-input {
-    width: 100%;
-  }
-  
-  .transactions-table {
-    font-size: 12px;
-  }
-  
-  .transactions-table th,
-  .transactions-table td {
-    padding: 8px 6px;
-  }
-}
-
-/* Error Modal Styles */
-.error-modal {
-  text-align: center;
-  max-width: 400px;
-}
-
-.error-icon {
-  font-size: 48px;
-  margin-bottom: 15px;
-}
-
-.error-modal h3 {
-  color: #d9534f;
-  margin-bottom: 15px;
-}
-
-.error-message-text {
-  color: #555;
-  margin-bottom: 20px;
-  line-height: 1.5;
-  padding: 0 10px;
-  white-space: pre-line;
-}
-
-/* Modal Content */
-.modal-content {
-  background: white;
-  padding: 25px;
-  border-radius: 12px;
-  width: 400px;
-  max-width: 90vw;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-  margin: 0 auto;
-}
-
-/* Table container with fixed height */
-.transactions-container {
-  padding: 20px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  min-height: 600px; /* Fixed height to always show space for 10 rows */
-  display: flex;
-  flex-direction: column;
-}
-
-/* Table styling */
-.transactions-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  flex: 1; /* Take remaining space */
-}
-
-/* Fixed table body height - ALWAYS show 10 rows space */
-.transactions-table tbody {
-  display: block;
-  min-height: 700px; /* Height for exactly 10 rows */
-}
-
-.transactions-table thead,
-.transactions-table tbody tr {
-  display: table;
-  width: 100%;
-  table-layout: fixed;
-}
-
-/* Ensure table rows have consistent height */
-.transactions-table tr {
-  height: 40px; /* Fixed row height */
-}
-
-/* Pagination Styles - Same as ManageGroup */
+/* Pagination Styles */
 .pagination-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: auto; /* Push to bottom of container */
+  margin-top: auto;
   padding: 15px;
   background: #f8f9fa;
   border-radius: 8px;
@@ -700,4 +718,70 @@
   font-size: 14px;
   font-weight: 600;
   color: #00205B;
+}
+
+/* Error Modal Styles */
+.error-modal {
+  text-align: center;
+  max-width: 400px;
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.error-modal h3 {
+  color: #d9534f;
+  margin-bottom: 15px;
+}
+
+.error-message-text {
+  color: #555;
+  margin-bottom: 20px;
+  line-height: 1.5;
+  padding: 0 10px;
+  white-space: pre-line;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .table-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+  
+  .search-container {
+    width: 100%;
+  }
+  
+  .search-input {
+    width: 100%;
+  }
+  
+  .transactions-table {
+    font-size: 12px;
+  }
+  
+  .transactions-table th,
+  .transactions-table td {
+    padding: 8px 6px;
+  }
+  
+  /* Adjust column widths for mobile */
+  .transactions-table th:nth-child(1),
+  .transactions-table td:nth-child(1) {
+    width: 60px;
+  }
+  
+  .transactions-table th:nth-child(2),
+  .transactions-table td:nth-child(2) {
+    width: 100px;
+  }
+  
+  .transactions-table th:nth-child(12),
+  .transactions-table td:nth-child(12) {
+    width: 150px;
+  }
 }

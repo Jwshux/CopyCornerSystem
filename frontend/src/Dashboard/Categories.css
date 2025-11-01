@@ -89,9 +89,9 @@
   flex: 1;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   height: auto;
-  overflow: visible;
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* Add this to contain table */
 }
 
 /* Table Header with Archive and Search */
@@ -153,24 +153,52 @@
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
-/* 🔹 Table Styling */
+/* 🔹 FIXED Table Styling - No Header Overflow */
 .category-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 500px;
-  table-layout: fixed;
-}
-
-.category-table th,
-.category-table td {
-  border-bottom: 1px solid #ddd;
-  padding: 10px;
-  text-align: left;
-  vertical-align: top;
+  background-color: white;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  border-radius: 8px;
+  overflow: hidden; /* KEY FIX - contains the header */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .category-table th {
-  background: #f7f7f7;
+  background: #34495e !important;
+  color: white !important;
+  padding: 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 2px solid #001a47;
+  /* Remove sticky if causing issues */
+  position: relative;
+}
+
+.category-table td {
+  padding: 16px;
+  border-bottom: 1px solid #ecf0f1;
+  font-size: 14px;
+  background: white;
+  position: relative;
+  z-index: 1;
+  vertical-align: middle;
+}
+
+/* Table Row Hover Effects */
+.category-table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.category-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.category-table tbody tr:hover td {
+  background-color: #f1f5f9;
+  color: #1d4ed8;
+  transform: translateX(4px);
 }
 
 /* 🔹 Description Column */
@@ -187,111 +215,157 @@
 /* Buttons */
 .edit-btn,
 .archive-btn,
-.delete-btn,
 .restore-btn {
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: background-color 0.2s ease;
-  margin-right: 5px;
+  border: none !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  transition: all 0.3s ease !important;
+  margin-right: 8px !important;
+  min-width: 80px !important;
+  height: 30px !important;
 }
 
 .categories-container .edit-btn {
-  background-color: #3B82F6;
-  color: white;
+  background-color: #3498db !important;
+  color: white !important;
+  border: 1px solid #3498db !important;
 }
 
 .categories-container button.edit-btn:hover {
-  background-color: #2563EB;
+  background-color: #2980b9 !important;
+  border-color: #2980b9 !important;
+  transform: translateY(-1px) !important;
 }
 
 .categories-container .archive-btn {
-  background-color: #A16207;
-  color: white;
+  background-color: #e74c3c !important;
+  color: white !important;
+  border: 1px solid #e74c3c !important;
 }
 
 .categories-container .archive-btn:hover {
-  background-color:  #854D0E
-}
-
-.delete-btn {
-  background-color: #dc3545;
-  color: white;
-}
-
-.delete-btn:hover {
-  background-color: #c82333;
+  background-color: #c0392b !important;
+  border-color: #c0392b !important;
+  transform: translateY(-1px) !important;
 }
 
 .restore-btn {
-  background-color: #10b981;
-  color: white;
+  background-color: #2ecc71 !important;
+  color: white !important;
+  border: 1px solid #2ecc71 !important;
 }
 
 .restore-btn:hover {
-  background-color: #059669;
+  background-color: #27ae60 !important;
+  border-color: #27ae60 !important;
+  transform: translateY(-1px) !important;
 }
 
 /* Column widths */
 .category-table th:nth-child(1),
 .category-table td:nth-child(1) {
-  width: 50px;
+  width: 80px;
   text-align: center;
 }
 
 .category-table th:nth-child(2),
 .category-table td:nth-child(2) {
-  width: 150px;
+  width: 200px;
 }
 
 .category-table th:nth-child(3),
 .category-table td:nth-child(3) {
-  width: 200px;
+  width: 300px;
 }
 
 .category-table th:nth-child(4),
 .category-table td:nth-child(4) {
+  width: 200px;
+  text-align: center;
+}
+
+/* For archived categories view - different column structure */
+.category-table.archived-view th:nth-child(1),
+.category-table.archived-view td:nth-child(1) {
+  width: 200px;
+}
+
+.category-table.archived-view th:nth-child(2),
+.category-table.archived-view td:nth-child(2) {
+  width: 300px;
+}
+
+.category-table.archived-view th:nth-child(3),
+.category-table.archived-view td:nth-child(3) {
+  width: 200px;
+}
+
+.category-table.archived-view th:nth-child(4),
+.category-table.archived-view td:nth-child(4) {
   width: 150px;
   text-align: center;
 }
 
-/* Simple Pagination Styles */
-.simple-pagination {
+/* Pagination Styles */
+.pagination-controls {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  gap: 15px;
   margin-top: 20px;
-  padding: 15px 0;
-  border-top: 1px solid #eee;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-top: 1px solid #dee2e6;
 }
 
-.page-info {
-  color: #666;
-  font-weight: 500;
+.pagination-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.pagination-text {
+  font-weight: 600;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
 .pagination-btn {
   padding: 8px 16px;
-  border: 1px solid #ddd;
+  border: 1px solid #00205B;
   background: white;
-  color: #333;
+  color: #00205B;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: #f5f5f5;
-  border-color: #ccc;
+  background: #00205B;
+  color: white;
 }
 
 .pagination-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: #f9f9f9;
+  border-color: #6c757d;
+  color: #6c757d;
+}
+
+.page-info {
+  font-size: 14px;
+  font-weight: 600;
+  color: #00205B;
 }
 
 /* Overlay */
@@ -403,53 +477,6 @@
   border-color: #4b5563;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
-}
-
-/* Delete Confirmation Modal */
-.delete-confirmation {
-  text-align: center;
-  max-width: 400px;
-}
-
-.delete-icon {
-  font-size: 48px;
-  margin-bottom: 15px;
-}
-
-.delete-confirmation h3 {
-  color: #d9534f;
-  margin-bottom: 15px;
-}
-
-.delete-confirmation p {
-  margin-bottom: 10px;
-  color: #555;
-}
-
-.delete-warning {
-  color: #d9534f;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.confirm-delete-btn {
-  background-color: #d9534f;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.confirm-delete-btn:hover:not(:disabled) {
-  background-color: #c9302c;
-}
-
-.confirm-delete-btn:disabled {
-  background-color: #d9534f;
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 /* Archive Confirmation Modal */
@@ -576,16 +603,6 @@
   font-size: 14px;
 }
 
-/* Delete Animation Center */
-.delete-animation-center {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 300px;
-  text-align: center;
-}
-
 /* Archive Animation Center */
 .archive-animation-center {
   display: flex;
@@ -607,7 +624,6 @@
 }
 
 /* Make sure the confirmation modals have enough height */
-.delete-confirmation,
 .archive-confirmation,
 .restore-confirmation {
   min-height: 300px;
@@ -653,105 +669,11 @@
   justify-content: center;
 }
 
-/* Pagination Styles - Same as ManageUsers and ManageGroup */
-.pagination-controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: auto; /* Push to bottom of container */
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border-top: 1px solid #dee2e6;
-  position: sticky;
-  bottom: 0;
-  z-index: 100;
+/* FIXED: Table header corners */
+.category-table thead tr:first-child th:first-child {
+  border-top-left-radius: 8px;
 }
 
-.pagination-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  color: #6c757d;
-}
-
-.pagination-text {
-  font-weight: 600;
-}
-
-.pagination-buttons {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.pagination-btn {
-  padding: 8px 16px;
-  border: 1px solid #00205B;
-  background: white;
-  color: #00205B;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.pagination-btn:hover:not(:disabled) {
-  background: #00205B;
-  color: white;
-}
-
-.pagination-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  border-color: #6c757d;
-  color: #6c757d;
-}
-
-.page-info {
-  font-size: 14px;
-  font-weight: 600;
-  color: #00205B;
-}
-
-/* Remove the old simple pagination styles */
-.simple-pagination {
-  display: none;
-}
-
-/* Table container with fixed height */
-.all-categories {
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  min-height: 750px; /* Fixed height to always show space for rows */
-  display: flex;
-  flex-direction: column;
-}
-
-/* Table styling */
-.all-categories table {
-  width: 100%;
-  border-collapse: collapse;
-  flex: 1; /* Take remaining space */
-}
-
-/* Fixed table body height */
-.all-categories tbody {
-  display: block;
-  min-height: 400px; /* Height for rows */
-}
-
-.all-categories thead,
-.all-categories tbody tr {
-  display: table;
-  width: 100%;
-  table-layout: fixed;
-}
-
-/* Ensure table rows have consistent height */
-.all-categories tr {
-  height: 50px; /* Fixed row height */
+.category-table thead tr:first-child th:last-child {
+  border-top-right-radius: 8px;
 }

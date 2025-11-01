@@ -49,7 +49,7 @@ def get_categories():
         
         # Handle paginated request
         page = int(page_param or 1)
-        per_page = int(per_page_param or 10)
+        per_page = int(per_page_param or 5)  # CHANGED TO 5 FOR CATEGORIES
         skip = (page - 1) * per_page
         
         total_categories = categories_collection.count_documents(query)
@@ -79,7 +79,7 @@ def get_categories():
             'pagination': {
                 'page': page,
                 'per_page': per_page,
-                'total_categories': total_categories,
+                'total_count': total_categories,  # CHANGE THIS
                 'total_pages': total_pages
             }
         })
@@ -258,11 +258,44 @@ def restore_category(category_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# GET ARCHIVED CATEGORIES
+# GET ARCHIVED CATEGORIES - UPDATED WITH PAGINATION
 @categories_bp.route('/api/categories/archived', methods=['GET'])
 def get_archived_categories():
     try:
-        categories = list(categories_collection.find({'is_archived': True}).sort("archived_at", -1))
+        page_param = request.args.get('page')
+        per_page_param = request.args.get('per_page')
+        
+        # Only fetch archived categories
+        query = {'is_archived': True}
+        
+        # If no pagination parameters, return all archived categories
+        if not page_param and not per_page_param:
+            categories = list(categories_collection.find(query).sort("archived_at", -1))
+            
+            for category in categories:
+                category_id = category['_id']
+                product_count = products_collection.count_documents({'category_id': category_id})
+                category['product_count'] = product_count
+                service_count = service_types_collection.count_documents({'category_id': category_id})
+                category['service_type_count'] = service_count
+            
+            serialized_categories = [serialize_doc(category) for category in categories]
+            return jsonify(serialized_categories)
+        
+        # Handle paginated request
+        page = int(page_param or 1)
+        per_page = int(per_page_param or 5)  # CHANGED TO 5 FOR CATEGORIES
+        skip = (page - 1) * per_page
+        
+        total_categories = categories_collection.count_documents(query)
+        total_pages = (total_categories + per_page - 1) // per_page
+        
+        if page > total_pages and total_pages > 0:
+            page = total_pages
+            skip = (page - 1) * per_page
+        
+        categories_cursor = categories_collection.find(query).sort("archived_at", -1).skip(skip).limit(per_page)
+        categories = list(categories_cursor)
         
         for category in categories:
             category_id = category['_id']
@@ -272,7 +305,16 @@ def get_archived_categories():
             category['service_type_count'] = service_count
         
         serialized_categories = [serialize_doc(category) for category in categories]
-        return jsonify(serialized_categories)
+        
+        return jsonify({
+            'categories': serialized_categories,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_count': total_categories,  
+                'total_pages': total_pages
+            }
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

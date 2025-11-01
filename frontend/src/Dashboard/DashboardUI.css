@@ -179,7 +179,7 @@
   align-items: center;
 }
 
-/* === Tables === */
+/* === Tables - UPDATED with Inventory Report Table Design === */
 .dashboard-tables {
   display: grid;
   grid-template-columns: 1fr;
@@ -234,31 +234,76 @@
   color: #047857;
 }
 
+/* === UPDATED Table Styles - Inventory Report Design === */
 .table-box table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 8px;
   font-size: 0.95rem;
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  table-layout: fixed;
 }
 
-.table-box th,
-.table-box td {
-  padding: 8px;
-  text-align: left;
-  border-bottom: 1px solid #f1f5f9;
-  transition: all 0.2s ease;
-}
+/* Fixed column widths for better layout */
+.table-box table th:nth-child(1),
+.table-box table td:nth-child(1) { width: 25%; min-width: 150px; }
+.table-box table th:nth-child(2),
+.table-box table td:nth-child(2) { width: 20%; min-width: 120px; }
+.table-box table th:nth-child(3),
+.table-box table td:nth-child(3) { width: 15%; min-width: 100px; }
+.table-box table th:nth-child(4),
+.table-box table td:nth-child(4) { width: 15%; min-width: 100px; }
+.table-box table th:nth-child(5),
+.table-box table td:nth-child(5) { width: 25%; min-width: 120px; }
 
+/* UPDATED Table Header - Inventory Report Style */
 .table-box th {
-  color: #475569;
+  background: #34495e !important; /* Inventory Report header color */
+  color: white !important;
+  padding: 16px;
+  text-align: left;
   font-weight: 600;
-  background-color: #f8fafc;
+  font-size: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 1001;
+  border-bottom: 2px solid #001a47;
 }
 
 .table-box td {
-  color: #475569;
-  font-weight: 500;
+  padding: 16px;
+  border-bottom: 1px solid #ecf0f1;
+  font-size: 14px;
+  background: white;
+  position: relative;
+  z-index: 1;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Text overflow handling */
+.table-box .product-name,
+.table-box .customer-name {
+  font-weight: 600;
+  color: #2c3e50;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Numeric columns */
+.table-box .amount,
+.table-box .stock {
+  text-align: right;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+/* Date columns */
+.table-box .date {
+  color: #7f8c8d;
 }
 
 /* === Table Row Hover Effects === */
@@ -276,68 +321,62 @@
   transform: translateX(4px);
 }
 
-/* === Status Tags === */
+/* === Status Tags - UPDATED with Inventory Report Style === */
 .status-tag {
-  padding: 5px 10px;
+  padding: 6px 12px;
   border-radius: 20px;
-  font-size: 0.85rem;
-  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   display: inline-block;
   text-align: center;
   min-width: 100px;
-  font-weight: 600;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
 
-.status-tag::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 0%;
-  background: rgba(255, 255, 255, 0.8);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 0 4px 4px 0;
+/* UPDATED Status Tag Styles - Inventory Report Design */
+.status-tag.in-stock {
+  background-color: #d5f4e6;
+  color: #27ae60;
+  border: 1px solid #27ae60;
 }
 
-.status-tag:hover::before {
-  height: 80%;
-  top: 10%;
+.status-tag.low-stock {
+  background-color: #fef9e7;
+  color: #f39c12;
+  border: 1px solid #f39c12;
+}
+
+.status-tag.out-stock {
+  background-color: #fdeaea;
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
+}
+
+.status-tag.completed {
+  background-color: #d5f4e6;
+  color: #27ae60;
+  border: 1px solid #27ae60;
+}
+
+.status-tag.pending {
+  background-color: #fef9e7;
+  color: #f39c12;
+  border: 1px solid #f39c12;
+}
+
+.status-tag.cancelled {
+  background-color: #fdeaea;
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
 }
 
 .status-tag:hover {
   transform: scale(1.05);
-}
-
-.in-stock {
-  background-color: #10b981;
-}
-
-.in-stock:hover {
-  background-color: #059669;
-}
-
-.low-stock {
-  background-color: #f59e0b;
-  color: #333;
-}
-
-.low-stock:hover {
-  background-color: #d97706;
-  color: white;
-}
-
-.out-stock {
-  background-color: #ef4444;
-}
-
-.out-stock:hover {
-  background-color: #dc2626;
 }
 
 /* === No Data Message === */
