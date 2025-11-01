@@ -12,6 +12,65 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
+/* Table Header with Archive and Search */
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 10px;
+}
+
+.view-archive-btn, .back-to-main-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.view-archive-btn {
+  background: #8b5cf6;
+  color: white;
+}
+
+.view-archive-btn:hover {
+  background: #7c3aed;
+  transform: translateY(-1px);
+}
+
+.back-to-main-btn {
+  background: #6b7280;
+  color: white;
+}
+
+.back-to-main-btn:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  padding: 10px 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 250px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.search-input:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -35,16 +94,41 @@ td {
 }
 
 .edit-btn,
-.delete-btn,
+.archive-btn,
+.restore-btn {
+  margin: 5px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
 .edit-btn {
   background: #f0ad4e;
   color: white;
 }
 
-.delete-btn {
-  background: #d9534f;
+.edit-btn:hover {
+  background: #ec971f;
+}
+
+.archive-btn {
+  background: #8b5cf6;
   color: white;
+}
+
+.archive-btn:hover {
+  background: #7c3aed;
+}
+
+.restore-btn {
+  background: #10b981;
+  color: white;
+}
+
+.restore-btn:hover {
+  background: #059669;
 }
 
 /* Modal Overlay */
@@ -179,35 +263,35 @@ td {
   margin-top: 20px;
 }
 
-/* Delete Confirmation Modal */
-.delete-confirmation {
+/* Archive Confirmation Modal */
+.archive-confirmation {
   text-align: center;
   max-width: 400px;
 }
 
-.delete-icon {
+.archive-icon {
   font-size: 48px;
   margin-bottom: 15px;
 }
 
-.delete-confirmation h3 {
-  color: #d9534f;
+.archive-confirmation h3 {
+  color: #8b5cf6;
   margin-bottom: 15px;
 }
 
-.delete-confirmation p {
+.archive-confirmation p {
   margin-bottom: 10px;
   color: #555;
 }
 
-.delete-warning {
-  color: #d9534f;
+.archive-warning {
+  color: #8b5cf6;
   font-weight: bold;
   font-size: 14px;
 }
 
-.confirm-delete-btn {
-  background-color: #d9534f;
+.confirm-archive-btn {
+  background-color: #8b5cf6;
   color: white;
   padding: 10px 20px;
   border: none;
@@ -216,14 +300,87 @@ td {
   font-weight: bold;
 }
 
-.confirm-delete-btn:hover:not(:disabled) {
-  background-color: #c9302c;
+.confirm-archive-btn:hover:not(:disabled) {
+  background-color: #7c3aed;
 }
 
-.confirm-delete-btn:disabled {
-  background-color: #d9534f;
-  opacity: 0.6;
-  cursor: not-allowed;
+/* Restore Confirmation Modal */
+.restore-confirmation {
+  max-width: 400px;
+}
+
+.restore-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.restore-confirmation h3 {
+  color: #10b981;
+  margin-bottom: 15px;
+}
+
+.restore-warning {
+  color: #10b981;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.confirm-restore-btn {
+  background-color: #10b981;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.confirm-restore-btn:hover:not(:disabled) {
+  background-color: #059669;
+}
+
+/* Centered Modals */
+.centered-modal {
+  text-align: center;
+}
+
+.centered-text {
+  text-align: center;
+  margin: 10px 0;
+}
+
+.centered-buttons {
+  justify-content: center;
+}
+
+/* Archive Animation Center */
+.archive-animation-center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  text-align: center;
+}
+
+/* Restore Animation Center */
+.restore-animation-center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  text-align: center;
+}
+
+/* Make sure the confirmation modals have enough height */
+.archive-confirmation,
+.restore-confirmation {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 /* Simple Pagination Styles */
@@ -268,36 +425,10 @@ td {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 300px;
-}
-
-/* Delete Animation Center */
-.delete-animation-center {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 300px;
-  text-align: center;
-}
-
-/* Form Animation Center */
-.form-animation-center {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   height: 400px;
 }
 
-/* Make sure the delete confirmation modal has enough height */
-.delete-confirmation {
-  min-height: 300px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-/* Error Modal Styling - Same as Categories */
+/* Error Modal Styling */
 .error-modal-overlay {
   position: fixed;
   top: 0;
@@ -386,4 +517,21 @@ td {
   background-color: #c9302c;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(217, 83, 79, 0.3);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .table-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+  
+  .search-container {
+    width: 100%;
+  }
+  
+  .search-input {
+    width: 100%;
+  }
 }

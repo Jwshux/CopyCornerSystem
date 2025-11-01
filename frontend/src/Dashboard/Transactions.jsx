@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import "./Transactions.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
+import checkmarkAnimation from "../animations/checkmark.json";
+import archiveAnimation from "../animations/archive.json";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -9,17 +11,26 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   const [allProducts, setAllProducts] = useState([]);
   const [serviceTypes, setServiceTypes] = useState([]);
   const [transactions, setTransactions] = useState([]);
-  const [activeTab, setActiveTab] = useState("Pending");
+  const [archivedTransactions, setArchivedTransactions] = useState([]);
+  const [activeTab, setActiveTab] = useState("Completed"); // Default to Completed
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
 
   const [showFormModal, setShowFormModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editIndex, setEditIndex] = useState(null);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [transactionToArchive, setTransactionToArchive] = useState(null);
+  const [transactionToRestore, setTransactionToRestore] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState(null);
 
   const [customerNameError, setCustomerNameError] = useState("");
+  const [archiving, setArchiving] = useState(false);
+  const [archiveSuccess, setArchiveSuccess] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreSuccess, setRestoreSuccess] = useState(false);
 
   const [formData, setFormData] = useState({
     queue_number: "",
@@ -40,6 +51,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [showArchivedView, setShowArchivedView] = useState(false);
 
   // Handle modal from parent
   useEffect(() => {
@@ -54,7 +66,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       return;
     }
 
-    // Check if customer name contains only numbers
     if (/^\d+$/.test(customerName)) {
       setCustomerNameError("Customer name cannot contain only numbers");
       return;
@@ -63,8 +74,8 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     setCustomerNameError("");
   };
 
-  // Fetch transactions
-  const fetchTransactions = async (page = 1, status = "Pending") => {
+  // Fetch active transactions
+  const fetchTransactions = async (page = 1, status = "Completed") => {
     setLoading(true);
     try {
       const url = `${API_BASE}/transactions/status/${status}?page=${page}&per_page=10`;
@@ -85,6 +96,31 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       }
     } catch (error) {
       console.error('Error fetching transactions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch archived transactions
+  const fetchArchivedTransactions = async (page = 1) => {
+    setLoading(true);
+    try {
+      const url = `${API_BASE}/transactions/archived?page=${page}&per_page=10`;
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.transactions) {
+          setArchivedTransactions(data.transactions);
+          setCurrentPage(data.pagination?.page || 1);
+          setTotalPages(data.pagination?.total_pages || 1);
+        } else {
+          setArchivedTransactions([]);
+        }
+      } else {
+        console.error('Failed to fetch archived transactions');
+      }
+    } catch (error) {
+      console.error('Error fetching archived transactions:', error);
     } finally {
       setLoading(false);
     }
@@ -135,14 +171,22 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   };
 
   useEffect(() => {
-    fetchTransactions(1, activeTab);
+    fetchTransactions(1, "Completed"); // Default to Completed
     fetchAllProducts();
     fetchServiceTypes();
   }, []);
 
   useEffect(() => {
-    fetchTransactions(1, activeTab);
-  }, [activeTab]);
+    if (!showArchivedView) {
+      fetchTransactions(1, activeTab);
+    }
+  }, [activeTab, showArchivedView]);
+
+  useEffect(() => {
+    if (showArchivedView) {
+      fetchArchivedTransactions(1);
+    }
+  }, [showArchivedView]);
 
   // DYNAMIC: Get category for service type
   const getServiceCategory = (serviceType) => {
@@ -150,7 +194,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     const service = serviceTypes.find(s => s.service_name === serviceType);
     if (!service) return null;
     
-    // Handle different data structures
     if (service.category_name) return service.category_name;
     if (service.category && typeof service.category === 'object') {
       return service.category.name;
@@ -166,7 +209,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     return allProducts.filter(product => {
       if (!product) return false;
       
-      // Support both category_name (new) and category (old)
       let productCategory = '';
       if (product.category_name) {
         productCategory = product.category_name;
@@ -217,17 +259,14 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       const price = parseFloat(updated.price_per_unit) || 0;
       const qty = parseFloat(updated.quantity) || 0;
       
-      // Only calculate total if both values are positive
       if (price >= 0 && qty >= 0) {
         updated.total_amount = (price * qty).toFixed(2);
       } else {
-        // If negative values, don't calculate or set to 0
         updated.total_amount = "0.00";
       }
     }
 
     if (name === "service_type") {
-      // Reset all product-related fields when service type changes
       updated.paper_type = "";
       updated.size_type = "";
       updated.supply_type = "";
@@ -274,7 +313,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       return;
     }
 
-    // Determine which product field to use based on service category
     const serviceCategory = getServiceCategory(transaction.service_type);
     let productType = "";
     if (serviceCategory === "Paper") {
@@ -284,7 +322,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     } else if (serviceCategory === "Supplies") {
       productType = transaction.supply_type || "";
     } else {
-      // For new categories, use any available product field
       productType = transaction.paper_type || transaction.size_type || transaction.supply_type || "";
     }
 
@@ -313,19 +350,16 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   const handleSave = async (e) => {
     e.preventDefault();
     
-    // LIKE SERVICE TYPES: Check for custom validation errors before submitting
     if (customerNameError) {
       alert("Please fix the customer name error before saving.");
       return;
     }
 
-    // DYNAMIC: Validate product selection for services that have products
     if (hasProductsForService(formData.service_type) && !formData.product_type) {
       alert(`Please select a product for ${formData.service_type} service`);
       return;
     }
 
-    // DYNAMIC: Paper-specific validation
     const serviceCategory = getServiceCategory(formData.service_type);
     if (serviceCategory === "Paper" && (!formData.total_pages || formData.total_pages < 1)) {
       alert("Please enter total pages (minimum 1)");
@@ -333,7 +367,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     }
 
     try {
-      // DYNAMIC: Set the appropriate product field based on service category for backend compatibility
       const serviceCategory = getServiceCategory(formData.service_type);
       let backendData = {
         customer_name: formData.customer_name,
@@ -349,7 +382,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
         date: formData.date
       };
 
-      // Set the appropriate field based on service category
       if (serviceCategory === "Paper") {
         backendData.paper_type = formData.product_type;
       } else if (serviceCategory === "T-shirt") {
@@ -357,7 +389,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       } else if (serviceCategory === "Supplies") {
         backendData.supply_type = formData.product_type;
       } else {
-        // For new categories, use paper_type as default
         backendData.paper_type = formData.product_type;
       }
 
@@ -377,9 +408,11 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
 
       if (response.ok) {
         if (!isEditing) {
+          // After creating new transaction, switch to Pending tab
           setActiveTab("Pending");
           await fetchTransactions(1, "Pending");
         } else {
+          // After editing, refresh current tab
           await fetchTransactions(currentPage, activeTab);
         }
         
@@ -398,11 +431,91 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     }
   };
 
-  const handleDelete = async (transaction) => {
-    if (transaction.status === "Pending") {
-      alert("Pending transactions cannot be deleted. Please cancel them first.");
-      return;
+  // Archive transaction functions
+  const openArchiveModal = (transaction) => {
+    setTransactionToArchive(transaction);
+    setShowArchiveModal(true);
+  };
+
+  const closeArchiveModal = () => {
+    setShowArchiveModal(false);
+    setTransactionToArchive(null);
+    setArchiving(false);
+    setArchiveSuccess(false);
+  };
+
+  const handleArchiveTransaction = async () => {
+    if (!transactionToArchive) return;
+
+    setArchiving(true);
+    
+    try {
+      const response = await fetch(`${API_BASE}/transactions/${transactionToArchive._id}/archive`, {
+        method: 'PUT',
+      });
+
+      if (response.ok) {
+        setArchiveSuccess(true);
+        setTimeout(async () => {
+          // Remove from current view instead of refreshing entire table
+          setTransactions(prev => prev.filter(t => t._id !== transactionToArchive._id));
+          closeArchiveModal();
+        }, 1500);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to archive transaction');
+        setArchiving(false);
+      }
+    } catch (error) {
+      console.error('Error archiving transaction:', error);
+      alert('Error archiving transaction');
+      setArchiving(false);
     }
+  };
+
+  // Restore transaction functions - ONLY FOR ARCHIVED VIEW
+  const openRestoreModal = (transaction) => {
+    setTransactionToRestore(transaction);
+    setShowRestoreModal(true);
+  };
+
+  const closeRestoreModal = () => {
+    setShowRestoreModal(false);
+    setTransactionToRestore(null);
+    setRestoring(false);
+    setRestoreSuccess(false);
+  };
+
+  const handleRestoreTransaction = async () => {
+    if (!transactionToRestore) return;
+
+    setRestoring(true);
+    
+    try {
+      const response = await fetch(`${API_BASE}/transactions/${transactionToRestore._id}/restore`, {
+        method: 'PUT',
+      });
+
+      if (response.ok) {
+        setRestoreSuccess(true);
+        setTimeout(async () => {
+          // Remove from archived view instead of refreshing entire table
+          setArchivedTransactions(prev => prev.filter(t => t._id !== transactionToRestore._id));
+          closeRestoreModal();
+        }, 1500);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to restore transaction');
+        setRestoring(false);
+      }
+    } catch (error) {
+      console.error('Error restoring transaction:', error);
+      alert('Error restoring transaction');
+      setRestoring(false);
+    }
+  };
+
+  const handleDelete = async (transaction) => {
     setTransactionToDelete(transaction);
     setShowDeleteModal(true);
   };
@@ -416,7 +529,8 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       });
 
       if (response.ok) {
-        await fetchTransactions(currentPage, activeTab);
+        // Remove from current view instead of refreshing entire table
+        setTransactions(prev => prev.filter(t => t._id !== transactionToDelete._id));
         setShowDeleteModal(false);
         setTransactionToDelete(null);
       } else {
@@ -452,7 +566,8 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       });
 
       if (response.ok) {
-        await fetchTransactions(currentPage, activeTab);
+        // Remove from current view and it will appear in Completed tab
+        setTransactions(prev => prev.filter(t => t._id !== transaction._id));
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to complete transaction');
@@ -486,7 +601,8 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       });
 
       if (response.ok) {
-        await fetchTransactions(currentPage, activeTab);
+        // Remove from current view and it will appear in Cancelled tab
+        setTransactions(prev => prev.filter(t => t._id !== transaction._id));
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to cancel transaction');
@@ -520,13 +636,21 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
-      fetchTransactions(currentPage + 1, activeTab);
+      if (showArchivedView) {
+        fetchArchivedTransactions(currentPage + 1);
+      } else {
+        fetchTransactions(currentPage + 1, activeTab);
+      }
     }
   };
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
-      fetchTransactions(currentPage - 1, activeTab);
+      if (showArchivedView) {
+        fetchArchivedTransactions(currentPage - 1);
+      } else {
+        fetchTransactions(currentPage - 1, activeTab);
+      }
     }
   };
 
@@ -555,7 +679,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
         details: transaction.quantity ? `${transaction.quantity} items` : "—"
       };
     } else {
-      // For new categories like "Flower" - use any available product field
       const productType = transaction.paper_type || transaction.size_type || transaction.supply_type || "—";
       return {
         type: productType,
@@ -564,7 +687,20 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     }
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Unknown';
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  };
+
   const filteredTransactions = transactions.filter(
+    (t) =>
+      (t.customer_name && t.customer_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (t.queue_number && t.queue_number.includes(searchTerm)) ||
+      (t.transaction_id && t.transaction_id.includes(searchTerm))
+  );
+
+  const filteredArchivedTransactions = archivedTransactions.filter(
     (t) =>
       (t.customer_name && t.customer_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (t.queue_number && t.queue_number.includes(searchTerm)) ||
@@ -575,113 +711,216 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
 
   return (
     <div className="transactions-container">
-      {/* Search bar only */}
-      <div className="transactions-controls">
-        <input
-          type="text"
-          placeholder="Search by Queue, Name, or ID"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-
-      {/* Tabs */}
-      <div className="transaction-tabs">
-        {["Pending", "Completed", "Cancelled"].map((tab) => (
-          <button
-            key={tab}
-            className={`tab-btn ${activeTab === tab ? "active" : ""}`}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tab}
+      {/* Table Header with Archive Button and Search */}
+      <div className="table-header">
+        {showArchivedView ? (
+          <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
+            ← Back to Main View
           </button>
-        ))}
+        ) : (
+          <button className="view-archive-btn" onClick={() => {
+            setShowArchivedView(true);
+            fetchArchivedTransactions(1);
+          }}>
+            📦 View Archived Transactions
+          </button>
+        )}
+        
+        <div className="search-container">
+          <input
+            type="text"
+            placeholder="Search transactions..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+        </div>
       </div>
 
-      {/* Table */}
-      <table className="transactions-table">
-        <thead>
-          <tr>
-            <th>Queue #</th>
-            <th>Transaction ID</th>
-            <th>Customer</th>
-            <th>Service Type</th>
-            <th>Product</th>
-            <th>Details</th>
-            <th>Price</th>
-            <th>Qty</th>
-            <th>Total</th>
-            <th>Date</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading ? (
-            <tr>
-              <td colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
-                <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
-                  <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
-                </div>
-              </td>
-            </tr>
-          ) : filteredTransactions.length > 0 ? (
-            filteredTransactions.map((t, index) => {
-              const serviceInfo = getServiceSpecificInfo(t);
-              return (
-                <tr key={t._id}>
-                  <td className="queue-number">{t.queue_number}</td>
-                  <td>{t.transaction_id}</td>
-                  <td>{t.customer_name}</td>
-                  <td>{t.service_type}</td>
-                  <td>{serviceInfo.type}</td>
-                  <td>{serviceInfo.details}</td>
-                  <td>{formatPeso(t.price_per_unit)}</td>
-                  <td>{t.quantity}</td>
-                  <td>{formatPeso(t.total_amount)}</td>
-                  <td>{t.date}</td>
-                  <td>
-                    <span
-                      className={`status-tag ${
-                        t.status === "Completed"
-                          ? "completed"
-                          : t.status === "Cancelled"
-                          ? "cancelled"
-                          : "pending"
-                      }`}
-                    >
-                      {t.status}
-                    </span>
-                  </td>
-                  <td>
-                    {t.status === "Pending" && (
-                      <>
-                        <button className="edit-btn" onClick={() => handleEdit(t)}>✏️ Edit</button>
-                        <button className="complete-btn" onClick={() => handleComplete(t)}>✅ Complete</button>
-                        <button className="cancel-btn-table" onClick={() => handleCancel(t)}>❌ Cancel</button>
-                      </>
-                    )}
+      {/* MAIN TRANSACTIONS VIEW */}
+      {!showArchivedView && (
+        <>
+          {/* Tabs - Order: Completed, Pending, Cancelled */}
+          <div className="transaction-tabs">
+            {["Completed", "Pending", "Cancelled"].map((tab) => (
+              <button
+                key={tab}
+                className={`tab-btn ${activeTab === tab ? "active" : ""}`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
 
-                    {t.status === "Completed" && (
-                      <button className="delete-btn" onClick={() => handleDelete(t)}>🗑️ Delete</button>
-                    )}
-
-                    {t.status === "Cancelled" && (
-                      <button className="delete-btn" onClick={() => handleDelete(t)}>🗑️ Delete</button>
-                    )}
+          {/* Table */}
+          <table className="transactions-table">
+            <thead>
+              <tr>
+                <th>Queue #</th>
+                <th>Transaction ID</th>
+                <th>Customer</th>
+                <th>Service Type</th>
+                <th>Product</th>
+                <th>Details</th>
+                <th>Price</th>
+                <th>Qty</th>
+                <th>Total</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
+                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                      <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                    </div>
                   </td>
                 </tr>
-              );
-            })
-          ) : (
-            <tr>
-              <td colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
-                No {activeTab.toLowerCase()} transactions found.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+              ) : filteredTransactions.length > 0 ? (
+                filteredTransactions.map((t, index) => {
+                  const serviceInfo = getServiceSpecificInfo(t);
+                  return (
+                    <tr key={t._id}>
+                      <td className="queue-number">{t.queue_number}</td>
+                      <td>{t.transaction_id}</td>
+                      <td>{t.customer_name}</td>
+                      <td>{t.service_type}</td>
+                      <td>{serviceInfo.type}</td>
+                      <td>{serviceInfo.details}</td>
+                      <td>{formatPeso(t.price_per_unit)}</td>
+                      <td>{t.quantity}</td>
+                      <td>{formatPeso(t.total_amount)}</td>
+                      <td>{t.date}</td>
+                      <td>
+                        <span
+                          className={`status-tag ${
+                            t.status === "Completed"
+                              ? "completed"
+                              : t.status === "Cancelled"
+                              ? "cancelled"
+                              : "pending"
+                          }`}
+                        >
+                          {t.status}
+                        </span>
+                      </td>
+                      <td>
+                        {/* PENDING TRANSACTIONS - Full actions */}
+                        {t.status === "Pending" && (
+                          <>
+                            <button className="edit-btn" onClick={() => handleEdit(t)}>✏️ Edit</button>
+                            <button className="complete-btn" onClick={() => handleComplete(t)}>✅ Complete</button>
+                            <button className="cancel-btn-table" onClick={() => handleCancel(t)}>❌ Cancel</button>
+                          </>
+                        )}
+
+                        {/* COMPLETED TRANSACTIONS - Archive only */}
+                        {t.status === "Completed" && (
+                          <button className="archive-btn" onClick={() => openArchiveModal(t)}>📦 Archive</button>
+                        )}
+
+                        {/* CANCELLED TRANSACTIONS - Delete only (NO RESTORE) */}
+                        {t.status === "Cancelled" && (
+                          <button className="delete-btn" onClick={() => handleDelete(t)}>🗑️ Delete</button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
+                    No {activeTab.toLowerCase()} transactions found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      {/* ARCHIVED TRANSACTIONS VIEW */}
+      {showArchivedView && (
+        <>
+          <table className="transactions-table">
+            <thead>
+              <tr>
+                <th>Queue #</th>
+                <th>Transaction ID</th>
+                <th>Customer</th>
+                <th>Service Type</th>
+                <th>Product</th>
+                <th>Details</th>
+                <th>Price</th>
+                <th>Qty</th>
+                <th>Total</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Archived Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="13" style={{ textAlign: "center", padding: "20px" }}>
+                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                      <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredArchivedTransactions.length > 0 ? (
+                filteredArchivedTransactions.map((t) => {
+                  const serviceInfo = getServiceSpecificInfo(t);
+                  return (
+                    <tr key={t._id}>
+                      <td className="queue-number">{t.queue_number}</td>
+                      <td>{t.transaction_id}</td>
+                      <td>{t.customer_name}</td>
+                      <td>{t.service_type}</td>
+                      <td>{serviceInfo.type}</td>
+                      <td>{serviceInfo.details}</td>
+                      <td>{formatPeso(t.price_per_unit)}</td>
+                      <td>{t.quantity}</td>
+                      <td>{formatPeso(t.total_amount)}</td>
+                      <td>{t.date}</td>
+                      <td>
+                        <span
+                          className={`status-tag ${
+                            t.status === "Completed"
+                              ? "completed"
+                              : t.status === "Cancelled"
+                              ? "cancelled"
+                              : "pending"
+                          }`}
+                        >
+                          {t.status}
+                        </span>
+                      </td>
+                      <td>{formatDate(t.archived_at)}</td>
+                      <td>
+                        <button className="restore-btn" onClick={() => openRestoreModal(t)}>
+                          ↩️ Restore
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="13" style={{ textAlign: "center", padding: "20px" }}>
+                    No archived transactions found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </>
+      )}
 
       <div className="simple-pagination">
         <button 
@@ -769,7 +1008,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                 </select>
               </div>
 
-              {/* DYNAMIC PRODUCT SELECTION - WORKS FOR ALL CATEGORIES */}
+              {/* DYNAMIC PRODUCT SELECTION */}
               {hasProductsForService(formData.service_type) && (
                 <div className="form-group">
                   <label>Select Product:</label>
@@ -875,6 +1114,90 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ARCHIVE CONFIRMATION MODAL */}
+      {showArchiveModal && transactionToArchive && (
+        <div className="overlay">
+          <div className="add-form archive-confirmation centered-modal">
+            {archiving ? (
+              <div className="archive-animation-center">
+                {!archiveSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 250, height: 250 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={archiveAnimation} 
+                    loop={false}
+                    style={{ width: 250, height: 250 }}
+                  />
+                )}
+                <p style={{ marginTop: '20px', color: '#666' }}>
+                  {!archiveSuccess ? "Archiving transaction..." : "Transaction archived successfully!"}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="archive-icon">📦</div>
+                <h3 className="centered-text">Archive Transaction</h3>
+                <p className="centered-text">Are you sure you want to archive transaction <strong>Queue #{transactionToArchive.queue_number}</strong> for <strong>{transactionToArchive.customer_name}</strong>?</p>
+                <p className="archive-warning centered-text">This transaction will be moved to archives and hidden from the main list.</p>
+                
+                <div className="form-buttons centered-buttons">
+                  <button className="confirm-archive-btn" onClick={handleArchiveTransaction}>
+                    Yes, Archive
+                  </button>
+                  <button className="cancel-btn" onClick={closeArchiveModal}>Cancel</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* RESTORE CONFIRMATION MODAL - ONLY FOR ARCHIVED VIEW */}
+      {showRestoreModal && transactionToRestore && (
+        <div className="overlay">
+          <div className="add-form restore-confirmation centered-modal">
+            {restoring ? (
+              <div className="restore-animation-center">
+                {!restoreSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 250, height: 250 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={checkmarkAnimation} 
+                    loop={false}
+                    style={{ width: 250, height: 250 }}
+                  />
+                )}
+                <p style={{ marginTop: '20px', color: '#666' }}>
+                  {!restoreSuccess ? "Restoring transaction..." : "Transaction restored successfully!"}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="restore-icon">↶</div>
+                <h3 className="centered-text">Restore Transaction</h3>
+                <p className="centered-text">Are you sure you want to restore transaction <strong>Queue #{transactionToRestore.queue_number}</strong> for <strong>{transactionToRestore.customer_name}</strong>?</p>
+                <p className="restore-warning centered-text">This transaction will be moved back to the main transactions list.</p>
+                
+                <div className="form-buttons centered-buttons">
+                  <button className="confirm-restore-btn" onClick={handleRestoreTransaction}>
+                    Yes, Restore
+                  </button>
+                  <button className="cancel-btn" onClick={closeRestoreModal}>Cancel</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

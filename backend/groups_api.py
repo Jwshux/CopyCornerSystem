@@ -21,7 +21,7 @@ def serialize_doc(doc):
         doc['_id'] = str(doc['_id'])
     return doc
 
-# Get all groups - UPDATED FOR PAGINATION
+# Get all groups - UPDATED FOR PAGINATION AND ARCHIVE
 @groups_bp.route('/api/groups', methods=['GET'])
 def get_groups():
     try:
@@ -29,11 +29,12 @@ def get_groups():
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
         
-        # Calculate skip value
+        # Calculate skip value - Only fetch non-archived groups
         skip = (page - 1) * per_page
         
         # Get total count for pagination info
-        total_groups = groups_collection.count_documents({})
+        query = {"is_archived": {"$ne": True}}
+        total_groups = groups_collection.count_documents(query)
         
         # Calculate total pages
         total_pages = (total_groups + per_page - 1) // per_page  # Ceiling division
@@ -44,12 +45,53 @@ def get_groups():
             skip = (page - 1) * per_page
         
         # Get paginated groups
-        groups_cursor = groups_collection.find().skip(skip).limit(per_page)
+        groups_cursor = groups_collection.find(query).skip(skip).limit(per_page)
         groups = list(groups_cursor)
         
         serialized_groups = [serialize_doc(group) for group in groups]
         
         # Return pagination info along with groups
+        return jsonify({
+            'groups': serialized_groups,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_groups': total_groups,
+                'total_pages': total_pages
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# GET ARCHIVED GROUPS
+@groups_bp.route('/api/groups/archived', methods=['GET'])
+def get_archived_groups():
+    try:
+        # Get pagination parameters from query string
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        
+        # Calculate skip value - Only fetch archived groups
+        skip = (page - 1) * per_page
+        
+        # Get total count for pagination info
+        query = {"is_archived": True}
+        total_groups = groups_collection.count_documents(query)
+        
+        # Calculate total pages
+        total_pages = (total_groups + per_page - 1) // per_page
+        
+        # If requested page is beyond available pages, go to last page
+        if page > total_pages and total_pages > 0:
+            page = total_pages
+            skip = (page - 1) * per_page
+        
+        # Get paginated archived groups
+        groups_cursor = groups_collection.find(query).sort("archived_at", -1).skip(skip).limit(per_page)
+        groups = list(groups_cursor)
+        
+        serialized_groups = [serialize_doc(group) for group in groups]
+        
         return jsonify({
             'groups': serialized_groups,
             'pagination': {
@@ -79,8 +121,11 @@ def create_group():
     try:
         data = request.json
         
-        # Check if group name already exists
-        existing_group = groups_collection.find_one({'group_name': data['group_name']})
+        # Check if group name already exists (including archived ones)
+        existing_group = groups_collection.find_one({
+            'group_name': data['group_name'],
+            'is_archived': {'$ne': True}
+        })
         if existing_group:
             return jsonify({'error': 'Role name already exists'}), 400
         
@@ -93,6 +138,7 @@ def create_group():
             'group_name': data['group_name'],
             'group_level': group_level,
             'status': data.get('status', 'Active'),
+            'is_archived': False,
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
         }
@@ -109,10 +155,11 @@ def update_group(group_id):
     try:
         data = request.json
         
-        # Check if group name already exists (excluding current group)
+        # Check if group name already exists (excluding current group and archived ones)
         existing_group = groups_collection.find_one({
             'group_name': data['group_name'],
-            '_id': {'$ne': ObjectId(group_id)}
+            '_id': {'$ne': ObjectId(group_id)},
+            'is_archived': {'$ne': True}
         })
         if existing_group:
             return jsonify({'error': 'Role name already exists'}), 400
@@ -137,6 +184,69 @@ def update_group(group_id):
         if result.matched_count:
             return jsonify({'message': 'Role updated successfully'})
         return jsonify({'error': 'Role not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ARCHIVE GROUP ENDPOINT
+@groups_bp.route('/api/groups/<group_id>/archive', methods=['PUT'])
+def archive_group(group_id):
+    try:
+        group = groups_collection.find_one({'_id': ObjectId(group_id)})
+        if not group:
+            return jsonify({'error': 'Role not found'}), 404
+        
+        # Archive the group
+        result = groups_collection.update_one(
+            {'_id': ObjectId(group_id)},
+            {'$set': {
+                'is_archived': True,
+                'archived_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            }}
+        )
+        
+        if result.modified_count:
+            return jsonify({'message': 'Role archived successfully'})
+        return jsonify({'error': 'Failed to archive role'}), 500
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# RESTORE GROUP ENDPOINT
+@groups_bp.route('/api/groups/<group_id>/restore', methods=['PUT'])
+def restore_group(group_id):
+    try:
+        # Check if group exists and is archived
+        group = groups_collection.find_one({'_id': ObjectId(group_id)})
+        if not group:
+            return jsonify({'error': 'Role not found'}), 404
+        
+        if not group.get('is_archived'):
+            return jsonify({'error': 'Role is not archived'}), 400
+        
+        # Check if group name already exists in active groups
+        existing_group = groups_collection.find_one({
+            'group_name': group['group_name'],
+            '_id': {'$ne': ObjectId(group_id)},
+            'is_archived': {'$ne': True}
+        })
+        if existing_group:
+            return jsonify({'error': 'A role with this name already exists'}), 400
+        
+        # Restore the group
+        result = groups_collection.update_one(
+            {'_id': ObjectId(group_id)},
+            {'$set': {
+                'is_archived': False,
+                'restored_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            }}
+        )
+        
+        if result.modified_count:
+            return jsonify({'message': 'Role restored successfully'})
+        return jsonify({'error': 'Failed to restore role'}), 500
+        
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

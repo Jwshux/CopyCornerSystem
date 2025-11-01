@@ -32,19 +32,19 @@ def get_ph_time():
     return ph_time
 
 def generate_transaction_id():
-    transactions = list(transactions_collection.find().sort("created_at", 1))
+    transactions = list(transactions_collection.find({"is_archived": {"$ne": True}}).sort("created_at", 1))
     if not transactions:
         return "T-001"
     
-    count = transactions_collection.count_documents({})
+    count = transactions_collection.count_documents({"is_archived": {"$ne": True}})
     return f"T-{count + 1:03d}"
 
 def generate_queue_number():
-    transactions = list(transactions_collection.find().sort("created_at", 1))
+    transactions = list(transactions_collection.find({"is_archived": {"$ne": True}}).sort("created_at", 1))
     if not transactions:
         return "001"
     
-    count = transactions_collection.count_documents({})
+    count = transactions_collection.count_documents({"is_archived": {"$ne": True}})
     return f"{count + 1:03d}"
 
 def update_product_inventory(product_name, total_pages, quantity, service_type):
@@ -94,14 +94,17 @@ def get_transactions():
         per_page = int(request.args.get('per_page', 10))
         skip = (page - 1) * per_page
         
-        total_transactions = transactions_collection.count_documents({})
+        # Only fetch non-archived transactions
+        query = {"is_archived": {"$ne": True}}
+        
+        total_transactions = transactions_collection.count_documents(query)
         total_pages = (total_transactions + per_page - 1) // per_page
         
         if page > total_pages and total_pages > 0:
             page = total_pages
             skip = (page - 1) * per_page
         
-        transactions_cursor = transactions_collection.find().sort("created_at", -1).skip(skip).limit(per_page)
+        transactions_cursor = transactions_collection.find(query).sort("created_at", -1).skip(skip).limit(per_page)
         transactions = list(transactions_cursor)
         
         for transaction in transactions:
@@ -114,6 +117,47 @@ def get_transactions():
                     transaction['service_category'] = 'Uncategorized'
             else:
                 transaction['service_category'] = 'Unknown'
+        
+        serialized_transactions = [serialize_doc(transaction) for transaction in transactions]
+        
+        return jsonify({
+            'transactions': serialized_transactions,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_transactions': total_transactions,
+                'total_pages': total_pages
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# GET ARCHIVED TRANSACTIONS
+@transactions_bp.route('/api/transactions/archived', methods=['GET'])
+def get_archived_transactions():
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        skip = (page - 1) * per_page
+        
+        query = {"is_archived": True}
+        
+        total_transactions = transactions_collection.count_documents(query)
+        total_pages = (total_transactions + per_page - 1) // per_page
+        
+        if page > total_pages and total_pages > 0:
+            page = total_pages
+            skip = (page - 1) * per_page
+        
+        transactions_cursor = transactions_collection.find(query).sort("archived_at", -1).skip(skip).limit(per_page)
+        transactions = list(transactions_cursor)
+        
+        for transaction in transactions:
+            if transaction.get('service_type'):
+                service_type = service_types_collection.find_one({'service_name': transaction['service_type']})
+                if service_type and service_type.get('category_id'):
+                    category = categories_collection.find_one({'_id': service_type['category_id']})
+                    transaction['service_category'] = category['name'] if category else 'Unknown'
         
         serialized_transactions = [serialize_doc(transaction) for transaction in transactions]
         
@@ -187,30 +231,14 @@ def create_transaction():
             'quantity': quantity,
             'total_amount': total_amount,
             'date': auto_date,
-            'status': data.get('status', 'Pending'),
+            'status': 'Pending',  # Always set to Pending when created
+            'is_archived': False,
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
         }
         
         result = transactions_collection.insert_one(new_transaction)
         new_transaction['_id'] = str(result.inserted_id)
-        
-        if (new_transaction['status'] == 'Completed'):
-            product_name = ""
-            if new_transaction['paper_type']:
-                product_name = new_transaction['paper_type']
-            elif new_transaction['size_type']:
-                product_name = new_transaction['size_type']
-            elif new_transaction['supply_type']:
-                product_name = new_transaction['supply_type']
-            
-            if product_name:
-                update_product_inventory(
-                    product_name,
-                    new_transaction['total_pages'],
-                    new_transaction['quantity'],
-                    new_transaction['service_type']
-                )
         
         return jsonify(new_transaction), 201
     except Exception as e:
@@ -250,6 +278,7 @@ def update_transaction(transaction_id):
         )
         
         if result.matched_count:
+            # Handle inventory update when status changes to Completed
             if (current_transaction.get('status') != 'Completed' and 
                 update_data['status'] == 'Completed'):
                 
@@ -274,6 +303,60 @@ def update_transaction(transaction_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# ARCHIVE TRANSACTION ENDPOINT
+@transactions_bp.route('/api/transactions/<transaction_id>/archive', methods=['PUT'])
+def archive_transaction(transaction_id):
+    try:
+        transaction = transactions_collection.find_one({'_id': ObjectId(transaction_id)})
+        if not transaction:
+            return jsonify({'error': 'Transaction not found'}), 404
+        
+        # Archive the transaction
+        result = transactions_collection.update_one(
+            {'_id': ObjectId(transaction_id)},
+            {'$set': {
+                'is_archived': True,
+                'archived_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            }}
+        )
+        
+        if result.modified_count:
+            return jsonify({'message': 'Transaction archived successfully'})
+        return jsonify({'error': 'Failed to archive transaction'}), 500
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# RESTORE TRANSACTION ENDPOINT
+@transactions_bp.route('/api/transactions/<transaction_id>/restore', methods=['PUT'])
+def restore_transaction(transaction_id):
+    try:
+        # Check if transaction exists and is archived
+        transaction = transactions_collection.find_one({'_id': ObjectId(transaction_id)})
+        if not transaction:
+            return jsonify({'error': 'Transaction not found'}), 404
+        
+        if not transaction.get('is_archived'):
+            return jsonify({'error': 'Transaction is not archived'}), 400
+        
+        # Restore the transaction
+        result = transactions_collection.update_one(
+            {'_id': ObjectId(transaction_id)},
+            {'$set': {
+                'is_archived': False,
+                'restored_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            }}
+        )
+        
+        if result.modified_count:
+            return jsonify({'message': 'Transaction restored successfully'})
+        return jsonify({'error': 'Failed to restore transaction'}), 500
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @transactions_bp.route('/api/transactions/<transaction_id>', methods=['DELETE'])
 def delete_transaction(transaction_id):
     try:
@@ -291,14 +374,16 @@ def get_transactions_by_status(status):
         per_page = int(request.args.get('per_page', 10))
         skip = (page - 1) * per_page
         
-        total_transactions = transactions_collection.count_documents({'status': status})
+        query = {'status': status, "is_archived": {"$ne": True}}
+        
+        total_transactions = transactions_collection.count_documents(query)
         total_pages = (total_transactions + per_page - 1) // per_page
         
         if page > total_pages and total_pages > 0:
             page = total_pages
             skip = (page - 1) * per_page
         
-        transactions_cursor = transactions_collection.find({'status': status}).sort("created_at", -1).skip(skip).limit(per_page)
+        transactions_cursor = transactions_collection.find(query).sort("created_at", -1).skip(skip).limit(per_page)
         transactions = list(transactions_cursor)
         
         for transaction in transactions:
@@ -333,14 +418,16 @@ def get_transactions_by_service_type(service_type_name):
         per_page = int(request.args.get('per_page', 10))
         skip = (page - 1) * per_page
         
-        total_transactions = transactions_collection.count_documents({'service_type': service_type_name})
+        query = {'service_type': service_type_name, "is_archived": {"$ne": True}}
+        
+        total_transactions = transactions_collection.count_documents(query)
         total_pages = (total_transactions + per_page - 1) // per_page
         
         if page > total_pages and total_pages > 0:
             page = total_pages
             skip = (page - 1) * per_page
         
-        transactions_cursor = transactions_collection.find({'service_type': service_type_name}).sort("created_at", -1).skip(skip).limit(per_page)
+        transactions_cursor = transactions_collection.find(query).sort("created_at", -1).skip(skip).limit(per_page)
         transactions = list(transactions_cursor)
         
         serialized_transactions = [serialize_doc(transaction) for transaction in transactions]

@@ -3,29 +3,38 @@ import "./ManageGroup.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
-import deleteAnimation from "../animations/delete.json";
+import archiveAnimation from "../animations/archive.json";
 
 const API_BASE = "http://localhost:5000/api";
 
 function ManageGroup({ showAddModal, onAddModalClose }) {
   const [groups, setGroups] = useState([]);
+  const [archivedGroups, setArchivedGroups] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentGroup, setCurrentGroup] = useState({
     _id: null,
     group_name: "",
-    group_level: "", // Changed to empty string for placeholder
-    status: "", // Changed to empty string for placeholder
+    group_level: "",
+    status: "",
   });
-  const [groupToDelete, setGroupToDelete] = useState(null);
+  const [groupToArchive, setGroupToArchive] = useState(null);
+  const [groupToRestore, setGroupToRestore] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [archiveSuccess, setArchiveSuccess] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreSuccess, setRestoreSuccess] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [groupNameError, setGroupNameError] = useState("");
   
+  // Archive view and search
+  const [showArchivedView, setShowArchivedView] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -51,7 +60,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     }
   }, [showAddModal]);
 
-  // Fetch groups from backend
+  // Fetch active groups from backend
   const fetchGroups = async (page = 1) => {
     setLoading(true);
     try {
@@ -71,9 +80,35 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     }
   };
 
+  // Fetch archived groups
+  const fetchArchivedGroups = async (page = 1) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/groups/archived?page=${page}&per_page=10`);
+      if (response.ok) {
+        const data = await response.json();
+        setArchivedGroups(data.groups);
+        setCurrentPage(data.pagination.page);
+        setTotalPages(data.pagination.total_pages);
+      } else {
+        console.error('Failed to fetch archived groups');
+      }
+    } catch (error) {
+      console.error('Error fetching archived groups:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchGroups();
   }, []);
+
+  useEffect(() => {
+    if (showArchivedView) {
+      fetchArchivedGroups(1);
+    }
+  }, [showArchivedView]);
 
   // Reset save success state when form closes
   useEffect(() => {
@@ -85,23 +120,38 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     }
   }, [showForm]);
 
-  // Reset delete success state when delete modal closes
+  // Reset archive success state when archive modal closes
   useEffect(() => {
-    if (!showDeleteModal) {
-      setDeleteSuccess(false);
+    if (!showArchiveModal) {
+      setArchiveSuccess(false);
     }
-  }, [showDeleteModal]);
+  }, [showArchiveModal]);
+
+  // Reset restore success state when restore modal closes
+  useEffect(() => {
+    if (!showRestoreModal) {
+      setRestoreSuccess(false);
+    }
+  }, [showRestoreModal]);
 
   // Pagination handlers
   const handleNextPage = () => {
     if (currentPage < totalPages) {
-      fetchGroups(currentPage + 1);
+      if (showArchivedView) {
+        fetchArchivedGroups(currentPage + 1);
+      } else {
+        fetchGroups(currentPage + 1);
+      }
     }
   };
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
-      fetchGroups(currentPage - 1);
+      if (showArchivedView) {
+        fetchArchivedGroups(currentPage - 1);
+      } else {
+        fetchGroups(currentPage - 1);
+      }
     }
   };
 
@@ -238,53 +288,87 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     setShowForm(true);
   };
 
-  // Open delete confirmation modal
-  const openDeleteModal = (group) => {
-    setGroupToDelete(group);
-    setShowDeleteModal(true);
+  // Archive group functions
+  const openArchiveModal = (group) => {
+    setGroupToArchive(group);
+    setShowArchiveModal(true);
   };
 
-  // Close delete confirmation modal
-  const closeDeleteModal = () => {
-    setShowDeleteModal(false);
-    setGroupToDelete(null);
-    setDeleting(false);
-    setDeleteSuccess(false);
+  const closeArchiveModal = () => {
+    setShowArchiveModal(false);
+    setGroupToArchive(null);
+    setArchiving(false);
+    setArchiveSuccess(false);
   };
 
-  // Delete group
-  const handleDeleteGroup = async () => {
-    if (!groupToDelete) return;
+  const handleArchiveGroup = async () => {
+    if (!groupToArchive) return;
 
-    setDeleting(true);
-
+    setArchiving(true);
+    
     try {
-      const response = await fetch(`${API_BASE}/groups/${groupToDelete._id}`, {
-        method: 'DELETE',
+      const response = await fetch(`${API_BASE}/groups/${groupToArchive._id}/archive`, {
+        method: 'PUT',
       });
 
       if (response.ok) {
-        setDeleteSuccess(true);
+        setArchiveSuccess(true);
         setTimeout(async () => {
-          const isLastItemOnPage = groups.length === 1;
-          
-          if (isLastItemOnPage && currentPage > 1) {
-            await fetchGroups(currentPage - 1);
-          } else {
-            await fetchGroups(currentPage);
-          }
-          closeDeleteModal();
-          setDeleting(false);
+          // Remove from current view instead of refreshing entire table
+          setGroups(prev => prev.filter(g => g._id !== groupToArchive._id));
+          closeArchiveModal();
         }, 1500);
       } else {
-        console.error('Failed to delete role');
-        alert('Failed to delete role');
-        setDeleting(false);
+        const error = await response.json();
+        alert(error.error || 'Failed to archive role');
+        setArchiving(false);
       }
     } catch (error) {
-      console.error('Error deleting role:', error);
-      alert('Error deleting role');
-      setDeleting(false);
+      console.error('Error archiving role:', error);
+      alert('Error archiving role');
+      setArchiving(false);
+    }
+  };
+
+  // Restore group functions
+  const openRestoreModal = (group) => {
+    setGroupToRestore(group);
+    setShowRestoreModal(true);
+  };
+
+  const closeRestoreModal = () => {
+    setShowRestoreModal(false);
+    setGroupToRestore(null);
+    setRestoring(false);
+    setRestoreSuccess(false);
+  };
+
+  const handleRestoreGroup = async () => {
+    if (!groupToRestore) return;
+
+    setRestoring(true);
+    
+    try {
+      const response = await fetch(`${API_BASE}/groups/${groupToRestore._id}/restore`, {
+        method: 'PUT',
+      });
+
+      if (response.ok) {
+        setRestoreSuccess(true);
+        setTimeout(async () => {
+          // Remove from archived view instead of refreshing entire table
+          setArchivedGroups(prev => prev.filter(g => g._id !== groupToRestore._id));
+          closeRestoreModal();
+        }, 1500);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to restore role');
+        setRestoring(false);
+      }
+    } catch (error) {
+      console.error('Error restoring role:', error);
+      alert('Error restoring role');
+      setRestoring(false);
     }
   };
 
@@ -293,8 +377,8 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     setCurrentGroup({
       _id: null,
       group_name: "",
-      group_level: "", // Empty for placeholder
-      status: "" // Empty for placeholder
+      group_level: "",
+      status: ""
     });
     setGroupNameError("");
     setShowForm(true);
@@ -306,8 +390,8 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     setCurrentGroup({
       _id: null,
       group_name: "",
-      group_level: "", // Reset to empty for placeholder
-      status: "" // Reset to empty for placeholder
+      group_level: "",
+      status: ""
     });
     setGroupNameError("");
     if (onAddModalClose) {
@@ -315,59 +399,157 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     }
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Unknown';
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  };
+
+  // Filter groups based on search term
+  const filteredGroups = groups.filter(group =>
+    group.group_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getLevelDescription(group.group_level).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredArchivedGroups = archivedGroups.filter(group =>
+    group.group_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getLevelDescription(group.group_level).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="manage-group-page">
-      {/* REMOVED THE HEADER - Now handled by Dashboard.jsx */}
+      {/* Table Header with Archive Button and Search */}
+      <div className="table-header">
+        {showArchivedView ? (
+          <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
+            ← Back to Main View
+          </button>
+        ) : (
+          <button className="view-archive-btn" onClick={() => {
+            setShowArchivedView(true);
+            fetchArchivedGroups(1);
+          }}>
+            📦 View Archived Roles
+          </button>
+        )}
+        
+        <div className="search-container">
+          <input
+            type="text"
+            placeholder="Search roles..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+        </div>
+      </div>
 
-      <table className="group-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Role Name</th>
-            <th>Role Level</th>
-            <th>Access Level</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {groups.length === 0 ? (
+      {/* MAIN GROUPS VIEW */}
+      {!showArchivedView && (
+        <table className="group-table">
+          <thead>
             <tr>
-              <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
-                {loading ? (
-                  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
-                    <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
-                  </div>
-                ) : (
-                  "No roles found."
-                )}
-              </td>
+              <th>#</th>
+              <th>Role Name</th>
+              <th>Role Level</th>
+              <th>Access Level</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
-          ) : (
-            groups.map((group, index) => (
-              <tr key={group._id}>
-                <td>{(currentPage - 1) * 10 + index + 1}</td>
-                <td>{group.group_name}</td>
-                <td>Level {group.group_level}</td>
-                <td>{getLevelDescription(group.group_level)}</td>
-                <td>
-                  <span className={`status ${group.status.toLowerCase()}`}>
-                    {group.status}
-                  </span>
-                </td>
-                <td>
-                  <button className="edit-btn" onClick={() => handleEdit(group)}>
-                    ✏️
-                  </button>
-                  <button className="delete-btn" onClick={() => openDeleteModal(group)}>
-                    ❌
-                  </button>
+          </thead>
+          <tbody>
+            {filteredGroups.length === 0 ? (
+              <tr>
+                <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
+                  {loading ? (
+                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                      <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                    </div>
+                  ) : searchTerm ? (
+                    "No roles found matching your search."
+                  ) : (
+                    "No roles found."
+                  )}
                 </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              filteredGroups.map((group, index) => (
+                <tr key={group._id}>
+                  <td>{(currentPage - 1) * 10 + index + 1}</td>
+                  <td>{group.group_name}</td>
+                  <td>Level {group.group_level}</td>
+                  <td>{getLevelDescription(group.group_level)}</td>
+                  <td>
+                    <span className={`status ${group.status.toLowerCase()}`}>
+                      {group.status}
+                    </span>
+                  </td>
+                  <td>
+                    <button className="edit-btn" onClick={() => handleEdit(group)}>
+                      ✏️ Edit
+                    </button>
+                    <button className="archive-btn" onClick={() => openArchiveModal(group)}>
+                      📦 Archive
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      )}
+
+      {/* ARCHIVED GROUPS VIEW */}
+      {showArchivedView && (
+        <table className="group-table">
+          <thead>
+            <tr>
+              <th>Role Name</th>
+              <th>Role Level</th>
+              <th>Access Level</th>
+              <th>Status</th>
+              <th>Archived Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredArchivedGroups.length === 0 ? (
+              <tr>
+                <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
+                  {loading ? (
+                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                      <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                    </div>
+                  ) : searchTerm ? (
+                    "No archived roles found matching your search."
+                  ) : (
+                    "No archived roles found."
+                  )}
+                </td>
+              </tr>
+            ) : (
+              filteredArchivedGroups.map((group) => (
+                <tr key={group._id}>
+                  <td>{group.group_name}</td>
+                  <td>Level {group.group_level}</td>
+                  <td>{getLevelDescription(group.group_level)}</td>
+                  <td>
+                    <span className={`status ${group.status.toLowerCase()}`}>
+                      {group.status}
+                    </span>
+                  </td>
+                  <td>{formatDate(group.archived_at)}</td>
+                  <td>
+                    <button className="restore-btn" onClick={() => openRestoreModal(group)}>
+                      ↩️ Restore
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      )}
 
       {/* PAGINATION CONTROLS */}
       <div className="simple-pagination">
@@ -478,41 +660,83 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
-      {showDeleteModal && groupToDelete && (
+      {/* ARCHIVE CONFIRMATION MODAL */}
+      {showArchiveModal && groupToArchive && (
         <div className="overlay">
-          <div className="form-container delete-confirmation">
-            {deleting ? (
-              <div className="delete-animation-center">
-                {!deleteSuccess ? (
+          <div className="form-container archive-confirmation centered-modal">
+            {archiving ? (
+              <div className="archive-animation-center">
+                {!archiveSuccess ? (
                   <Lottie 
                     animationData={loadingAnimation} 
                     loop={true}
-                    style={{ width: 200, height: 200 }}
+                    style={{ width: 250, height: 250 }}
                   />
                 ) : (
                   <Lottie 
-                    animationData={deleteAnimation} 
+                    animationData={archiveAnimation} 
                     loop={false}
-                    style={{ width: 200, height: 200 }}
+                    style={{ width: 250, height: 250 }}
                   />
                 )}
                 <p style={{ marginTop: '20px', color: '#666' }}>
-                  {!deleteSuccess ? "Deleting role..." : "Role deleted successfully!"}
+                  {!archiveSuccess ? "Archiving role..." : "Role archived successfully!"}
                 </p>
               </div>
             ) : (
               <>
-                <div className="delete-icon">🗑️</div>
-                <h3>Delete Role</h3>
-                <p>Are you sure you want to delete role <strong>"{groupToDelete.group_name}"</strong>?</p>
-                <p className="delete-warning">This action cannot be undone.</p>
+                <div className="archive-icon">📦</div>
+                <h3 className="centered-text">Archive Role</h3>
+                <p className="centered-text">Are you sure you want to archive role <strong>"{groupToArchive.group_name}"</strong>?</p>
+                <p className="archive-warning centered-text">This role will be moved to archives and hidden from the main list.</p>
                 
-                <div className="form-buttons">
-                  <button className="confirm-delete-btn" onClick={handleDeleteGroup}>
-                    Yes, Delete
+                <div className="form-buttons centered-buttons">
+                  <button className="confirm-archive-btn" onClick={handleArchiveGroup}>
+                    Yes, Archive
                   </button>
-                  <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
+                  <button className="cancel-btn" onClick={closeArchiveModal}>Cancel</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* RESTORE CONFIRMATION MODAL */}
+      {showRestoreModal && groupToRestore && (
+        <div className="overlay">
+          <div className="form-container restore-confirmation centered-modal">
+            {restoring ? (
+              <div className="restore-animation-center">
+                {!restoreSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 250, height: 250 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={checkmarkAnimation} 
+                    loop={false}
+                    style={{ width: 250, height: 250 }}
+                  />
+                )}
+                <p style={{ marginTop: '20px', color: '#666' }}>
+                  {!restoreSuccess ? "Restoring role..." : "Role restored successfully!"}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="restore-icon">↶</div>
+                <h3 className="centered-text">Restore Role</h3>
+                <p className="centered-text">Are you sure you want to restore role <strong>"{groupToRestore.group_name}"</strong>?</p>
+                <p className="restore-warning centered-text">This role will be moved back to the main roles list.</p>
+                
+                <div className="form-buttons centered-buttons">
+                  <button className="confirm-restore-btn" onClick={handleRestoreGroup}>
+                    Yes, Restore
+                  </button>
+                  <button className="cancel-btn" onClick={closeRestoreModal}>Cancel</button>
                 </div>
               </>
             )}

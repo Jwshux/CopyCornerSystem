@@ -11,15 +11,15 @@ users_bp = Blueprint('users', __name__)
 users_collection = None
 groups_collection = None
 staffs_collection = None
-schedules_collection = None  # ADD THIS
+schedules_collection = None
 
-def init_users_db(mongo_users_collection, mongo_groups_collection, mongo_staffs_collection, mongo_schedules_collection):  # UPDATE THIS
+def init_users_db(mongo_users_collection, mongo_groups_collection, mongo_staffs_collection, mongo_schedules_collection):
     """Initialize the collections from app.py"""
-    global users_collection, groups_collection, staffs_collection, schedules_collection  # UPDATE THIS
+    global users_collection, groups_collection, staffs_collection, schedules_collection
     users_collection = mongo_users_collection
     groups_collection = mongo_groups_collection
     staffs_collection = mongo_staffs_collection
-    schedules_collection = mongo_schedules_collection  # ADD THIS
+    schedules_collection = mongo_schedules_collection
 
 # Helper to convert ObjectId to string and format dates
 def serialize_doc(doc):
@@ -38,7 +38,7 @@ def serialize_doc(doc):
                 doc['last_login'] = doc['last_login'].isoformat() + 'Z'
         
         # Handle created_at and updated_at dates if needed
-        for field in ['created_at', 'updated_at']:
+        for field in ['created_at', 'updated_at', 'archived_at']:
             if field in doc and doc[field]:
                 if isinstance(doc[field], dict) and '$date' in doc[field]:
                     doc[field] = doc[field]['$date']
@@ -47,7 +47,7 @@ def serialize_doc(doc):
                     
     return doc
 
-# Get all users with group names - UPDATED FOR PAGINATION
+# Get all users with group names - UPDATED FOR PAGINATION AND ARCHIVE
 @users_bp.route('/api/users', methods=['GET'])
 def get_users():
     try:
@@ -55,11 +55,12 @@ def get_users():
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
         
-        # Calculate skip value
+        # Calculate skip value - Only fetch non-archived users
         skip = (page - 1) * per_page
         
         # Get total count for pagination info
-        total_users = users_collection.count_documents({})
+        query = {"is_archived": {"$ne": True}}
+        total_users = users_collection.count_documents(query)
         
         # Calculate total pages
         total_pages = (total_users + per_page - 1) // per_page  # Ceiling division
@@ -70,7 +71,7 @@ def get_users():
             skip = (page - 1) * per_page
         
         # Get paginated users
-        users_cursor = users_collection.find().skip(skip).limit(per_page)
+        users_cursor = users_collection.find(query).skip(skip).limit(per_page)
         users = []
         
         for user in users_cursor:
@@ -114,6 +115,73 @@ def get_users():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# GET ARCHIVED USERS
+@users_bp.route('/api/users/archived', methods=['GET'])
+def get_archived_users():
+    try:
+        # Get pagination parameters from query string
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        
+        # Calculate skip value - Only fetch archived users
+        skip = (page - 1) * per_page
+        
+        # Get total count for pagination info
+        query = {"is_archived": True}
+        total_users = users_collection.count_documents(query)
+        
+        # Calculate total pages
+        total_pages = (total_users + per_page - 1) // per_page
+        
+        # If requested page is beyond available pages, go to last page
+        if page > total_pages and total_pages > 0:
+            page = total_pages
+            skip = (page - 1) * per_page
+        
+        # Get paginated archived users
+        users_cursor = users_collection.find(query).sort("archived_at", -1).skip(skip).limit(per_page)
+        users = []
+        
+        for user in users_cursor:
+            # Look up group name separately
+            if user.get('group_id'):
+                group = groups_collection.find_one({'_id': ObjectId(user['group_id'])})
+                user['role'] = group['group_name'] if group else 'Unknown'
+            else:
+                user['role'] = 'Unknown'
+            
+            # For staff users, get staff details
+            if group and 'staff' in group['group_name'].lower():
+                staff = staffs_collection.find_one({'user_id': user['_id']})
+                if staff:
+                    user['studentNumber'] = staff.get('studentNumber', '')
+                    user['course'] = staff.get('course', '')
+                    user['section'] = staff.get('section', '')
+                else:
+                    user['studentNumber'] = ''
+                    user['course'] = ''
+                    user['section'] = ''
+            else:
+                user['studentNumber'] = ''
+                user['course'] = ''
+                user['section'] = ''
+            
+            users.append(user)
+        
+        serialized_users = [serialize_doc(user) for user in users]
+        
+        return jsonify({
+            'users': serialized_users,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_users': total_users,
+                'total_pages': total_pages
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # Get available roles (from groups collection)
 @users_bp.route('/api/users/roles', methods=['GET'])
 def get_roles():
@@ -141,13 +209,17 @@ def create_user():
             'password': data['password'],
             'group_id': group['_id'],
             'status': data.get('status', 'Active'),
+            'is_archived': False,
             'last_login': None,
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
         }
         
-        # Check if username already exists
-        existing_user = users_collection.find_one({'username': data['username']})
+        # Check if username already exists (including archived ones)
+        existing_user = users_collection.find_one({
+            'username': data['username'],
+            'is_archived': {'$ne': True}
+        })
         if existing_user:
             return jsonify({'error': 'Username already exists'}), 400
         
@@ -228,10 +300,11 @@ def update_user(user_id):
         if data.get('password'):
             update_data['password'] = data['password']
         
-        # Check if username already exists (excluding current user)
+        # Check if username already exists (excluding current user and archived ones)
         existing_user = users_collection.find_one({
             'username': data['username'],
-            '_id': {'$ne': ObjectId(user_id)}
+            '_id': {'$ne': ObjectId(user_id)},
+            'is_archived': {'$ne': True}
         })
         if existing_user:
             return jsonify({'error': 'Username already exists'}), 400
@@ -264,6 +337,98 @@ def update_user(user_id):
         if result.matched_count:
             return jsonify({'message': 'User updated successfully'})
         return jsonify({'error': 'User not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ARCHIVE USER ENDPOINT
+@users_bp.route('/api/users/<user_id>/archive', methods=['PUT'])
+def archive_user(user_id):
+    try:
+        # Check if user exists
+        user = users_collection.find_one({'_id': ObjectId(user_id)})
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Check if user is staff and has active schedules
+        group = groups_collection.find_one({'_id': user['group_id']})
+        if group and 'staff' in group['group_name'].lower():
+            # Check if staff has any active schedules
+            active_schedule_count = schedules_collection.count_documents({
+                'staff_id': ObjectId(user_id)
+            })
+            
+            if active_schedule_count > 0:
+                # Get schedule details for the error message
+                active_schedules = schedules_collection.find({
+                    'staff_id': ObjectId(user_id)
+                })
+                
+                schedule_details = []
+                for schedule in active_schedules:
+                    schedule_details.append({
+                        'day': schedule.get('day', 'Unknown'),
+                        'start_time': schedule.get('start_time', ''),
+                        'end_time': schedule.get('end_time', '')
+                    })
+                
+                return jsonify({
+                    'error': f'Cannot archive staff. {active_schedule_count} schedule(s) are assigned to this staff member.',
+                    'schedule_count': active_schedule_count,
+                    'schedules': schedule_details
+                }), 400
+        
+        # Archive the user (set is_archived to True)
+        result = users_collection.update_one(
+            {'_id': ObjectId(user_id)},
+            {'$set': {
+                'is_archived': True,
+                'archived_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            }}
+        )
+        
+        if result.modified_count:
+            return jsonify({'message': 'User archived successfully'})
+        return jsonify({'error': 'Failed to archive user'}), 500
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# RESTORE USER ENDPOINT
+@users_bp.route('/api/users/<user_id>/restore', methods=['PUT'])
+def restore_user(user_id):
+    try:
+        # Check if user exists and is archived
+        user = users_collection.find_one({'_id': ObjectId(user_id)})
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        if not user.get('is_archived'):
+            return jsonify({'error': 'User is not archived'}), 400
+        
+        # Check if username already exists in active users
+        existing_user = users_collection.find_one({
+            'username': user['username'],
+            '_id': {'$ne': ObjectId(user_id)},
+            'is_archived': {'$ne': True}
+        })
+        if existing_user:
+            return jsonify({'error': 'A user with this username already exists'}), 400
+        
+        # Restore the user (set is_archived to False)
+        result = users_collection.update_one(
+            {'_id': ObjectId(user_id)},
+            {'$set': {
+                'is_archived': False,
+                'restored_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            }}
+        )
+        
+        if result.modified_count:
+            return jsonify({'message': 'User restored successfully'})
+        return jsonify({'error': 'Failed to restore user'}), 500
+        
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -342,7 +507,7 @@ def get_user_role_level(user_id):
         group = groups_collection.find_one({'_id': user['group_id']})
         if not group:
             return jsonify({'error': 'User role not found'}), 404
-        
+         
         return jsonify({
             'role_level': group.get('group_level', 1),
             'role_name': group.get('group_name', 'Staff')

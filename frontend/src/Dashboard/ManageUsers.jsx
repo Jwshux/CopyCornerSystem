@@ -3,42 +3,51 @@ import "./ManageUsers.css";
 import Lottie from "lottie-react";
 import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
-import deleteAnimation from "../animations/delete.json";
+import archiveAnimation from "../animations/archive.json";
 
 const API_BASE = "http://localhost:5000/api";
 
 function ManageUsers({ showAddModal, onAddModalClose }) {
   const [users, setUsers] = useState([]);
+  const [archivedUsers, setArchivedUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [userToDelete, setUserToDelete] = useState(null);
+  const [userToArchive, setUserToArchive] = useState(null);
+  const [userToRestore, setUserToRestore] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [archiveSuccess, setArchiveSuccess] = useState(false);
+  const [restoreSuccess, setRestoreSuccess] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     username: "",
     password: "",
-    role: "", // Changed to empty string for placeholder
-    status: "", // Changed to empty string for placeholder
+    role: "",
+    status: "",
     studentNumber: null,
     course: null,
     section: null
   });
   const [usernameError, setUsernameError] = useState("");
-  const [nameError, setNameError] = useState(""); // Added for full name validation
+  const [nameError, setNameError] = useState("");
   
+  // Archive view and search
+  const [showArchivedView, setShowArchivedView] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Fetch users and roles from backend
+  // Fetch active users from backend
   const fetchUsers = async (page = 1) => {
     setLoading(true);
     try {
@@ -54,6 +63,26 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       }
     } catch (error) {
       console.error('Error fetching users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch archived users
+  const fetchArchivedUsers = async (page = 1) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/users/archived?page=${page}&per_page=10`);
+      if (response.ok) {
+        const data = await response.json();
+        setArchivedUsers(data.users);
+        setCurrentPage(data.pagination.page);
+        setTotalPages(data.pagination.total_pages);
+      } else {
+        console.error('Failed to fetch archived users');
+      }
+    } catch (error) {
+      console.error('Error fetching archived users:', error);
     } finally {
       setLoading(false);
     }
@@ -76,6 +105,12 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     fetchRoles();
   }, []);
 
+  useEffect(() => {
+    if (showArchivedView) {
+      fetchArchivedUsers(1);
+    }
+  }, [showArchivedView]);
+
   // Handle modal from parent
   useEffect(() => {
     if (showAddModal) {
@@ -93,23 +128,38 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     }
   }, [showAddModal, showEditModal]);
 
-  // Reset delete success state when delete modal closes
+  // Reset archive success state when archive modal closes
   useEffect(() => {
-    if (!showDeleteModal) {
-      setDeleteSuccess(false);
+    if (!showArchiveModal) {
+      setArchiveSuccess(false);
     }
-  }, [showDeleteModal]);
+  }, [showArchiveModal]);
+
+  // Reset restore success state when restore modal closes
+  useEffect(() => {
+    if (!showRestoreModal) {
+      setRestoreSuccess(false);
+    }
+  }, [showRestoreModal]);
 
   // Pagination handlers
   const handleNextPage = () => {
     if (currentPage < totalPages) {
-      fetchUsers(currentPage + 1);
+      if (showArchivedView) {
+        fetchArchivedUsers(currentPage + 1);
+      } else {
+        fetchUsers(currentPage + 1);
+      }
     }
   };
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
-      fetchUsers(currentPage - 1);
+      if (showArchivedView) {
+        fetchArchivedUsers(currentPage - 1);
+      } else {
+        fetchUsers(currentPage - 1);
+      }
     }
   };
 
@@ -119,13 +169,11 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       return;
     }
 
-    // Check if username contains only numbers (SAME AS MANAGEGROUP)
     if (/^\d+$/.test(username)) {
       setUsernameError("Username cannot contain only numbers");
       return;
     }
 
-    // Check if username already exists
     const existingUser = users.find(user => 
       user.username.toLowerCase() === username.toLowerCase() &&
       (!selectedUser || user._id !== selectedUser._id)
@@ -144,7 +192,6 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       return;
     }
 
-    // Check if name contains only numbers (SAME AS MANAGEGROUP)
     if (/^\d+$/.test(name)) {
       setNameError("Full name cannot contain only numbers");
       return;
@@ -176,15 +223,15 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       name: "",
       username: "",
       password: "",
-      role: "", // Reset to empty for placeholder
-      status: "", // Reset to empty for placeholder
+      role: "",
+      status: "",
       studentNumber: null,
       course: null,
       section: null
     });
     setSelectedUser(null);
     setUsernameError("");
-    setNameError(""); // Reset name error
+    setNameError("");
     setSaveSuccess(false);
   };
 
@@ -242,7 +289,6 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
 
       if (response.ok) {
         setSaveSuccess(true);
-        // Wait for animation to complete before closing
         setTimeout(async () => {
           await fetchUsers(currentPage);
           resetForm();
@@ -278,7 +324,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       section: user.section || null
     });
     setUsernameError("");
-    setNameError(""); // Reset name error
+    setNameError("");
     setShowEditModal(true);
   };
 
@@ -335,7 +381,6 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
 
       if (response.ok) {
         setSaveSuccess(true);
-        // Wait for animation to complete before closing
         setTimeout(async () => {
           await fetchUsers(currentPage);
           setShowEditModal(false);
@@ -345,9 +390,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       } else {
         const errorData = await response.json();
         
-        // Handle the case where staff has active schedules
         if (errorData.error && errorData.error.includes('schedule(s) are using this staff member')) {
-          // Create a detailed error message
           let errorMessage = errorData.error;
           
           if (errorData.schedules && errorData.schedules.length > 0) {
@@ -374,48 +417,39 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     }
   };
 
-  const openDeleteModal = (user) => {
-    setUserToDelete(user);
-    setShowDeleteModal(true);
+  // Archive user functions
+  const openArchiveModal = (user) => {
+    setUserToArchive(user);
+    setShowArchiveModal(true);
   };
 
-  const closeDeleteModal = () => {
-    setShowDeleteModal(false);
-    setUserToDelete(null);
-    setDeleting(false);
-    setDeleteSuccess(false);
+  const closeArchiveModal = () => {
+    setShowArchiveModal(false);
+    setUserToArchive(null);
+    setArchiving(false);
+    setArchiveSuccess(false);
   };
 
-  const handleDeleteUser = async () => {
-    if (!userToDelete) return;
+  const handleArchiveUser = async () => {
+    if (!userToArchive) return;
 
-    setDeleting(true);
-
+    setArchiving(true);
     try {
-      const response = await fetch(`${API_BASE}/users/${userToDelete._id}`, {
-        method: 'DELETE',
+      const response = await fetch(`${API_BASE}/users/${userToArchive._id}/archive`, {
+        method: 'PUT',
       });
 
       if (response.ok) {
-        setDeleteSuccess(true);
-        // Wait for animation to complete before closing and refreshing
+        setArchiveSuccess(true);
         setTimeout(async () => {
-          const isLastItemOnPage = users.length === 1;
-          
-          if (isLastItemOnPage && currentPage > 1) {
-            await fetchUsers(currentPage - 1);
-          } else {
-            await fetchUsers(currentPage);
-          }
-          closeDeleteModal();
-          setDeleting(false);
+          // Remove from current view instead of refreshing entire table
+          setUsers(prev => prev.filter(u => u._id !== userToArchive._id));
+          closeArchiveModal();
         }, 1500);
       } else {
         const errorData = await response.json();
         
-        // Handle the case where staff has active schedules
         if (errorData.error && errorData.error.includes('schedule(s) are assigned to this staff member')) {
-          // Create a detailed error message
           let errorMessage = errorData.error;
           
           if (errorData.schedules && errorData.schedules.length > 0) {
@@ -429,16 +463,59 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
           setErrorMessage(errorMessage);
           setShowErrorModal(true);
         } else {
-          setErrorMessage(errorData.error || 'Failed to delete user');
+          setErrorMessage(errorData.error || 'Failed to archive user');
           setShowErrorModal(true);
         }
-        setDeleting(false);
+        setArchiving(false);
       }
     } catch (error) {
-      console.error('Error deleting user:', error);
-      setErrorMessage('Error deleting user');
+      console.error('Error archiving user:', error);
+      setErrorMessage('Error archiving user');
       setShowErrorModal(true);
-      setDeleting(false);
+      setArchiving(false);
+    }
+  };
+
+  // Restore user functions
+  const openRestoreModal = (user) => {
+    setUserToRestore(user);
+    setShowRestoreModal(true);
+  };
+
+  const closeRestoreModal = () => {
+    setShowRestoreModal(false);
+    setUserToRestore(null);
+    setRestoring(false);
+    setRestoreSuccess(false);
+  };
+
+  const handleRestoreUser = async () => {
+    if (!userToRestore) return;
+
+    setRestoring(true);
+    try {
+      const response = await fetch(`${API_BASE}/users/${userToRestore._id}/restore`, {
+        method: 'PUT',
+      });
+
+      if (response.ok) {
+        setRestoreSuccess(true);
+        setTimeout(async () => {
+          // Remove from archived view instead of refreshing entire table
+          setArchivedUsers(prev => prev.filter(u => u._id !== userToRestore._id));
+          closeRestoreModal();
+        }, 1500);
+      } else {
+        const errorData = await response.json();
+        setErrorMessage(errorData.error || 'Failed to restore user');
+        setShowErrorModal(true);
+        setRestoring(false);
+      }
+    } catch (error) {
+      console.error('Error restoring user:', error);
+      setErrorMessage('Error restoring user');
+      setShowErrorModal(true);
+      setRestoring(false);
     }
   };
 
@@ -483,76 +560,178 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     return formData[field] || '';
   };
 
+  // Filter users based on search term
+  const filteredUsers = users.filter(user =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.role.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredArchivedUsers = archivedUsers.filter(user =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.role.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="manage-users">
-      <table className="user-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Name</th>
-            <th>Username</th>
-            <th>User Role</th>
-            <th>Status</th>
-            <th>Last Login</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.length === 0 ? (
-              <tr>
-                <td colSpan="7" style={{ textAlign: "center", color: "#888" }}>
-                  {loading ? (
-                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
-                      <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
-                    </div>
-                  ) : (
-                    "No users found."
-                  )}
-                </td>
-              </tr>
-            ) : (
-            users.map((user, index) => (
-              <tr key={user._id}>
-                <td>{(currentPage - 1) * 10 + index + 1}</td>
-                <td>{user.name}</td>
-                <td>{user.username}</td>
-                <td>{user.role}</td>
-                <td>
-                  <span className={user.status === "Active" ? "active-status" : "inactive-status"}>
-                    {user.status}
-                  </span>
-                </td>
-                <td>{formatDate(user.last_login)}</td>
-                <td>
-                  <button className="edit-btn" onClick={() => handleEditUser(user)}>✏️</button>
-                  <button className="delete-btn" onClick={() => openDeleteModal(user)}>❌</button>
-                </td>
-              </tr>
-            ))
+      <div className="user-table">
+        {/* Table Header with Archive Button and Search */}
+        <div className="table-header">
+          {showArchivedView ? (
+            <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
+              ← Back to Main View
+            </button>
+          ) : (
+            <button className="view-archive-btn" onClick={() => {
+              setShowArchivedView(true);
+              fetchArchivedUsers(1);
+            }}>
+              📦 View Archived Users
+            </button>
           )}
-        </tbody>
-      </table>
-
-      {/* SIMPLE PAGINATION CONTROLS */}
-        <div className="simple-pagination">
-          <button 
-            className="pagination-btn" 
-            onClick={handlePrevPage}
-            disabled={currentPage === 1 || loading}
-          >
-            Previous
-          </button>
-          <span className="page-info">
-            Page {currentPage} of {totalPages}
-          </span>
-          <button 
-            className="pagination-btn" 
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages || loading}
-          >
-            Next
-          </button>
+          
+          <div className="search-container">
+            <input
+              type="text"
+              placeholder="Search users..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
         </div>
+
+        {/* MAIN USERS VIEW */}
+        {!showArchivedView && (
+          <>
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Username</th>
+                  <th>User Role</th>
+                  <th>Status</th>
+                  <th>Last Login</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: "center", color: "#888" }}>
+                      {loading ? (
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                          <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                        </div>
+                      ) : searchTerm ? (
+                        "No users found matching your search."
+                      ) : (
+                        "No users found."
+                      )}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredUsers.map((user, index) => (
+                    <tr key={user._id}>
+                      <td>{(currentPage - 1) * 10 + index + 1}</td>
+                      <td>{user.name}</td>
+                      <td>{user.username}</td>
+                      <td>{user.role}</td>
+                      <td>
+                        <span className={user.status === "Active" ? "active-status" : "inactive-status"}>
+                          {user.status}
+                        </span>
+                      </td>
+                      <td>{formatDate(user.last_login)}</td>
+                      <td>
+                        <button className="edit-btn" onClick={() => handleEditUser(user)}>✏️ Edit</button>
+                        <button className="archive-btn" onClick={() => openArchiveModal(user)}>📦 Archive</button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+
+            {/* PAGINATION CONTROLS */}
+            <div className="simple-pagination">
+              <button 
+                className="pagination-btn" 
+                onClick={handlePrevPage}
+                disabled={currentPage === 1 || loading}
+              >
+                Previous
+              </button>
+              <span className="page-info">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button 
+                className="pagination-btn" 
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages || loading}
+              >
+                Next
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ARCHIVED USERS VIEW */}
+        {showArchivedView && (
+          <>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Username</th>
+                  <th>User Role</th>
+                  <th>Status</th>
+                  <th>Archived Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredArchivedUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
+                      {loading ? (
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+                          <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
+                        </div>
+                      ) : searchTerm ? (
+                        "No archived users found matching your search."
+                      ) : (
+                        "No archived users found."
+                      )}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredArchivedUsers.map((user) => (
+                    <tr key={user._id}>
+                      <td>{user.name}</td>
+                      <td>{user.username}</td>
+                      <td>{user.role}</td>
+                      <td>
+                        <span className={user.status === "Active" ? "active-status" : "inactive-status"}>
+                          {user.status}
+                        </span>
+                      </td>
+                      <td>{formatDate(user.archived_at)}</td>
+                      <td>
+                        <button className="restore-btn" onClick={() => openRestoreModal(user)}>
+                          ↩️ Restore
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </>
+        )}
+      </div>
 
       {/* ADD USER MODAL */}
       {showAddModal && (
@@ -560,7 +739,6 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
           <div className="modal-content">
             <h3><b>Add New User</b></h3>
             
-            {/* Show only loading animation when saving, then checkmark */}
             {saving ? (
               <div className="form-animation-center">
                 {!saveSuccess ? (
@@ -707,7 +885,6 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
           <div className="modal-content">
             <h3><b>Edit User</b></h3>
             
-            {/* Show only loading animation when saving, then checkmark */}
             {saving ? (
               <div className="form-animation-center">
                 {!saveSuccess ? (
@@ -843,42 +1020,83 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
-      {showDeleteModal && userToDelete && (
+      {/* ARCHIVE CONFIRMATION MODAL */}
+      {showArchiveModal && userToArchive && (
         <div className="modal-overlay">
-          <div className="modal-content delete-confirmation">
-            {/* Show delete animation when deleting, otherwise show normal content */}
-            {deleting ? (
-              <div className="delete-animation-center">
-                {!deleteSuccess ? (
+          <div className="modal-content archive-confirmation centered-modal">
+            {archiving ? (
+              <div className="archive-animation-center">
+                {!archiveSuccess ? (
                   <Lottie 
                     animationData={loadingAnimation} 
                     loop={true}
-                    style={{ width: 200, height: 200 }}
+                    style={{ width: 250, height: 250 }}
                   />
                 ) : (
                   <Lottie 
-                    animationData={deleteAnimation} 
+                    animationData={archiveAnimation} 
                     loop={false}
-                    style={{ width: 200, height: 200 }}
+                    style={{ width: 250, height: 250 }}
                   />
                 )}
                 <p style={{ marginTop: '20px', color: '#666' }}>
-                  {!deleteSuccess ? "Deleting user..." : "User deleted successfully!"}
+                  {!archiveSuccess ? "Archiving user..." : "User archived successfully!"}
                 </p>
               </div>
             ) : (
               <>
-                <div className="delete-icon">🗑️</div>
-                <h3>Delete User</h3>
-                <p>Are you sure you want to delete user <strong>"{userToDelete.name}"</strong>?</p>
-                <p className="delete-warning">This action cannot be undone.</p>
+                <div className="archive-icon">📦</div>
+                <h3 className="centered-text">Archive User</h3>
+                <p className="centered-text">Are you sure you want to archive user <strong>"{userToArchive.name}"</strong>?</p>
+                <p className="archive-warning centered-text">This user will be moved to archives and hidden from the main list.</p>
                 
-                <div className="modal-buttons">
-                  <button className="confirm-delete-btn" onClick={handleDeleteUser}>
-                    Yes, Delete
+                <div className="modal-buttons centered-buttons">
+                  <button className="confirm-archive-btn" onClick={handleArchiveUser}>
+                    Yes, Archive
                   </button>
-                  <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
+                  <button className="cancel-btn" onClick={closeArchiveModal}>Cancel</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* RESTORE CONFIRMATION MODAL */}
+      {showRestoreModal && userToRestore && (
+        <div className="modal-overlay">
+          <div className="modal-content restore-confirmation centered-modal">
+            {restoring ? (
+              <div className="restore-animation-center">
+                {!restoreSuccess ? (
+                  <Lottie 
+                    animationData={loadingAnimation} 
+                    loop={true}
+                    style={{ width: 250, height: 250 }}
+                  />
+                ) : (
+                  <Lottie 
+                    animationData={checkmarkAnimation} 
+                    loop={false}
+                    style={{ width: 250, height: 250 }}
+                  />
+                )}
+                <p style={{ marginTop: '20px', color: '#666' }}>
+                  {!restoreSuccess ? "Restoring user..." : "User restored successfully!"}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="restore-icon">↶</div>
+                <h3 className="centered-text">Restore User</h3>
+                <p className="centered-text">Are you sure you want to restore user <strong>"{userToRestore.name}"</strong>?</p>
+                <p className="restore-warning centered-text">This user will be moved back to the main users list.</p>
+                
+                <div className="modal-buttons centered-buttons">
+                  <button className="confirm-restore-btn" onClick={handleRestoreUser}>
+                    Yes, Restore
+                  </button>
+                  <button className="cancel-btn" onClick={closeRestoreModal}>Cancel</button>
                 </div>
               </>
             )}
@@ -892,7 +1110,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
           <div className="error-modal-content">
             <div className="error-modal-header">Operation Failed</div>
             <div className="error-modal-title">
-              {errorMessage.includes('delete') ? 'Cannot delete user' : 
+              {errorMessage.includes('archive') ? 'Cannot archive user' : 
                errorMessage.includes('create') ? 'Cannot create user' : 
                errorMessage.includes('update') ? 'Cannot update user' : 'Operation failed'}
             </div>
