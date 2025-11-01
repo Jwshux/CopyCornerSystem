@@ -14,6 +14,8 @@ from staffs_api import staffs_bp, init_staffs_db
 from transactions_api import transactions_bp, init_transactions_db, init_transactions_relationships
 from services_api import service_types_bp, init_service_types_db, init_service_types_relationships
 from sales_api import sales_bp, init_sales_db
+from salesReport_api import sales_report_bp, init_sales_report_db
+from inventoryReport_api import inventory_report_bp, init_inventory_report_db
 
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
@@ -47,6 +49,8 @@ try:
     init_transactions_db(transactions_collection, products_collection)
     init_service_types_db(service_types_collection, transactions_collection)
     init_sales_db(transactions_collection, service_types_collection)
+    init_sales_report_db(transactions_collection, service_types_collection)
+    init_inventory_report_db(products_collection, categories_collection)
     
     # Initialize relationships
     init_products_relationships(categories_collection, transactions_collection)
@@ -68,6 +72,8 @@ app.register_blueprint(staffs_bp)
 app.register_blueprint(transactions_bp)
 app.register_blueprint(service_types_bp)
 app.register_blueprint(sales_bp)
+app.register_blueprint(sales_report_bp)
+app.register_blueprint(inventory_report_bp)
 
 @app.route("/")
 def home():

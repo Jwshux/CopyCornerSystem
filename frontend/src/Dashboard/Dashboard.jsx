@@ -11,6 +11,8 @@ import Transactions from "./Transactions";
 import DashboardUI from "./DashboardUI";
 import userLogo from "../UserLogo.png";
 import ServiceTypes from "./ServiceTypes";
+import SalesReport from "./SalesReport"
+import InventoryReport from "./InventoryReport";
 
 function AdminDashboard({ user, onLogout }) {
   const [activePage, setActivePage] = useState("Dashboard");
@@ -18,7 +20,8 @@ function AdminDashboard({ user, onLogout }) {
     Products: false,
     Staffs: false,
     "User Management": false,
-    Transactions: false
+    Transactions: false,
+    Reports: false
   });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [userRoleLevel, setUserRoleLevel] = useState(0);
@@ -96,7 +99,10 @@ function AdminDashboard({ user, onLogout }) {
         "User Management", 
         "Manage Roles", 
         "Manage Users", 
-        "All Staffs"
+        "All Staffs",
+        "Reports",
+        "Sales Report",
+        "Inventory Report"
       ];
       return !restrictedMenus.includes(menuItem);
     }
@@ -116,6 +122,8 @@ function AdminDashboard({ user, onLogout }) {
       "Sales": "Track sales and revenue",
       "Transactions": "Monitor all transactions",
       "Service Types": "Manage your service types",
+      "Sales Report": "Generate sales analytics and reports",
+      "Inventory Report": "View inventory status and stock levels"
     };
     return messages[activePage] || "Manage your business efficiently";
   };
@@ -132,6 +140,8 @@ function AdminDashboard({ user, onLogout }) {
       "Sales": "Sales Analytics",
       "Transactions": "Transaction History",
       "Service Types": "Service Types",
+      "Sales Report": "Sales Report",
+      "Inventory Report": "Inventory Report"
     };
     return titles[activePage] || "Dashboard";
   };
@@ -185,6 +195,10 @@ function AdminDashboard({ user, onLogout }) {
           showAddModal={showAddServiceTypeModal}
           onAddModalClose={() => setShowAddServiceTypeModal(false)}
         />;
+      case "Sales Report":
+        return <SalesReport />;
+      case "Inventory Report":
+        return <InventoryReport />;
       default:
         return <DashboardUI />;
     }
@@ -220,10 +234,18 @@ function AdminDashboard({ user, onLogout }) {
       subItems: ["Transactions", "Service Types"]
     },
     { 
+      name: "Reports",
+      icon: "📈", 
+      hasSubmenu: true,
+      subItems: ["Sales Report", "Inventory Report"],
+      requiredRoleLevel: 0  // ONLY SHOW TO ADMINISTRATORS
+    },
+    { 
       name: "User Management", 
       icon: "⚙️", 
       hasSubmenu: true,
-      subItems: ["Manage Roles", "Manage Users"]
+      subItems: ["Manage Roles", "Manage Users"],
+      requiredRoleLevel: 0  // ONLY SHOW TO ADMINISTRATORS
     },
   ];
 
@@ -234,6 +256,11 @@ function AdminDashboard({ user, onLogout }) {
 
         <nav className="menu">
           {menuItems.map((item) => {
+            // Hide menu if user doesn't have required role level
+            if (item.requiredRoleLevel !== undefined && userRoleLevel > item.requiredRoleLevel) {
+              return null;
+            }
+
             if (!canAccessMenu(item.name) && !item.subItems?.some(sub => canAccessMenu(sub))) {
               return null;
             }
@@ -283,7 +310,10 @@ function AdminDashboard({ user, onLogout }) {
                              sub === "Staffs Schedule" ? "📅" :
                              sub === "Transactions" ? "📝" :
                              sub === "Service Types" ? "🔧" :
-                             sub === "Manage Roles" ? "👥" : "👤"}
+                             sub === "Manage Roles" ? "👥" : 
+                             sub === "Manage Users" ? "👤" :
+                             sub === "Sales Report" ? "💰" :
+                             sub === "Inventory Report" ? "📦" : ""}
                           </span>
                           {sub}
                         </button>
