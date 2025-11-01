@@ -395,3 +395,16 @@ button:disabled {
   flex-direction: column;
   justify-content: center;
 }
+
+/* Table Header Design */
+.schedule-table th {
+  background: #34495e !important;
+  color: white !important;
+  border-bottom: 2px solid #001a47;
+}
+
+/* Table Row Hover Effects */
+.schedule-table tbody tr:hover td {
+  background-color: #f1f5f9;
+  color: #1d4ed8;
+}

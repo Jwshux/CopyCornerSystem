@@ -234,7 +234,7 @@
   align-items: center;
   justify-content: center;
   min-width: 100px;
-  height: 28px;
+  height: 20px;
 }
 
 .status-tag.completed {
