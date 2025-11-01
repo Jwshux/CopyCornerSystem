@@ -20,7 +20,7 @@ function SalesReport() {
     endDate: new Date().toISOString().split('T')[0]
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const ITEMS_PER_PAGE = 5; // Fixed to 5 only
 
   const fetchSalesReport = async () => {
     setLoading(true);
@@ -47,10 +47,10 @@ function SalesReport() {
   }, []);
 
   // Pagination calculations
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
   const currentItems = reportData.serviceTypeBreakdown.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(reportData.serviceTypeBreakdown.length / itemsPerPage);
+  const totalPages = Math.ceil(reportData.serviceTypeBreakdown.length / ITEMS_PER_PAGE);
 
   const nextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
@@ -76,68 +76,57 @@ function SalesReport() {
     return `₱${parseFloat(amount).toFixed(2)}`;
   };
 
-const exportToPDF = () => {
-  // Clone content container
-  const tempDiv = document.createElement("div");
-  tempDiv.innerHTML = document.getElementById("sales-report-content").innerHTML;
+  const exportToPDF = () => {
+    // Clone content container
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = document.getElementById("sales-report-content").innerHTML;
 
-  // Replace paginated tbody
-  const currentTable = tempDiv.querySelector(".breakdown-table tbody");
-  if (currentTable) {
-    currentTable.innerHTML = "";
+    // Replace paginated tbody
+    const currentTable = tempDiv.querySelector(".breakdown-table tbody");
+    if (currentTable) {
+      currentTable.innerHTML = "";
 
-    reportData.serviceTypeBreakdown.forEach((service, index) => {
-      currentTable.innerHTML += `
-        <tr key="${index}">
-          <td class="service-name">${service.service_name}</td>
-          <td class="transaction-count">${service.transaction_count}</td>
-          <td class="revenue-amount">${formatCurrency(service.revenue)}</td>
-          <td class="percentage">
-            ${reportData.totalRevenue > 0
-              ? `${((service.revenue / reportData.totalRevenue) * 100).toFixed(1)}%`
-              : "0%"
-            }
-          </td>
-        </tr>
-      `;
+      reportData.serviceTypeBreakdown.forEach((service, index) => {
+        currentTable.innerHTML += `
+          <tr key="${index}">
+            <td class="service-name">${service.service_name}</td>
+            <td class="transaction-count">${service.transaction_count}</td>
+            <td class="revenue-amount">${formatCurrency(service.revenue)}</td>
+            <td class="percentage">
+              ${reportData.totalRevenue > 0
+                ? `${((service.revenue / reportData.totalRevenue) * 100).toFixed(1)}%`
+                : "0%"
+              }
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // Remove pagination
+    const pagination = tempDiv.querySelector(".pagination-controls");
+    if (pagination) pagination.remove();
+
+    // html2pdf config
+    const opt = {
+      margin: 10,
+      filename: `sales-report-${dateRange.startDate}-to-${dateRange.endDate}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    };
+
+    // Generate PDF
+    import("html2pdf.js").then(html2pdf => {
+      html2pdf.default().from(tempDiv).set(opt).save();
     });
-  }
-
-  // Remove pagination
-  const pagination = tempDiv.querySelector(".pagination-controls");
-  if (pagination) pagination.remove();
-
-  // Remove scroll limits
-const wrapper = tempDiv.querySelector(".table-wrapper");
-if (wrapper) {
-  const parent = wrapper.parentNode;
-  while (wrapper.firstChild) {
-    parent.insertBefore(wrapper.firstChild, wrapper);
-  }
-  parent.removeChild(wrapper);
-}
-
-  // html2pdf config
-  const opt = {
-    margin: 10,
-    filename: `sales-report-${dateRange.startDate}-to-${dateRange.endDate}.pdf`,
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2 },
-    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
   };
-
-  // Generate PDF
-  import("html2pdf.js").then(html2pdf => {
-    html2pdf.default().from(tempDiv).set(opt).save();
-  });
-};
-
 
   const exportToCSV = () => {
     const headers = ['Service Type', 'Transactions', 'Revenue'];
     const csvData = [
       headers,
-      ...reportData.serviceTypeBreakdown.map(item => [ // Use ALL data, not currentItems
+      ...reportData.serviceTypeBreakdown.map(item => [
         item.service_name,
         item.transaction_count,
         item.revenue
@@ -236,81 +225,68 @@ if (wrapper) {
             <h3 className="section-title">Sales by Service Type</h3>
             <div className="service-breakdown-table">
               {reportData.serviceTypeBreakdown.length > 0 ? (
-                <>
-                  <table className="breakdown-table">
-                    <thead>
-                      <tr>
-                        <th>Service Type</th>
-                        <th>Transactions</th>
-                        <th>Revenue</th>
-                        <th>Percentage</th>
+                <table className="breakdown-table">
+                  <thead>
+                    <tr>
+                      <th>Service Type</th>
+                      <th>Transactions</th>
+                      <th>Revenue</th>
+                      <th>Percentage</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentItems.map((service, index) => (
+                      <tr key={index}>
+                        <td className="service-name">{service.service_name}</td>
+                        <td className="transaction-count">{service.transaction_count}</td>
+                        <td className="revenue-amount">{formatCurrency(service.revenue)}</td>
+                        <td className="percentage">
+                          {reportData.totalRevenue > 0 
+                            ? `${((service.revenue / reportData.totalRevenue) * 100).toFixed(1)}%`
+                            : '0%'
+                          }
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {currentItems.map((service, index) => (
-                        <tr key={index}>
-                          <td className="service-name">{service.service_name}</td>
-                          <td className="transaction-count">{service.transaction_count}</td>
-                          <td className="revenue-amount">{formatCurrency(service.revenue)}</td>
-                          <td className="percentage">
-                            {reportData.totalRevenue > 0 
-                              ? `${((service.revenue / reportData.totalRevenue) * 100).toFixed(1)}%`
-                              : '0%'
-                            }
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  
-                  {/* Pagination Controls */}
-                  <div className="pagination-controls">
-                    <div className="pagination-info">
-                      Items per page: 
-                      <select 
-                        value={itemsPerPage} 
-                        onChange={(e) => {
-                          setItemsPerPage(Number(e.target.value));
-                          setCurrentPage(1);
-                        }}
-                        className="items-per-page"
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={20}>20</option>
-                      </select>
-                      <span className="pagination-text">
-                        {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, reportData.serviceTypeBreakdown.length)} of {reportData.serviceTypeBreakdown.length}
-                      </span>
-                    </div>
-                    
-                    <div className="pagination-buttons">
-                      <button 
-                        onClick={prevPage} 
-                        disabled={currentPage === 1}
-                        className="pagination-btn"
-                      >
-                        Previous
-                      </button>
-                      <span className="page-info">
-                        Page {currentPage} of {totalPages}
-                      </span>
-                      <button 
-                        onClick={nextPage} 
-                        disabled={currentPage === totalPages}
-                        className="pagination-btn"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                </>
+                    ))}
+                  </tbody>
+                </table>
               ) : (
                 <div className="no-data-message">
                   <p>No service type data available for the selected period</p>
                 </div>
               )}
             </div>
+            
+            {/* Pagination Controls - MOVED OUTSIDE the table container */}
+            {reportData.serviceTypeBreakdown.length > 0 && (
+              <div className="pagination-controls">
+                <div className="pagination-info">
+                  <span className="pagination-text">
+                    Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, reportData.serviceTypeBreakdown.length)} of {reportData.serviceTypeBreakdown.length} items
+                  </span>
+                </div>
+                
+                <div className="pagination-buttons">
+                  <button 
+                    onClick={prevPage} 
+                    disabled={currentPage === 1}
+                    className="pagination-btn"
+                  >
+                    Previous
+                  </button>
+                  <span className="page-info">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button 
+                    onClick={nextPage} 
+                    disabled={currentPage === totalPages}
+                    className="pagination-btn"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Report Footer */}

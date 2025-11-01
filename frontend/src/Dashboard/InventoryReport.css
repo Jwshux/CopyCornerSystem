@@ -510,3 +510,157 @@ html2pdf-container * {
 .inventory-details-table tr:last-child td {
   border-bottom: 1px solid #ddd !important;
 }
+
+/* Add these to your existing InventoryReport.css */
+
+/* Table container */
+.inventory-table-container {
+  position: relative;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 300px; /* Fixed height to always show space for 5 rows + header */
+  display: flex;
+  flex-direction: column;
+}
+
+.inventory-details-table {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+}
+
+/* Fixed column widths */
+.inventory-details-table th:nth-child(1),
+.inventory-details-table td:nth-child(1) { width: 25%; min-width: 150px; }
+.inventory-details-table th:nth-child(2),
+.inventory-details-table td:nth-child(2) { width: 15%; min-width: 120px; }
+.inventory-details-table th:nth-child(3),
+.inventory-details-table td:nth-child(3) { width: 10%; min-width: 80px; }
+.inventory-details-table th:nth-child(4),
+.inventory-details-table td:nth-child(4) { width: 10%; min-width: 80px; }
+.inventory-details-table th:nth-child(5),
+.inventory-details-table td:nth-child(5) { width: 12%; min-width: 100px; }
+.inventory-details-table th:nth-child(6),
+.inventory-details-table td:nth-child(6) { width: 13%; min-width: 100px; }
+.inventory-details-table th:nth-child(7),
+.inventory-details-table td:nth-child(7) { width: 15%; min-width: 100px; }
+
+/* Table header */
+.inventory-details-table th {
+  background: #34495e;
+  color: white;
+  padding: 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 1001;
+  border-bottom: 2px solid #001a47;
+}
+
+/* Fixed table body height - ALWAYS show 5 rows space */
+.inventory-details-table tbody {
+  display: block;
+  min-height: 240px; /* Height for exactly 5 rows - ALWAYS maintain this */
+}
+
+.inventory-details-table thead,
+.inventory-details-table tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* Ensure table rows have consistent height */
+.inventory-details-table tr {
+  height: 48px; /* Fixed row height */
+}
+
+.inventory-details-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #ecf0f1;
+  font-size: 14px;
+  background: white;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inventory-details-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Text overflow handling */
+.product-name {
+  font-weight: 600;
+  color: #2c3e50;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Pagination - now outside the table container */
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px; /* Space between table and pagination */
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-top: 1px solid #dee2e6;
+  position: relative;
+  bottom: auto;
+}
+
+/* Remove the items-per-page styles since we don't need them anymore */
+.pagination-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.pagination-text {
+  font-weight: 600;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  border: 1px solid #00205B;
+  background: white;
+  color: #00205B;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #00205B;
+  color: white;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #6c757d;
+  color: #6c757d;
+}
+
+.page-info {
+  font-size: 14px;
+  font-weight: 600;
+  color: #00205B;
+}

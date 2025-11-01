@@ -18,7 +18,7 @@ function InventoryReport() {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const ITEMS_PER_PAGE = 5; // Fixed to 5 only
 
   const fetchInventoryReport = async () => {
     setLoading(true);
@@ -74,10 +74,10 @@ function InventoryReport() {
 
   // Pagination calculations
   const filteredProducts = getFilteredProducts();
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
   const currentItems = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
 
   const nextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
@@ -91,84 +91,82 @@ function InventoryReport() {
     fetchInventoryReport();
   };
 
-const exportToPDF = () => {
-  const tempDiv = document.createElement("div");
-  tempDiv.innerHTML = document.getElementById("inventory-report-content").innerHTML;
+  const exportToPDF = () => {
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = document.getElementById("inventory-report-content").innerHTML;
 
-  const allProducts = getFilteredProducts();
+    const allProducts = getFilteredProducts();
 
-  const tbody = tempDiv.querySelector(".inventory-details-table tbody");
-  if (tbody) {
-    tbody.innerHTML = "";
-    allProducts.forEach(product => {
-      tbody.innerHTML += `
-        <tr>
-          <td>${product.product_name}</td>
-          <td>${product.category_name || "Uncategorized"}</td>
-          <td>${product.stock_quantity}</td>
-          <td>${product.minimum_stock || 5}</td>
-          <td>${formatCurrency(product.unit_price)}</td>
-          <td>${formatCurrency(product.stock_quantity * product.unit_price)}</td>
-          <td>
-            <span class="status-badge ${getStockStatus(product).toLowerCase().replace(" ", "-")}">
-              ${getStockStatus(product)}
-            </span>
-          </td>
-        </tr>
-      `;
+    const tbody = tempDiv.querySelector(".inventory-details-table tbody");
+    if (tbody) {
+      tbody.innerHTML = "";
+      allProducts.forEach(product => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${product.product_name}</td>
+            <td>${product.category_name || "Uncategorized"}</td>
+            <td>${product.stock_quantity}</td>
+            <td>${product.minimum_stock || 5}</td>
+            <td>${formatCurrency(product.unit_price)}</td>
+            <td>${formatCurrency(product.stock_quantity * product.unit_price)}</td>
+            <td>
+              <span class="status-badge ${getStockStatus(product).toLowerCase().replace(" ", "-")}">
+                ${getStockStatus(product)}
+              </span>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // remove pagination + controls
+    tempDiv.querySelectorAll(".pagination-controls, .report-controls-section").forEach(e => e.remove());
+
+    // unwrap scroll/flex parents
+    tempDiv.querySelectorAll(
+      ".inventory-table-container, .inventory-report-content"
+    ).forEach((node) => {
+      const parent = node.parentNode;
+      while (node.firstChild) parent.insertBefore(node.firstChild, node);
+      parent.removeChild(node);
     });
-  }
 
-  // remove pagination + controls
-  tempDiv.querySelectorAll(".pagination-controls, .report-controls-section").forEach(e => e.remove());
+    const opt = {
+      margin: 5,
+      filename: `inventory-report-${new Date().toISOString().split("T")[0]}.pdf`,
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    };
 
-  // unwrap scroll/flex parents
-  tempDiv.querySelectorAll(
-    ".inventory-table-container, .inventory-report-content"
-  ).forEach((node) => {
-    const parent = node.parentNode;
-    while (node.firstChild) parent.insertBefore(node.firstChild, node);
-    parent.removeChild(node);
-  });
-
-  const opt = {
-    margin: 5,
-    filename: `inventory-report-${new Date().toISOString().split("T")[0]}.pdf`,
-    html2canvas: { scale: 2 },
-    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    import("html2pdf.js").then((html2pdf) => {
+      html2pdf.default().from(tempDiv).set(opt).save();
+    });
   };
 
-  import("html2pdf.js").then((html2pdf) => {
-    html2pdf.default().from(tempDiv).set(opt).save();
-  });
-};
+  const exportToCSV = () => {
+    const headers = ['Product Name', 'Category', 'Stock Quantity', 'Min Stock', 'Unit Price', 'Stock Value', 'Status'];
+    const csvData = [
+      headers,
+      ...reportData.currentStock.map(product => [ // Use ALL data from currentStock
+        product.product_name,
+        product.category_name || 'Uncategorized',
+        product.stock_quantity,
+        product.minimum_stock || 5,
+        product.unit_price,
+        (product.stock_quantity * product.unit_price).toFixed(2),
+        getStockStatus(product)
+      ])
+    ];
 
-
-
-const exportToCSV = () => {
-  const headers = ['Product Name', 'Category', 'Stock Quantity', 'Min Stock', 'Unit Price', 'Stock Value', 'Status'];
-  const csvData = [
-    headers,
-    ...reportData.currentStock.map(product => [ // Use ALL data from currentStock
-      product.product_name,
-      product.category_name || 'Uncategorized',
-      product.stock_quantity,
-      product.minimum_stock || 5,
-      product.unit_price,
-      (product.stock_quantity * product.unit_price).toFixed(2),
-      getStockStatus(product)
-    ])
-  ];
-
-  const csvContent = csvData.map(row => row.join(',')).join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv' });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `inventory-report-${new Date().toISOString().split('T')[0]}.csv`;
-  a.click();
-  window.URL.revokeObjectURL(url);
-};
+    const csvContent = csvData.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `inventory-report-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="inventory-report-container">
@@ -250,91 +248,78 @@ const exportToCSV = () => {
             </h3>
             <div className="inventory-table-container">
               {filteredProducts.length > 0 ? (
-                <>
-                  <table className="inventory-details-table">
-                    <thead>
-                      <tr>
-                        <th>Product Name</th>
-                        <th>Category</th>
-                        <th>Stock Qty</th>
-                        <th>Min Stock</th>
-                        <th>Unit Price</th>
-                        <th>Stock Value</th>
-                        <th>Status</th>
+                <table className="inventory-details-table">
+                  <thead>
+                    <tr>
+                      <th>Product Name</th>
+                      <th>Category</th>
+                      <th>Stock Qty</th>
+                      <th>Min Stock</th>
+                      <th>Unit Price</th>
+                      <th>Stock Value</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentItems.map((product, index) => (
+                      <tr key={product._id || index}>
+                        <td className="product-name">{product.product_name}</td>
+                        <td className="category">{product.category_name || 'Uncategorized'}</td>
+                        <td className="stock-quantity">{product.stock_quantity}</td>
+                        <td className="min-stock">{product.minimum_stock || 5}</td>
+                        <td className="unit-price">{formatCurrency(product.unit_price)}</td>
+                        <td className="stock-value">
+                          {formatCurrency(product.stock_quantity * product.unit_price)}
+                        </td>
+                        <td>
+                          <span className={`status-badge ${getStockStatus(product).toLowerCase().replace(' ', '-')}`}>
+                            {getStockStatus(product)}
+                          </span>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {currentItems.map((product, index) => (
-                        <tr key={product._id || index}>
-                          <td className="product-name">{product.product_name}</td>
-                          <td className="category">{product.category_name || 'Uncategorized'}</td>
-                          <td className="stock-quantity">{product.stock_quantity}</td>
-                          <td className="min-stock">{product.minimum_stock || 5}</td>
-                          <td className="unit-price">{formatCurrency(product.unit_price)}</td>
-                          <td className="stock-value">
-                            {formatCurrency(product.stock_quantity * product.unit_price)}
-                          </td>
-                          <td>
-                            <span className={`status-badge ${getStockStatus(product).toLowerCase().replace(' ', '-')}`}>
-                              {getStockStatus(product)}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  
-                  {/* Pagination Controls */}
-                  <div className="pagination-controls">
-                    <div className="pagination-info">
-                      Items per page: 
-                      <select 
-                        value={itemsPerPage} 
-                        onChange={(e) => {
-                          setItemsPerPage(Number(e.target.value));
-                          setCurrentPage(1);
-                        }}
-                        className="items-per-page"
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={20}>20</option>
-                      </select>
-                      <span className="pagination-text">
-                        {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredProducts.length)} of {filteredProducts.length}
-                      </span>
-                    </div>
-                    
-                    <div className="pagination-buttons">
-                      <button 
-                        onClick={prevPage} 
-                        disabled={currentPage === 1}
-                        className="pagination-btn"
-                      >
-                        Previous
-                      </button>
-                      <span className="page-info">
-                        Page {currentPage} of {totalPages}
-                      </span>
-                      <button 
-                        onClick={nextPage} 
-                        disabled={currentPage === totalPages}
-                        className="pagination-btn"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                </>
+                    ))}
+                  </tbody>
+                </table>
               ) : (
                 <div className="no-data-message">
                   <p>No products found matching the current filter</p>
                 </div>
               )}
             </div>
+            
+            {/* Pagination Controls - MOVED OUTSIDE the table container */}
+            {filteredProducts.length > 0 && (
+              <div className="pagination-controls">
+                <div className="pagination-info">
+                  <span className="pagination-text">
+                    Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredProducts.length)} of {filteredProducts.length} items
+                  </span>
+                </div>
+                
+                <div className="pagination-buttons">
+                  <button 
+                    onClick={prevPage} 
+                    disabled={currentPage === 1}
+                    className="pagination-btn"
+                  >
+                    Previous
+                  </button>
+                  <span className="page-info">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button 
+                    onClick={nextPage} 
+                    disabled={currentPage === totalPages}
+                    className="pagination-btn"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Report Footer - SAME AS SALES REPORT */}
+          {/* Report Footer */}
           <div className="report-footer">
             <p>Report generated on: {new Date().toLocaleDateString()}</p>
             <p>Total inventory value: <strong>{formatCurrency(reportData.totalValue)}</strong></p>
