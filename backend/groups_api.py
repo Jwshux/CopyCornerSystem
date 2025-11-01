@@ -9,11 +9,14 @@ groups_bp = Blueprint('groups', __name__)
 
 # MongoDB connection (will be initialized from app.py)
 groups_collection = None
+users_collection = None
 
-def init_groups_db(mongo_collection):
+def init_groups_db(mongo_collection, mongo_users_collection=None):
     """Initialize the groups collection from app.py"""
-    global groups_collection
+    global groups_collection, users_collection
     groups_collection = mongo_collection
+    if mongo_users_collection is not None:
+        users_collection = mongo_users_collection
 
 # Helper to convert ObjectId to string
 def serialize_doc(doc):
@@ -187,13 +190,39 @@ def update_group(group_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# ARCHIVE GROUP ENDPOINT
+# ARCHIVE GROUP ENDPOINT - WITH DEPENDENCY CHECK
 @groups_bp.route('/api/groups/<group_id>/archive', methods=['PUT'])
 def archive_group(group_id):
     try:
         group = groups_collection.find_one({'_id': ObjectId(group_id)})
         if not group:
             return jsonify({'error': 'Role not found'}), 404
+        
+        # Check if group is being used by any active users
+        active_users_count = users_collection.count_documents({
+            'group_id': ObjectId(group_id),
+            'is_archived': {'$ne': True}
+        })
+        
+        if active_users_count > 0:
+            # Get user details for the error message
+            active_users = users_collection.find({
+                'group_id': ObjectId(group_id),
+                'is_archived': {'$ne': True}
+            }).limit(5)  # Limit to 5 users for the error message
+            
+            user_details = []
+            for user in active_users:
+                user_details.append({
+                    'username': user.get('username', 'Unknown'),
+                    'name': user.get('name', 'Unknown')
+                })
+            
+            return jsonify({
+                'error': f'Cannot archive role. {active_users_count} user(s) are assigned to this role.',
+                'user_count': active_users_count,
+                'users': user_details
+            }), 400
         
         # Archive the group
         result = groups_collection.update_one(

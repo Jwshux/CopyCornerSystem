@@ -13,6 +13,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
   const [showForm, setShowForm] = useState(false);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentGroup, setCurrentGroup] = useState({
     _id: null,
@@ -30,6 +31,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
   const [restoreSuccess, setRestoreSuccess] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [groupNameError, setGroupNameError] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   
   // Archive view and search
   const [showArchivedView, setShowArchivedView] = useState(false);
@@ -319,13 +321,31 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
           closeArchiveModal();
         }, 1500);
       } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to archive role');
+        const errorData = await response.json();
+        
+        if (errorData.error && errorData.error.includes('user(s) are assigned to this role')) {
+          let errorMessage = errorData.error;
+          
+          if (errorData.users && errorData.users.length > 0) {
+            errorMessage += '\n\nUsers with this role:';
+            errorData.users.forEach((user, index) => {
+              errorMessage += `\n${index + 1}. ${user.name} (${user.username})`;
+            });
+            errorMessage += '\n\nPlease reassign these users to a different role first.';
+          }
+          
+          setErrorMessage(errorMessage);
+          setShowErrorModal(true);
+        } else {
+          setErrorMessage(errorData.error || 'Failed to archive role');
+          setShowErrorModal(true);
+        }
         setArchiving(false);
       }
     } catch (error) {
       console.error('Error archiving role:', error);
-      alert('Error archiving role');
+      setErrorMessage('Error archiving role');
+      setShowErrorModal(true);
       setArchiving(false);
     }
   };
@@ -398,6 +418,11 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     if (onAddModalClose) {
       onAddModalClose();
     }
+  };
+
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorMessage("");
   };
 
   const formatDate = (dateString) => {
@@ -741,6 +766,41 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ERROR MODAL */}
+      {showErrorModal && (
+        <div className="error-modal-overlay">
+          <div className="error-modal-content">
+            <div className="error-modal-header">Operation Failed</div>
+            <div className="error-modal-title">
+              {errorMessage.includes('archive') ? 'Cannot archive role' : 'Operation failed'}
+            </div>
+            <div className="error-modal-message">
+              {errorMessage.split('\n\n')[0]}
+              {errorMessage.includes('Users with this role:') && (
+                <div className="error-modal-schedules">
+                  {errorMessage.split('Users with this role:')[1]?.split('\n\n')[0]?.split('\n').map((user, index) => (
+                    <div key={index} className="error-schedule-item">
+                      {user.trim()}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {errorMessage.split('\n\n')[1] && (
+                <div style={{ marginTop: '15px', color: '#d9534f', fontWeight: 'bold' }}>
+                  {errorMessage.split('\n\n')[1]}
+                </div>
+              )}
+            </div>
+            <button 
+              className="error-modal-ok-btn" 
+              onClick={closeErrorModal}
+            >
+              OK
+            </button>
           </div>
         </div>
       )}

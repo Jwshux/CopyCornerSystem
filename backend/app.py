@@ -38,7 +38,7 @@ try:
     service_types_collection = db["service_type"]
 
     # Initialize databases
-    init_groups_db(groups_collection)
+    init_groups_db(groups_collection, users_collection)
     init_users_db(users_collection, groups_collection, staffs_collection, schedule_collection)
     init_products_db(products_collection)
     init_categories_db(categories_collection, products_collection, service_types_collection)
