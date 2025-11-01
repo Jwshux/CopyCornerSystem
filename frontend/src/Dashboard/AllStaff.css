@@ -36,17 +36,17 @@ td {
 .edit-btn,
 .archive-btn,
 .restore-btn {
-  margin: 5px;
-  padding: 6px 12px;
   border: none;
+  padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.85rem;
   transition: background-color 0.2s ease;
+  margin-right: 5px;
 }
 
-.edit-btn {
-  background: #f59e0b;
+.all-staff button.edit-btn {
+  background: #3B82F6;
   color: white;
 }
 
@@ -54,13 +54,13 @@ td {
   background: #d97706;
 }
 
-.archive-btn {
-  background: #8b5cf6;
+.all-staff .archive-btn {
+  background:#A16207;
   color: white;
 }
 
-.archive-btn:hover {
-  background: #7c3aed;
+.all-staff .archive-btn:hover {
+  background: #854D0E;
 }
 
 .restore-btn {
