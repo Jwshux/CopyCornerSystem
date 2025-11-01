@@ -189,7 +189,18 @@ def archive_category(category_id):
         })
         if product_count > 0:
             return jsonify({
-                'error': f'Cannot archive category "{category["name"]}". {product_count} active product(s) are using this category. Please reassign or archive products first.'
+                'error': f'Cannot archive category "{category["name"]}". {product_count} active product(s) are using this category. Please archive products first.'
+            }), 400
+        
+        # Check if category has active service types
+        service_type_count = service_types_collection.count_documents({
+            'category_id': ObjectId(category_id),
+            'status': 'Active',  # Only count active service types
+            'is_archived': {'$ne': True}  # Only count non-archived service types
+        })
+        if service_type_count > 0:
+            return jsonify({
+                'error': f'Cannot archive category "{category["name"]}". {service_type_count} active service type(s) are using this category. Please update service types first.'
             }), 400
         
         # Update category to set as archived

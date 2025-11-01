@@ -327,6 +327,27 @@ def restore_service_type(service_type_id):
         if not service_type.get('is_archived'):
             return jsonify({'error': 'Service type is not archived'}), 400
         
+        # Check if the category for this service type exists and is active
+        if service_type.get('category_id'):
+            category = categories_collection.find_one({
+                '_id': ObjectId(service_type['category_id']),
+                'is_archived': {'$ne': True}  # Category must be active
+            })
+            if not category:
+                # If not found in active categories, check archived categories to get the actual name
+                archived_category = categories_collection.find_one({
+                    '_id': ObjectId(service_type['category_id']),
+                    'is_archived': True
+                })
+                
+                category_name = "Unknown"
+                if archived_category:
+                    category_name = archived_category['name']
+                
+                return jsonify({
+                    'error': f'Cannot restore service type. Category "{category_name}" is archived. Please restore the category first.'
+                }), 400
+        
         # Check if service name already exists in active service types
         existing_service = service_types_collection.find_one({
             'service_name': service_type['service_name'],
