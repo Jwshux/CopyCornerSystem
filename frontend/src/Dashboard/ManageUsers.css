@@ -96,17 +96,16 @@ td {
   transition: all 0.2s ease;
 }
 
-
-.active-status {
+.status.active {
   border-color: #22c55e;
   background-color: #d1fae5;
   color: #16a34a;
 }
 
-.inactive-status {
-  border-color: #9ca3af;
-  background-color: #f3f4f6;
-  color: #6b7280;
+.status.inactive {
+  background-color: #fdeaea;
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
 }
 
 .status:hover {

@@ -102,20 +102,20 @@ function InventoryReport() {
       tbody.innerHTML = "";
       allProducts.forEach(product => {
         tbody.innerHTML += `
-          <tr>
-            <td>${product.product_name}</td>
-            <td>${product.category_name || "Uncategorized"}</td>
-            <td>${product.stock_quantity}</td>
-            <td>${product.minimum_stock || 5}</td>
-            <td>${formatCurrency(product.unit_price)}</td>
-            <td>${formatCurrency(product.stock_quantity * product.unit_price)}</td>
-            <td>
-              <span class="status-badge ${getStockStatus(product).toLowerCase().replace(" ", "-")}">
-                ${getStockStatus(product)}
-              </span>
-            </td>
-          </tr>
-        `;
+        <tr>
+          <td>${product.product_name}</td>
+          <td>${product.category_name || "Uncategorized"}</td>
+          <td>${product.stock_quantity}</td>
+          <td>${product.minimum_stock || 5}</td>
+          <td>${formatCurrency(product.unit_price)}</td>
+          <td>${formatCurrency(product.stock_quantity * product.unit_price)}</td>
+          <td>
+            <span class="status-badge ${getStockStatus(product).toLowerCase().replace(/ /g, '-')}">
+              ${getStockStatus(product)}
+            </span>
+          </td>
+        </tr>
+      `;
       });
     }
 
@@ -272,7 +272,7 @@ function InventoryReport() {
                           {formatCurrency(product.stock_quantity * product.unit_price)}
                         </td>
                         <td>
-                          <span className={`status-badge ${getStockStatus(product).toLowerCase().replace(' ', '-')}`}>
+                          <span className={`status-badge ${getStockStatus(product).toLowerCase().replace(/ /g, '-')}`}>
                             {getStockStatus(product)}
                           </span>
                         </td>

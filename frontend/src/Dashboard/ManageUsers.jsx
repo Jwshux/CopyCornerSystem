@@ -623,7 +623,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                     <td>{user.username}</td>
                     <td>{user.role}</td>
                     <td>
-                      <span className={user.status === "Active" ? "active-status" : "inactive-status"}>
+                      <span className={`status ${user.status === "Active" ? "active" : "inactive"}`}>
                         {user.status}
                       </span>
                     </td>
@@ -736,9 +736,9 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                     <td>{user.username}</td>
                     <td>{user.role}</td>
                     <td>
-                      <span className={user.status === "Active" ? "active-status" : "inactive-status"}>
-                        {user.status}
-                      </span>
+                    <span className={`status ${user.status === "Active" ? "active" : "inactive"}`}>
+                      {user.status}
+                    </span>
                     </td>
                     <td>{formatDate(user.archived_at)}</td>
                     <td>

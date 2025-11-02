@@ -19,9 +19,9 @@ function AdminDashboard({ user, onLogout }) {
   const [openSubmenus, setOpenSubmenus] = useState({
     Products: false,
     Staffs: false,
-    "User Management": false,
     Transactions: false,
-    Reports: false
+    Reports: false,
+    "User Management": false
   });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [userRoleLevel, setUserRoleLevel] = useState(0);
@@ -92,9 +92,9 @@ function AdminDashboard({ user, onLogout }) {
   };
 
   const canAccessMenu = (menuItem) => {
-    if (userRoleLevel === 0) return true;
+    if (userRoleLevel === 0) return true; // Admin can access everything
     
-    if (userRoleLevel === 1) {
+    if (userRoleLevel === 1) { // Staff role
       const restrictedMenus = [
         "User Management", 
         "Manage Roles", 
@@ -204,50 +204,68 @@ function AdminDashboard({ user, onLogout }) {
     }
   };
 
+  // Optimized menu order based on frequency of use and logical grouping
   const menuItems = [
     { 
       name: "Dashboard", 
-      icon: "📊", 
-      hasSubmenu: false 
-    },
-    { 
-      name: "Products", 
-      icon: "📦", 
-      hasSubmenu: true,
-      subItems: ["All Products", "Categories"]
-    },
-    { 
-      name: "Staffs", 
-      icon: "👥", 
-      hasSubmenu: true,
-      subItems: ["All Staffs", "Staffs Schedule"]
+      hasSubmenu: false,
+      accessLevel: "all" // Both admin and staff
     },
     { 
       name: "Sales", 
-      icon: "💰", 
-      hasSubmenu: false 
+      hasSubmenu: false,
+      accessLevel: "all" // Both admin and staff
     },
     { 
       name: "Transactions", 
-      icon: "🧾", 
       hasSubmenu: true,
-      subItems: ["Transactions", "Service Types"]
+      subItems: ["Transactions", "Service Types"],
+      accessLevel: "all" // Both admin and staff
+    },
+    { 
+      name: "Products", 
+      hasSubmenu: true,
+      subItems: ["All Products", "Categories"],
+      accessLevel: "all" // Both admin and staff
+    },
+    { 
+      name: "Staffs", 
+      hasSubmenu: true,
+      subItems: ["All Staffs", "Staffs Schedule"], // Admin sees both, staff only sees schedule
+      accessLevel: "all" // Both admin and staff (but with different sub-items)
     },
     { 
       name: "Reports",
-      icon: "📈", 
       hasSubmenu: true,
       subItems: ["Sales Report", "Inventory Report"],
-      requiredRoleLevel: 0  // ONLY SHOW TO ADMINISTRATORS
+      accessLevel: "admin" // ONLY SHOW TO ADMINISTRATORS
     },
     { 
       name: "User Management", 
-      icon: "⚙️", 
       hasSubmenu: true,
       subItems: ["Manage Roles", "Manage Users"],
-      requiredRoleLevel: 0  // ONLY SHOW TO ADMINISTRATORS
+      accessLevel: "admin" // ONLY SHOW TO ADMINISTRATORS
     },
   ];
+
+  // Filter menu items based on user role
+  const filteredMenuItems = menuItems.filter(item => {
+    if (item.accessLevel === "all") return true;
+    if (item.accessLevel === "admin" && userRoleLevel === 0) return true;
+    return false;
+  });
+
+  // Filter sub-items based on user role
+  const getFilteredSubItems = (subItems, menuName) => {
+    if (userRoleLevel === 0) return subItems; // Admin sees all
+    
+    // Staff role filtering
+    if (menuName === "Staffs") {
+      return subItems.filter(sub => sub !== "All Staffs"); // Staff can't see "All Staffs"
+    }
+    
+    return subItems.filter(sub => canAccessMenu(sub));
+  };
 
   return (
     <div className="container">
@@ -255,25 +273,25 @@ function AdminDashboard({ user, onLogout }) {
         <h2 className="logo">Copy Corner Hub</h2>
 
         <nav className="menu">
-          {menuItems.map((item) => {
-            // Hide menu if user doesn't have required role level
-            if (item.requiredRoleLevel !== undefined && userRoleLevel > item.requiredRoleLevel) {
-              return null;
-            }
+          {filteredMenuItems.map((item) => {
+            const filteredSubItems = item.hasSubmenu 
+              ? getFilteredSubItems(item.subItems, item.name)
+              : [];
 
-            if (!canAccessMenu(item.name) && !item.subItems?.some(sub => canAccessMenu(sub))) {
+            // Don't show menu if it has submenus but no accessible sub-items
+            if (item.hasSubmenu && filteredSubItems.length === 0) {
               return null;
             }
 
             return (
               <div key={item.name}>
                 <button
-                  className={
+                  className={`menu-button ${
                     activePage === item.name ||
-                    (item.hasSubmenu && item.subItems.includes(activePage))
+                    (item.hasSubmenu && filteredSubItems.includes(activePage))
                       ? "active"
                       : ""
-                  }
+                  }`}
                   onClick={() => {
                     if (!item.hasSubmenu) {
                       setActivePage(item.name);
@@ -281,44 +299,26 @@ function AdminDashboard({ user, onLogout }) {
                     }
                     toggleSubmenu(item.name);
                   }}
-                  disabled={!canAccessMenu(item.name) && item.hasSubmenu}
                 >
-                  <span className="menu-icon">{item.icon}</span>
                   {item.name}
-                  {item.hasSubmenu && (
+                  {item.hasSubmenu && filteredSubItems.length > 0 && (
                     <span className={`dropdown-arrow ${openSubmenus[item.name] ? 'open' : ''}`}>
                       ▼
                     </span>
                   )}
                 </button>
 
-                {item.hasSubmenu && openSubmenus[item.name] && (
+                {item.hasSubmenu && openSubmenus[item.name] && filteredSubItems.length > 0 && (
                   <div className="submenu">
-                    {item.subItems.map((sub) => {
-                      if (!canAccessMenu(sub)) return null;
-                      
-                      return (
-                        <button
-                          key={sub}
-                          className={activePage === sub ? "active-sub" : ""}
-                          onClick={() => setActivePage(sub)}
-                        >
-                          <span className="submenu-icon">
-                            {sub === "All Products" ? "📋" : 
-                             sub === "Categories" ? "🏷️" :
-                             sub === "All Staffs" ? "👨‍💼" :
-                             sub === "Staffs Schedule" ? "📅" :
-                             sub === "Transactions" ? "📝" :
-                             sub === "Service Types" ? "🔧" :
-                             sub === "Manage Roles" ? "👥" : 
-                             sub === "Manage Users" ? "👤" :
-                             sub === "Sales Report" ? "💰" :
-                             sub === "Inventory Report" ? "📦" : ""}
-                          </span>
-                          {sub}
-                        </button>
-                      );
-                    })}
+                    {filteredSubItems.map((sub) => (
+                      <button
+                        key={sub}
+                        className={`submenu-button ${activePage === sub ? "active-sub" : ""}`}
+                        onClick={() => setActivePage(sub)}
+                      >
+                        {sub}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
