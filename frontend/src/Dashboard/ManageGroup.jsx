@@ -742,8 +742,8 @@ return (
                   onInput={(e) => e.target.setCustomValidity('')}
                 >
                   <option value="" disabled>Select Status</option>
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
+                  <option value="Active">ACTIVE</option>
+                  <option value="Inactive">INACTIVE</option>
                 </select>
                 
                 <div className="form-buttons">

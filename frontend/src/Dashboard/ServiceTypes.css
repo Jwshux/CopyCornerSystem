@@ -54,9 +54,19 @@
   vertical-align: top;
 }
 
+.service-types-table tbody tr:hover {
+  background-color: #f3f4f6; 
+  cursor: pointer; 
+  color: #3B82F6;
+}
+
+.service-types-page tbody tr {
+  transition: background-color 0.2s ease;
+}
+
 .service-types-table th {
-  background: #f7f7f7;
-  color: #374151;
+  background: #374151;
+  color: #ffffff;
   font-weight: 600;
 }
 
@@ -388,12 +398,14 @@
 }
 
 .table-container .archive-btn {
-  background-color: #A16207;
+  background-color:#e74c3c ;
   color: white;
+  transform: translateY(-1px)
 }
 
 .table-container .archive-btn:hover {
-  background-color: #854D0E;
+  background-color: #c0392b;
+  transform: translateY(-1px)
 }
 
 .restore-btn {

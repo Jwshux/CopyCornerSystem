@@ -14,6 +14,16 @@
   padding: 0 10px;
 }
 
+.group-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.group-table tbody tr:hover {
+  background-color: #f3f4f6; 
+  cursor: pointer;
+  color: #3B82F6;
+} 
+
 .view-archive-btn, .back-to-main-btn {
   padding: 10px 20px;
   border: none;
@@ -80,24 +90,34 @@
 }
 
 .group-table th {
-  background-color: #f9fafb;
-  color: #374151;
+  background-color: #374151;
+  color: #ffffff;
   font-weight: 600;
 }
 
 .status {
-  padding: 5px 10px;
+  display: inline-block;
+  padding: 5px 14px;
   border-radius: 20px;
   font-size: 0.85rem;
-  color: white;
+  font-weight: 700;
+  text-transform: uppercase;
+  border: 2px solid transparent;
+  text-align: center;
+  min-width: 90px;
+  transition: all 0.2s ease;
 }
 
 .status.active {
-  background-color: #22c55e;
+  border-color: #22c55e;
+  background-color: #d1fae5;
+  color: #16a34a;
 }
 
 .status.inactive {
-  background-color: #f87171;
+  border-color: #9ca3af;
+  background-color: #f3f4f6;
+  color: #6b7280;
 }
 
 .edit-btn,
@@ -115,19 +135,25 @@
 .group-table .edit-btn {
   background: #0d6efd;
   color: white;
+  border: 1px solid #3498db
 }
 
 .group-table .edit-btn:hover:not(:disabled) {
   background: #0b5ed7;
+  border: 1px solid #3498db;
+    transform: translateY(-1px);
 }
 
 .group-table .archive-btn {
-  background: #A16207;
+  background: #e74c3c;
   color: white;
+  border: 1px solid #e74c3c
 }
 
 .group-table .archive-btn:hover:not(:disabled) {
-  background: #854D0E;
+  background: #c0392b;
+  border-color: #c0392b;
+  transform: translateY(-1px);
 }
 
 
