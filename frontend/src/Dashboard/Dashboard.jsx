@@ -263,6 +263,14 @@ function AdminDashboard({ user, onLogout }) {
     if (menuName === "Staffs") {
       return subItems.filter(sub => sub !== "All Staffs"); // Staff can't see "All Staffs"
     }
+
+    if (menuName === "Products") {
+      return subItems.filter(sub => sub !== "Categories"); // Staff can't see "Categories"
+    }
+
+      if (menuName === "Transactions") {
+    return subItems.filter(sub => sub !== "Service Types"); // Remove Service Types management
+    }
     
     return subItems.filter(sub => canAccessMenu(sub));
   };
@@ -360,10 +368,10 @@ function AdminDashboard({ user, onLogout }) {
               
               <div className="dropdown-menu">
                 <button className="dropdown-item">
-                  My Activity
+                  My Profile
                 </button>
                 <button className="dropdown-item">
-                  System Logs
+                  Help
                 </button>
                 <button className="dropdown-item">
                   About

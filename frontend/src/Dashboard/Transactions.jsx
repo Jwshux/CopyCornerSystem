@@ -335,11 +335,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   };
 
   const handleEdit = (transaction) => {
-    if (transaction.status !== "Pending") {
-      alert("Only pending transactions can be edited.");
-      return;
-    }
-
     const serviceCategory = getServiceCategory(transaction.service_type);
     let productType = "";
     if (serviceCategory === "Paper") {
@@ -365,7 +360,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       price_per_unit: transaction.price_per_unit || "",
       quantity: transaction.quantity || "",
       total_amount: transaction.total_amount || "",
-      status: transaction.status || "Pending",
+      status: transaction.status || "Completed", // Keep the completed status
       date: transaction.date || new Date().toISOString().split("T")[0],
     });
     setCustomerNameError("");
@@ -405,7 +400,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
         price_per_unit: parseFloat(formData.price_per_unit) || 0,
         quantity: parseInt(formData.quantity) || 1,
         total_amount: parseFloat(formData.total_amount) || 0,
-        status: formData.status,
+        status: formData.status, // This will preserve "Completed" status
         date: formData.date
       };
 
@@ -438,7 +433,8 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
           setActiveTab("Pending");
           await fetchTransactions(1, "Pending");
         } else {
-          await fetchTransactions(currentPage, activeTab);
+          // Refresh the current tab (could be Completed, Pending, or Cancelled)
+          await fetchTransactions(currentPage, formData.status);
         }
         
         setShowFormModal(false);
@@ -914,7 +910,10 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
 
                         {/* COMPLETED TRANSACTIONS - Archive only */}
                         {t.status === "Completed" && (
-                          <button className="archive-btn" onClick={() => openArchiveModal(t)}>Archive</button>
+                          <>
+                            <button className="edit-btn" onClick={() => handleEdit(t)}>Edit</button>
+                            <button className="archive-btn" onClick={() => openArchiveModal(t)}>Archive</button>
+                          </>
                         )}
 
                         {/* CANCELLED TRANSACTIONS - Restore and Delete */}
