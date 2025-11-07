@@ -179,7 +179,7 @@ td {
 }
 
 .modal-overlay .modal-content h3 {
-  margin: 0 0 5px 0;
+  margin: 0px 0 15px 0;
   color: #00205B;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-size: 1.5rem;
@@ -199,7 +199,7 @@ td {
 .modal-content select {
   width: 100%;
   padding: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 15px !important;
   border-radius: 6px;
   border: 1px solid #d1d5db;
   font-size: 14px;
@@ -210,7 +210,7 @@ td {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: 7px;
 }
 
 .save-btn {
