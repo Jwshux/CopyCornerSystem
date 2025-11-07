@@ -106,7 +106,7 @@ function Login({ onLoginSuccess }) {
                     className="login-btn"
                     disabled={loading}
                   >
-                    {loading ? "Logging in..." : "Log In"}
+                    {loading ? "Log In" : "Log In"}
                   </button>
                 </form>
               </>

@@ -3,6 +3,7 @@ from pymongo import MongoClient
 from bson import ObjectId
 from datetime import datetime
 import os
+import bcrypt
 
 # Create Blueprint for users routes
 users_bp = Blueprint('users', __name__)
@@ -12,6 +13,36 @@ users_collection = None
 groups_collection = None
 staffs_collection = None
 schedules_collection = None
+
+# Password hashing helper functions
+def hash_password(password):
+    """Hash a password using bcrypt"""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+def check_password(plain_password, hashed_password):
+    """Check if a plain password matches the hashed password"""
+    if not hashed_password:
+        return False
+        
+    try:
+        # If hashed_password is bytes (from bcrypt)
+        if isinstance(hashed_password, bytes):
+            return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password)
+        # If hashed_password is string (might be from migration)
+        elif isinstance(hashed_password, str):
+            # Try to decode as base64 first (if it was encoded for storage)
+            import base64
+            try:
+                hashed_bytes = base64.b64decode(hashed_password)
+                return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_bytes)
+            except:
+                # If it's not base64, try direct string comparison (for legacy)
+                return hashed_password == plain_password
+        else:
+            return False
+    except Exception as e:
+        print(f"Password check error: {e}")
+        return False
 
 def init_users_db(mongo_users_collection, mongo_groups_collection, mongo_staffs_collection, mongo_schedules_collection):
     """Initialize the collections from app.py"""
@@ -24,28 +55,41 @@ def init_users_db(mongo_users_collection, mongo_groups_collection, mongo_staffs_
 # Helper to convert ObjectId to string and format dates
 def serialize_doc(doc):
     if doc:
-        doc['_id'] = str(doc['_id'])
+        # Create a copy to avoid modifying the original
+        serialized = doc.copy()
+        
+        serialized['_id'] = str(doc['_id'])
         if 'group_id' in doc and doc['group_id']:
-            doc['group_id'] = str(doc['group_id'])
+            serialized['group_id'] = str(doc['group_id'])
+        
+        # REMOVE PASSWORD COMPLETELY - don't send it to frontend
+        if 'password' in serialized:
+            del serialized['password']
         
         # Handle last_login date formatting
         if 'last_login' in doc and doc['last_login']:
             if isinstance(doc['last_login'], dict) and '$date' in doc['last_login']:
-                # Handle ISODate format: {"$date": "2025-10-18T00:00:00Z"}
-                doc['last_login'] = doc['last_login']['$date']
+                serialized['last_login'] = doc['last_login']['$date']
             elif isinstance(doc['last_login'], datetime):
-                # Handle datetime object
-                doc['last_login'] = doc['last_login'].isoformat() + 'Z'
+                serialized['last_login'] = doc['last_login'].isoformat() + 'Z'
+            else:
+                serialized['last_login'] = str(doc['last_login'])
+        else:
+            serialized['last_login'] = None
         
         # Handle created_at and updated_at dates if needed
         for field in ['created_at', 'updated_at', 'archived_at']:
             if field in doc and doc[field]:
                 if isinstance(doc[field], dict) and '$date' in doc[field]:
-                    doc[field] = doc[field]['$date']
+                    serialized[field] = doc[field]['$date']
                 elif isinstance(doc[field], datetime):
-                    doc[field] = doc[field].isoformat() + 'Z'
+                    serialized[field] = doc[field].isoformat() + 'Z'
+                else:
+                    serialized[field] = str(doc[field])
+            else:
+                serialized[field] = None
                     
-    return doc
+    return serialized
 
 # Get all users with group names - UPDATED FOR PAGINATION AND ARCHIVE
 @users_bp.route('/api/users', methods=['GET'])
@@ -192,7 +236,7 @@ def get_roles():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Create new user
+# Create new user - UPDATED FOR PASSWORD HASHING
 @users_bp.route('/api/users', methods=['POST'])
 def create_user():
     try:
@@ -203,10 +247,13 @@ def create_user():
         if not group:
             return jsonify({'error': 'Invalid role selected'}), 400
         
+        # HASH THE PASSWORD BEFORE STORING
+        hashed_password = hash_password(data['password'])
+        
         new_user = {
             'name': data['name'],
             'username': data['username'],
-            'password': data['password'],
+            'password': hashed_password,  # STORE HASHED PASSWORD
             'group_id': group['_id'],
             'status': data.get('status', 'Active'),
             'is_archived': False,
@@ -243,7 +290,7 @@ def create_user():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Update user
+# Update user - UPDATED FOR PASSWORD HASHING
 @users_bp.route('/api/users/<user_id>', methods=['PUT'])
 def update_user(user_id):
     try:
@@ -296,9 +343,9 @@ def update_user(user_id):
             'updated_at': datetime.utcnow()
         }
         
-        # Only update password if provided
+        # Only update password if provided - AND HASH IT
         if data.get('password'):
-            update_data['password'] = data['password']
+            update_data['password'] = hash_password(data['password'])
         
         # Check if username already exists (excluding current user and archived ones)
         existing_user = users_collection.find_one({
@@ -512,5 +559,34 @@ def get_user_role_level(user_id):
             'role_level': group.get('group_level', 1),
             'role_name': group.get('group_name', 'Staff')
         })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ADD PASSWORD RESET ENDPOINT
+@users_bp.route('/api/users/<user_id>/reset-password', methods=['POST'])
+def reset_password(user_id):
+    try:
+        data = request.json
+        new_password = data.get('new_password')
+        
+        if not new_password:
+            return jsonify({'error': 'New password is required'}), 400
+        
+        # Hash the new password
+        hashed_password = hash_password(new_password)
+        
+        result = users_collection.update_one(
+            {'_id': ObjectId(user_id)},
+            {'$set': {
+                'password': hashed_password,
+                'updated_at': datetime.utcnow()
+            }}
+        )
+        
+        if result.modified_count:
+            return jsonify({'message': 'Password reset successfully'})
+        else:
+            return jsonify({'error': 'User not found'}), 404
+        
     except Exception as e:
         return jsonify({'error': str(e)}), 500

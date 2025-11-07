@@ -3,6 +3,7 @@ from flask_cors import CORS
 from pymongo import MongoClient
 from datetime import datetime
 from dotenv import load_dotenv
+import bcrypt
 import os
 
 from groups_api import groups_bp, init_groups_db
@@ -25,6 +26,36 @@ if not MONGO_URI:
 app = Flask(__name__)
 CORS(app)
 
+# Password hashing helper functions
+def hash_password(password):
+    """Hash a password using bcrypt"""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+def check_password(plain_password, hashed_password):
+    """Check if a plain password matches the hashed password"""
+    if not hashed_password:
+        return False
+        
+    try:
+        # If hashed_password is bytes (from bcrypt)
+        if isinstance(hashed_password, bytes):
+            return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password)
+        # If hashed_password is string (might be from migration)
+        elif isinstance(hashed_password, str):
+            # Try to decode as base64 first (if it was encoded for storage)
+            import base64
+            try:
+                hashed_bytes = base64.b64decode(hashed_password)
+                return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_bytes)
+            except:
+                # If it's not base64, try direct string comparison (for legacy)
+                return hashed_password == plain_password
+        else:
+            return False
+    except Exception as e:
+        print(f"Password check error: {e}")
+        return False
+
 try:
     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
     db = client["CopyCornerSystem"]
@@ -45,7 +76,7 @@ try:
     init_products_db(products_collection)
     init_categories_db(categories_collection, products_collection, service_types_collection)
     init_schedules_db(schedule_collection, users_collection, groups_collection)
-    init_staffs_db(staffs_collection, users_collection, groups_collection, schedule_collection)  # UPDATE THIS LINE
+    init_staffs_db(staffs_collection, users_collection, groups_collection, schedule_collection)
     init_transactions_db(transactions_collection, products_collection)
     init_service_types_db(service_types_collection, transactions_collection)
     init_sales_db(transactions_collection, service_types_collection)
@@ -99,8 +130,9 @@ def login():
         if user.get("status") != "Active":
             return jsonify({"error": "Your account is inactive. Please contact an administrator."}), 401
         
-        # Check password
-        if user.get("password") == password:
+        # Check password using bcrypt
+        user_password = user.get("password")
+        if user_password and check_password(password, user_password):
             # Get user's group
             group = groups_collection.find_one({"_id": user["group_id"]})
             
