@@ -44,6 +44,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     size_type: "",
     supply_type: "",
     product_type: "",
+    product_id: "",
     total_pages: "",
     price_per_unit: "",
     quantity: "",
@@ -249,13 +250,39 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     });
   };
 
-  // DYNAMIC: Get product options for service type
+  // DYNAMIC: Get product options for service type WITH STOCK STATUS
   const getServiceOptions = (serviceType) => {
     if (!serviceType) return [];
     const category = getServiceCategory(serviceType);
     if (!category) return [];
     const products = getProductsByCategory(category);
-    return products.map(product => product.product_name);
+    
+    return products.map(product => {
+      const stock = parseInt(product.stock_quantity || 0);
+      const minStock = parseInt(product.minimum_stock || 5);
+      
+      let status = "In Stock";
+      let isDisabled = false;
+      let statusColor = "";
+      
+      if (stock <= 0) {
+        status = "Out of Stock";
+        isDisabled = true;
+        statusColor = "red";
+      } else if (stock <= minStock) {
+        status = "Low Stock";
+        statusColor = "orange";
+      }
+      
+      return {
+        id: product._id,
+        name: product.product_name,
+        status: status,
+        isDisabled: isDisabled,
+        statusColor: statusColor,
+        stockQuantity: stock
+      };
+    });
   };
 
   // DYNAMIC: Check if service has products
@@ -298,6 +325,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       updated.size_type = "";
       updated.supply_type = "";
       updated.product_type = "";
+      updated.product_id = "";
       updated.total_pages = "";
     }
 
@@ -322,6 +350,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       size_type: "",
       supply_type: "",
       product_type: "",
+      product_id: "",
       total_pages: "",
       price_per_unit: "",
       quantity: "",
@@ -337,6 +366,8 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   const handleEdit = (transaction) => {
     const serviceCategory = getServiceCategory(transaction.service_type);
     let productType = "";
+    let productId = "";
+    
     if (serviceCategory === "Paper") {
       productType = transaction.paper_type || "";
     } else if (serviceCategory === "T-shirt") {
@@ -345,6 +376,14 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       productType = transaction.supply_type || "";
     } else {
       productType = transaction.paper_type || transaction.size_type || transaction.supply_type || "";
+    }
+    
+    // Get product_id from transaction data or find by name
+    if (transaction.product_id) {
+      productId = transaction.product_id;
+    } else if (productType && allProducts.length > 0) {
+      const product = allProducts.find(p => p.product_name === productType);
+      productId = product ? product._id : "";
     }
 
     setFormData({
@@ -356,11 +395,12 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       size_type: transaction.size_type || "",
       supply_type: transaction.supply_type || "",
       product_type: productType,
+      product_id: productId,
       total_pages: transaction.total_pages || "",
       price_per_unit: transaction.price_per_unit || "",
       quantity: transaction.quantity || "",
       total_amount: transaction.total_amount || "",
-      status: transaction.status || "Completed", // Keep the completed status
+      status: transaction.status || "Completed",
       date: transaction.date || new Date().toISOString().split("T")[0],
     });
     setCustomerNameError("");
@@ -375,6 +415,33 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     if (customerNameError) {
       alert("Please fix the customer name error before saving.");
       return;
+    }
+
+    // ✅ Check if selected product is out of stock
+    if (formData.product_id) {
+      const selectedProduct = getServiceOptions(formData.service_type).find(
+        p => p.id === formData.product_id
+      );
+
+      if (selectedProduct && selectedProduct.isDisabled && !isEditing) {
+        alert("Cannot select out-of-stock product. Please choose a different product.");
+        return;
+      }
+
+      // 🆕 NEW: Check if quantity exceeds available stock
+      const serviceCategory = getServiceCategory(formData.service_type);
+      const quantity = parseInt(formData.quantity) || 1;
+      const totalPages = parseInt(formData.total_pages) || 1;
+      
+      let itemsNeeded = quantity;
+      if (serviceCategory === "Paper") {
+        itemsNeeded = totalPages * quantity;
+      }
+      
+      if (selectedProduct && selectedProduct.stockQuantity < itemsNeeded && !isEditing) {
+        alert(`Insufficient stock! Only ${selectedProduct.stockQuantity} items available, but you need ${itemsNeeded}.`);
+        return;
+      }
     }
 
     if (hasProductsForService(formData.service_type) && !formData.product_type) {
@@ -396,11 +463,13 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
         paper_type: "",
         size_type: "",
         supply_type: "",
+        product_type: formData.product_type,
+        product_id: formData.product_id,
         total_pages: parseInt(formData.total_pages) || 0,
         price_per_unit: parseFloat(formData.price_per_unit) || 0,
         quantity: parseInt(formData.quantity) || 1,
         total_amount: parseFloat(formData.total_amount) || 0,
-        status: formData.status, // This will preserve "Completed" status
+        status: formData.status,
         date: formData.date
       };
 
@@ -433,7 +502,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
           setActiveTab("Pending");
           await fetchTransactions(1, "Pending");
         } else {
-          // Refresh the current tab (could be Completed, Pending, or Cancelled)
           await fetchTransactions(currentPage, formData.status);
         }
         
@@ -537,6 +605,9 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   // Restore from Cancelled to Pending
   const handleRestoreFromCancelled = async (transaction) => {
     try {
+      // 🆕 Get product_id if available
+      let productId = transaction.product_id;
+      
       const response = await fetch(`${API_BASE}/transactions/${transaction._id}`, {
         method: 'PUT',
         headers: {
@@ -548,6 +619,8 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
           paper_type: transaction.paper_type,
           size_type: transaction.size_type,
           supply_type: transaction.supply_type,
+          product_type: transaction.product_name || transaction.paper_type || transaction.size_type || transaction.supply_type,
+          product_id: productId,  // 🆕 ADD THIS
           total_pages: transaction.total_pages,
           price_per_unit: transaction.price_per_unit,
           quantity: transaction.quantity,
@@ -598,6 +671,32 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
 
   const handleComplete = async (transaction) => {
     try {
+      // 🆕 FIX: Check if transaction has a product
+      const serviceCategory = getServiceCategory(transaction.service_type);
+      const hasProducts = hasProductsForService(transaction.service_type);
+      
+      if (hasProducts && !transaction.product_id && !transaction.product_name) {
+        alert(`Cannot complete transaction. Please select a product for ${transaction.service_type} service.`);
+        return;
+      }
+
+      // 🆕 Get the product_id from the transaction or find it by product name
+      let productId = transaction.product_id;
+      
+      // If no product_id, try to find it by product name
+      if (!productId && transaction.product_name) {
+        const allProducts = await fetch(`${API_BASE}/products?page=1&per_page=100`).then(res => res.json());
+        const productsArray = allProducts.products || allProducts;
+        const product = productsArray.find(p => p.product_name === transaction.product_name);
+        productId = product ? product._id : null;
+      }
+
+      // 🆕 Final check - if service requires products but none is selected
+      if (hasProducts && !productId) {
+        alert(`Cannot complete transaction. No product selected for ${transaction.service_type} service.`);
+        return;
+      }
+
       const response = await fetch(`${API_BASE}/transactions/${transaction._id}`, {
         method: 'PUT',
         headers: {
@@ -609,6 +708,8 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
           paper_type: transaction.paper_type,
           size_type: transaction.size_type,
           supply_type: transaction.supply_type,
+          product_type: transaction.product_name || transaction.paper_type || transaction.size_type || transaction.supply_type,
+          product_id: productId,  // 🆕 ADD THIS - CRITICAL!
           total_pages: transaction.total_pages,
           price_per_unit: transaction.price_per_unit,
           quantity: transaction.quantity,
@@ -632,6 +733,9 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
 
   const handleCancel = async (transaction) => {
     try {
+      // 🆕 FIX: Get product_id if available
+      let productId = transaction.product_id;
+      
       const response = await fetch(`${API_BASE}/transactions/${transaction._id}`, {
         method: 'PUT',
         headers: {
@@ -643,6 +747,8 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
           paper_type: transaction.paper_type,
           size_type: transaction.size_type,
           supply_type: transaction.supply_type,
+          product_type: transaction.product_name || transaction.paper_type || transaction.size_type || transaction.supply_type,
+          product_id: productId,  // 🆕 ADD THIS
           total_pages: transaction.total_pages,
           price_per_unit: transaction.price_per_unit,
           quantity: transaction.quantity,
@@ -674,6 +780,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       size_type: "",
       supply_type: "",
       product_type: "",
+      product_id: "",
       total_pages: "",
       price_per_unit: "",
       quantity: "",
@@ -725,32 +832,41 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       minimumFractionDigits: 2,
     })}`;
 
-  // DYNAMIC: Get service-specific information for display
+  // FIXED: Get service-specific information for display
   const getServiceSpecificInfo = (transaction) => {
     const serviceCategory = getServiceCategory(transaction.service_type);
     
-    if (serviceCategory === "Paper") {
-      return {
-        type: transaction.paper_type || "—",
-        details: transaction.total_pages ? `${transaction.total_pages} pages` : "—"
-      };
-    } else if (serviceCategory === "T-shirt") {
-      return {
-        type: transaction.size_type || "—",
-        details: transaction.quantity ? `${transaction.quantity} shirts` : "—"
-      };
-    } else if (serviceCategory === "Supplies") {
-      return {
-        type: transaction.supply_type || "—",
-        details: transaction.quantity ? `${transaction.quantity} items` : "—"
-      };
-    } else {
-      const productType = transaction.paper_type || transaction.size_type || transaction.supply_type || "—";
-      return {
-        type: productType,
-        details: transaction.quantity ? `${transaction.quantity} items` : "—"
-      };
+    // 🆕 FIX: Use product_name first, then fall back to other fields
+    let productType = "—";
+    let details = "—";
+    
+    // Check for product name in various possible fields
+    if (transaction.product_name) {
+      productType = transaction.product_name;
+    } else if (transaction.product_type) {
+      productType = transaction.product_type;
+    } else if (transaction.paper_type) {
+      productType = transaction.paper_type;
+    } else if (transaction.size_type) {
+      productType = transaction.size_type;
+    } else if (transaction.supply_type) {
+      productType = transaction.supply_type;
     }
+    
+    if (serviceCategory === "Paper") {
+      details = transaction.total_pages ? `${transaction.total_pages} pages` : "—";
+    } else if (serviceCategory === "T-shirt") {
+      details = transaction.quantity ? `${transaction.quantity} shirts` : "—";
+    } else if (serviceCategory === "Supplies") {
+      details = transaction.quantity ? `${transaction.quantity} items` : "—";
+    } else {
+      details = transaction.quantity ? `${transaction.quantity} items` : "—";
+    }
+    
+    return {
+      type: productType,
+      details: details
+    };
   };
 
   const formatDate = (dateString) => {
@@ -1148,18 +1264,20 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                 </select>
               </div>
 
-              {/* DYNAMIC PRODUCT SELECTION */}
+              {/* DYNAMIC PRODUCT SELECTION WITH STOCK INDICATORS */}
               {hasProductsForService(formData.service_type) && (
                 <div className="form-group">
                   <label>Select Product:</label>
                   <select
-                    name="product_type"
-                    value={formData.product_type || ""}
+                    name="product_id"
+                    value={formData.product_id || ""}
                     onChange={(e) => {
-                      const productName = e.target.value;
+                      const productId = e.target.value;
+                      const selectedProduct = getServiceOptions(formData.service_type).find(p => p.id === productId);
                       setFormData(prev => ({
                         ...prev, 
-                        product_type: productName
+                        product_id: productId,
+                        product_type: selectedProduct ? selectedProduct.name : ""
                       }));
                     }}
                     required
@@ -1167,12 +1285,24 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                     onInput={(e) => e.target.setCustomValidity('')}
                   >
                     <option value="" disabled>Select Product</option>
-                    {getServiceOptions(formData.service_type).map((option) => (
-                      <option key={option} value={option}>
-                        {option}
+                    {getServiceOptions(formData.service_type).map((product) => (
+                      <option 
+                        key={product.id} 
+                        value={product.id}
+                        disabled={!isEditing && product.isDisabled} // 🆕 FIX: Only disable for new transactions, not editing
+                        style={{ color: product.statusColor }}
+                      >
+                        {product.name} - {product.status} {product.stockQuantity > 0 ? `(${product.stockQuantity} left)` : ''}
                       </option>
                     ))}
                   </select>
+                  {formData.product_id && (
+                    <small style={{color: '#666', fontSize: '12px', marginTop: '5px'}}>
+                      {getServiceOptions(formData.service_type).find(p => p.id === formData.product_id)?.status === "Out of Stock" 
+                        ? "This product is out of stock and cannot be selected"
+                        : ""}
+                    </small>
+                  )}
                 </div>
               )}
 

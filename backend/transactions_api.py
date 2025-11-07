@@ -22,9 +22,22 @@ def init_transactions_relationships(service_types_coll, categories_coll):
     categories_collection = categories_coll
 
 def serialize_doc(doc):
-    if doc:
-        doc['_id'] = str(doc['_id'])
-    return doc
+    if not doc:
+        return doc
+    
+    serialized = {}
+    for key, value in doc.items():
+        if isinstance(value, ObjectId):
+            serialized[key] = str(value)
+        elif isinstance(value, datetime):
+            serialized[key] = value.isoformat()
+        elif isinstance(value, dict):
+            serialized[key] = serialize_doc(value)
+        elif isinstance(value, list):
+            serialized[key] = [serialize_doc(item) if isinstance(item, dict) else item for item in value]
+        else:
+            serialized[key] = value
+    return serialized
 
 def get_ph_time():
     utc_now = datetime.utcnow()
@@ -47,24 +60,34 @@ def generate_queue_number():
     count = transactions_collection.count_documents({"is_archived": {"$ne": True}})
     return f"{count + 1:03d}"
 
-def update_product_inventory(product_name, total_pages, quantity, service_type):
+def update_product_inventory(product_id, total_pages, quantity, service_type):
     try:
-        if not product_name or not quantity:
+        if not product_id:
+            print("No product_id provided for inventory update")
             return False
             
-        product = products_collection.find_one({"product_name": product_name})
+        print(f"Updating inventory for product_id: {product_id}")
+        
+        product = products_collection.find_one({"_id": ObjectId(product_id)})
         if not product:
-            print(f"Product not found: {product_name}")
+            print(f"Product not found with ID: {product_id}")
             return False
         
+        print(f"Found product: {product['product_name']}, Current stock: {product['stock_quantity']}")
+        
+        # Calculate items to deduct based on service type
         if service_type in ["Printing", "Photocopying", "Thesis Hardbound", "Softbind"]:
             items_to_deduct = total_pages * quantity
+            print(f"Paper service: {total_pages} pages × {quantity} copies = {items_to_deduct} items")
         elif service_type in ["Tshirt Printing", "School Supplies"]:
             items_to_deduct = quantity
+            print(f"Item service: {quantity} items")
         else:
             items_to_deduct = quantity
+            print(f"Other service: {quantity} items")
         
         new_stock = max(0, product['stock_quantity'] - items_to_deduct)
+        print(f"New stock will be: {new_stock}")
         
         if new_stock <= 0:
             status = "Out of Stock"
@@ -74,7 +97,7 @@ def update_product_inventory(product_name, total_pages, quantity, service_type):
             status = "In Stock"
         
         result = products_collection.update_one(
-            {'_id': product['_id']},
+            {'_id': ObjectId(product_id)},
             {'$set': {
                 'stock_quantity': new_stock,
                 'status': status,
@@ -82,9 +105,61 @@ def update_product_inventory(product_name, total_pages, quantity, service_type):
             }}
         )
         
+        print(f"Inventory update result: {result.modified_count} modified")
         return result.modified_count > 0
     except Exception as e:
         print(f"Error updating inventory: {e}")
+        return False
+    
+def restore_product_inventory(product_id, total_pages, quantity, service_type):
+    try:
+        if not product_id:
+            print("No product_id provided for inventory restoration")
+            return False
+            
+        print(f"Restoring inventory for product_id: {product_id}")
+        
+        product = products_collection.find_one({"_id": ObjectId(product_id)})
+        if not product:
+            print(f"Product not found with ID: {product_id}")
+            return False
+        
+        print(f"Found product: {product['product_name']}, Current stock: {product['stock_quantity']}")
+        
+        # Calculate items to RESTORE based on service type
+        if service_type in ["Printing", "Photocopying", "Thesis Hardbound", "Softbind"]:
+            items_to_restore = total_pages * quantity
+            print(f"Paper service: Restoring {total_pages} pages × {quantity} copies = {items_to_restore} items")
+        elif service_type in ["Tshirt Printing", "School Supplies"]:
+            items_to_restore = quantity
+            print(f"Item service: Restoring {quantity} items")
+        else:
+            items_to_restore = quantity
+            print(f"Other service: Restoring {quantity} items")
+        
+        new_stock = product['stock_quantity'] + items_to_restore
+        print(f"New stock after restoration: {new_stock}")
+        
+        if new_stock <= 0:
+            status = "Out of Stock"
+        elif new_stock <= 5:
+            status = "Low Stock"
+        else:
+            status = "In Stock"
+        
+        result = products_collection.update_one(
+            {'_id': ObjectId(product_id)},
+            {'$set': {
+                'stock_quantity': new_stock,
+                'status': status,
+                'updated_at': datetime.utcnow()
+            }}
+        )
+        
+        print(f"Inventory restoration result: {result.modified_count} modified")
+        return result.modified_count > 0
+    except Exception as e:
+        print(f"Error restoring inventory: {e}")
         return False
 
 @transactions_bp.route('/api/transactions', methods=['GET'])
@@ -115,8 +190,12 @@ def get_transactions():
                     transaction['service_category'] = category['name'] if category else 'Unknown'
                 else:
                     transaction['service_category'] = 'Uncategorized'
-            else:
-                transaction['service_category'] = 'Unknown'
+            
+            # Add product data if product_id exists
+            if transaction.get('product_id'):
+                product = products_collection.find_one({'_id': ObjectId(transaction['product_id'])})
+                if product:
+                    transaction['product_data'] = serialize_doc(product)
         
         serialized_transactions = [serialize_doc(transaction) for transaction in transactions]
         
@@ -158,6 +237,12 @@ def get_archived_transactions():
                 if service_type and service_type.get('category_id'):
                     category = categories_collection.find_one({'_id': service_type['category_id']})
                     transaction['service_category'] = category['name'] if category else 'Unknown'
+            
+            # Add product data if product_id exists
+            if transaction.get('product_id'):
+                product = products_collection.find_one({'_id': ObjectId(transaction['product_id'])})
+                if product:
+                    transaction['product_data'] = serialize_doc(product)
         
         serialized_transactions = [serialize_doc(transaction) for transaction in transactions]
         
@@ -186,17 +271,11 @@ def get_transaction(transaction_id):
                         category = categories_collection.find_one({'_id': service_type['category_id']})
                         transaction['service_category_data'] = serialize_doc(category) if category else None
             
-            if transaction.get('paper_type'):
-                product = products_collection.find_one({'product_name': transaction['paper_type']})
-                transaction['paper_type_data'] = serialize_doc(product) if product else None
-            
-            if transaction.get('size_type'):
-                product = products_collection.find_one({'product_name': transaction['size_type']})
-                transaction['size_type_data'] = serialize_doc(product) if product else None
-            
-            if transaction.get('supply_type'):
-                product = products_collection.find_one({'product_name': transaction['supply_type']})
-                transaction['supply_type_data'] = serialize_doc(product) if product else None
+            # Add product data if product_id exists
+            if transaction.get('product_id'):
+                product = products_collection.find_one({'_id': ObjectId(transaction['product_id'])})
+                if product:
+                    transaction['product_data'] = serialize_doc(product)
             
             return jsonify(serialize_doc(transaction))
         return jsonify({'error': 'Transaction not found'}), 404
@@ -218,30 +297,56 @@ def create_transaction():
         ph_now = get_ph_time()
         auto_date = ph_now.strftime('%Y-%m-%d')
         
+        # Get product_id from the frontend and convert to ObjectId
+        product_id = data.get('product_id')
+        product_name = data.get('product_type', '')
+        
+        # Set the appropriate field based on service category
+        service_category = None
+        if data.get('service_type'):
+            service = service_types_collection.find_one({'service_name': data['service_type']})
+            if service and service.get('category_id'):
+                category = categories_collection.find_one({'_id': service['category_id']})
+                service_category = category['name'] if category else None
+        
         new_transaction = {
             'queue_number': queue_number,
             'transaction_id': transaction_id,
             'customer_name': data['customer_name'],
             'service_type': data['service_type'],
-            'paper_type': data.get('paper_type', ''),
-            'size_type': data.get('size_type', ''),
-            'supply_type': data.get('supply_type', ''),
+            'paper_type': '',
+            'size_type': '',
+            'supply_type': '',
+            'product_id': ObjectId(product_id) if product_id else None,
+            'product_name': product_name,
             'total_pages': int(data.get('total_pages', 0)),
             'price_per_unit': price_per_unit,
             'quantity': quantity,
             'total_amount': total_amount,
             'date': auto_date,
-            'status': 'Pending',  # Always set to Pending when created
+            'status': 'Pending',
             'is_archived': False,
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
         }
         
-        result = transactions_collection.insert_one(new_transaction)
-        new_transaction['_id'] = str(result.inserted_id)
+        # Set the appropriate type field based on service category
+        if service_category == "Paper":
+            new_transaction['paper_type'] = product_name
+        elif service_category == "T-shirt":
+            new_transaction['size_type'] = product_name
+        elif service_category == "Supplies":
+            new_transaction['supply_type'] = product_name
         
-        return jsonify(new_transaction), 201
+        result = transactions_collection.insert_one(new_transaction)
+        
+        # Get the inserted transaction and serialize it properly
+        inserted_transaction = transactions_collection.find_one({'_id': result.inserted_id})
+        serialized_transaction = serialize_doc(inserted_transaction)
+        
+        return jsonify(serialized_transaction), 201
     except Exception as e:
+        print(f"Error creating transaction: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @transactions_bp.route('/api/transactions/<transaction_id>', methods=['PUT'])
@@ -257,12 +362,26 @@ def update_transaction(transaction_id):
         quantity = int(data.get('quantity', current_transaction.get('quantity', 1)))
         total_amount = float(data.get('total_amount', price_per_unit * quantity))
         
+        # Get product_id from the frontend
+        product_id = data.get('product_id')
+        product_name = data.get('product_type', '')
+        
+        # Set the appropriate field based on service category
+        service_category = None
+        if data.get('service_type'):
+            service = service_types_collection.find_one({'service_name': data['service_type']})
+            if service and service.get('category_id'):
+                category = categories_collection.find_one({'_id': service['category_id']})
+                service_category = category['name'] if category else None
+        
         update_data = {
             'customer_name': data.get('customer_name', current_transaction.get('customer_name')),
             'service_type': data.get('service_type', current_transaction.get('service_type')),
-            'paper_type': data.get('paper_type', current_transaction.get('paper_type', '')),
-            'size_type': data.get('size_type', current_transaction.get('size_type', '')),
-            'supply_type': data.get('supply_type', current_transaction.get('supply_type', '')),
+            'paper_type': '',
+            'size_type': '',
+            'supply_type': '',
+            'product_id': ObjectId(product_id) if product_id else None,
+            'product_name': product_name,
             'total_pages': int(data.get('total_pages', current_transaction.get('total_pages', 0))),
             'price_per_unit': price_per_unit,
             'quantity': quantity,
@@ -272,6 +391,14 @@ def update_transaction(transaction_id):
             'updated_at': datetime.utcnow()
         }
         
+        # Set the appropriate type field based on service category
+        if service_category == "Paper":
+            update_data['paper_type'] = product_name
+        elif service_category == "T-shirt":
+            update_data['size_type'] = product_name
+        elif service_category == "Supplies":
+            update_data['supply_type'] = product_name
+        
         result = transactions_collection.update_one(
             {'_id': ObjectId(transaction_id)},
             {'$set': update_data}
@@ -280,27 +407,52 @@ def update_transaction(transaction_id):
         if result.matched_count:
             # Handle inventory update when status changes to Completed
             if (current_transaction.get('status') != 'Completed' and 
-                update_data['status'] == 'Completed'):
+                update_data['status'] == 'Completed' and
+                product_id):
                 
-                product_name = ""
-                if update_data['paper_type']:
-                    product_name = update_data['paper_type']
-                elif update_data['size_type']:
-                    product_name = update_data['size_type']
-                elif update_data['supply_type']:
-                    product_name = update_data['supply_type']
+                print(f"Transaction completed, updating inventory for product: {product_id}")
+                update_product_inventory(
+                    product_id,
+                    update_data['total_pages'],
+                    update_data['quantity'],
+                    update_data['service_type']
+                )
+            
+            # 🆕 FIX: Handle inventory adjustment when editing COMPLETED transactions
+            elif (current_transaction.get('status') == 'Completed' and 
+                  update_data['status'] == 'Completed' and
+                  product_id):
                 
-                if product_name:
+                # Calculate the difference from previous values
+                old_total_pages = current_transaction.get('total_pages', 0)
+                old_quantity = current_transaction.get('quantity', 1)
+                new_total_pages = update_data['total_pages']
+                new_quantity = update_data['quantity']
+                
+                # Only update inventory if there's a change in pages or quantity
+                if old_total_pages != new_total_pages or old_quantity != new_quantity:
+                    print(f"Adjusting inventory for edited completed transaction")
+                    
+                    # First, RESTORE the old deducted amount
+                    restore_product_inventory(
+                        product_id,
+                        old_total_pages,
+                        old_quantity,
+                        update_data['service_type']
+                    )
+                    
+                    # Then, deduct the NEW amount
                     update_product_inventory(
-                        product_name,
-                        update_data['total_pages'],
-                        update_data['quantity'],
+                        product_id,
+                        new_total_pages,
+                        new_quantity,
                         update_data['service_type']
                     )
             
             return jsonify({'message': 'Transaction updated successfully'})
         return jsonify({'error': 'Transaction not found'}), 404
     except Exception as e:
+        print(f"Error updating transaction: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 # ARCHIVE TRANSACTION ENDPOINT
@@ -406,6 +558,12 @@ def get_transactions_by_status(status):
                     transaction['service_category'] = 'Uncategorized'
             else:
                 transaction['service_category'] = 'Unknown'
+            
+            # Add product data if product_id exists
+            if transaction.get('product_id'):
+                product = products_collection.find_one({'_id': ObjectId(transaction['product_id'])})
+                if product:
+                    transaction['product_data'] = serialize_doc(product)
         
         serialized_transactions = [serialize_doc(transaction) for transaction in transactions]
         
