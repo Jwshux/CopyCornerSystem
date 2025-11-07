@@ -1,0 +1,126 @@
+[{
+  "_id": {
+    "$oid": "69037442e40d83ff2b7a8b53"
+  },
+  "day": "Monday",
+  "start_time": "07:30",
+  "end_time": "16:30",
+  "staff_id": {
+    "$oid": "68fde443f7a7aeab4b3092f0"
+  },
+  "staff_name": "Sofia Parreño",
+  "created_at": {
+    "$date": "2025-10-30T14:20:50.682Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T15:49:19.624Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "690731a985570cb40684b0fe"
+  },
+  "day": "Saturday",
+  "start_time": "07:30",
+  "end_time": "17:00",
+  "staff_id": {
+    "$oid": "68fde443f7a7aeab4b3092f0"
+  },
+  "staff_name": "Sofia Parreño",
+  "created_at": {
+    "$date": "2025-11-02T10:25:45.570Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T15:50:25.659Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "690e14909ae7235014b7b9b0"
+  },
+  "day": "Tuesday",
+  "start_time": "08:00",
+  "end_time": "16:00",
+  "staff_id": {
+    "$oid": "68fde4b9f7a7aeab4b3092f4"
+  },
+  "staff_name": "Trixie",
+  "created_at": {
+    "$date": "2025-11-07T15:47:28.368Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T15:49:40.432Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "690e14989ae7235014b7b9b1"
+  },
+  "day": "Wednesday",
+  "start_time": "08:00",
+  "end_time": "17:00",
+  "staff_id": {
+    "$oid": "68fde443f7a7aeab4b3092f0"
+  },
+  "staff_name": "Sofia Parreño",
+  "created_at": {
+    "$date": "2025-11-07T15:47:36.463Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T15:49:55.684Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "690e14b39ae7235014b7b9b2"
+  },
+  "day": "Thursday",
+  "start_time": "07:30",
+  "end_time": "16:30",
+  "staff_id": {
+    "$oid": "68fde4d4f7a7aeab4b3092f6"
+  },
+  "staff_name": "Rodela",
+  "created_at": {
+    "$date": "2025-11-07T15:48:03.943Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T15:50:06.518Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "690e14c39ae7235014b7b9b3"
+  },
+  "day": "Friday",
+  "start_time": "08:00",
+  "end_time": "17:00",
+  "staff_id": {
+    "$oid": "68fde517f7a7aeab4b3092f8"
+  },
+  "staff_name": "Pauline",
+  "created_at": {
+    "$date": "2025-11-07T15:48:19.084Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T15:50:19.609Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "690e14eb9ae7235014b7b9b4"
+  },
+  "day": "Monday",
+  "start_time": "07:30",
+  "end_time": "16:30",
+  "staff_id": {
+    "$oid": "68fde4d4f7a7aeab4b3092f6"
+  },
+  "staff_name": "Rodela",
+  "created_at": {
+    "$date": "2025-11-07T15:48:59.843Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T15:49:29.972Z"
+  }
+}]

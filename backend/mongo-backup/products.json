@@ -1,0 +1,504 @@
+[{
+  "_id": {
+    "$oid": "68f5da17a0ae407b7d74eaeb"
+  },
+  "product_id": "PROD_001",
+  "product_name": "A4 Bond Paper",
+  "category": "",
+  "stock_quantity": 0,
+  "unit_price": 3,
+  "status": "Out of Stock",
+  "created_at": {
+    "$date": "2025-10-20T06:43:35.011Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T08:23:45.020Z"
+  },
+  "minimum_stock": 200,
+  "category_id": {
+    "$oid": "68f5191180573e1d5c226711"
+  },
+  "archived_at": {
+    "$date": "2025-11-07T07:15:39.456Z"
+  },
+  "is_archived": false,
+  "restored_at": {
+    "$date": "2025-11-07T07:30:15.837Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68f89a71ab9780fb449e338b"
+  },
+  "product_id": "PROD_002",
+  "product_name": "Long Bond Paper",
+  "category": "",
+  "stock_quantity": 165,
+  "unit_price": 3,
+  "status": "In Stock",
+  "created_at": {
+    "$date": "2025-10-22T08:48:49.141Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T08:13:40.646Z"
+  },
+  "minimum_stock": 200,
+  "category_id": {
+    "$oid": "68f5191180573e1d5c226711"
+  },
+  "archived_at": {
+    "$date": "2025-11-01T09:35:20.993Z"
+  },
+  "is_archived": false,
+  "restored_at": {
+    "$date": "2025-11-01T09:42:25.415Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68f89a7eab9780fb449e338c"
+  },
+  "product_id": "PROD_003",
+  "product_name": "Short Bond Paper",
+  "category": "",
+  "stock_quantity": 198,
+  "unit_price": 3,
+  "status": "In Stock",
+  "created_at": {
+    "$date": "2025-10-22T08:49:02.627Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T08:19:22.346Z"
+  },
+  "minimum_stock": 200,
+  "category_id": {
+    "$oid": "68f5191180573e1d5c226711"
+  },
+  "archived_at": {
+    "$date": "2025-11-01T09:35:25.320Z"
+  },
+  "is_archived": false,
+  "restored_at": {
+    "$date": "2025-11-01T09:42:20.770Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6901d7f6ff43f13e2d57c302"
+  },
+  "product_id": "PROD_004",
+  "product_name": "Pencil",
+  "category": "",
+  "stock_quantity": 199,
+  "unit_price": 10,
+  "status": "In Stock",
+  "created_at": {
+    "$date": "2025-10-29T09:01:42.836Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T08:17:39.885Z"
+  },
+  "minimum_stock": 20,
+  "category_id": {
+    "$oid": "6901d7e9ff43f13e2d57c301"
+  },
+  "archived_at": {
+    "$date": "2025-11-01T09:46:19.944Z"
+  },
+  "is_archived": false,
+  "restored_at": {
+    "$date": "2025-11-01T10:03:46.800Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6901d802ff43f13e2d57c303"
+  },
+  "product_id": "PROD_005",
+  "product_name": "Red - Ballpen",
+  "category": "",
+  "stock_quantity": 200,
+  "unit_price": 12,
+  "status": "In Stock",
+  "created_at": {
+    "$date": "2025-10-29T09:01:54.836Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T08:00:40.564Z"
+  },
+  "minimum_stock": 20,
+  "category_id": {
+    "$oid": "6905fab4744d0a59318c88ed"
+  },
+  "archived_at": {
+    "$date": "2025-11-01T09:57:55.353Z"
+  },
+  "is_archived": false,
+  "restored_at": {
+    "$date": "2025-11-01T10:03:43.195Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6901d824ff43f13e2d57c304"
+  },
+  "product_id": "PROD_006",
+  "product_name": "Pentelpen",
+  "category": "Supplies",
+  "stock_quantity": 200,
+  "unit_price": 20,
+  "status": "In Stock",
+  "created_at": {
+    "$date": "2025-10-29T09:02:28.187Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-01T10:03:39.519Z"
+  },
+  "minimum_stock": 20,
+  "category_id": {
+    "$oid": "6901d7e9ff43f13e2d57c301"
+  },
+  "archived_at": {
+    "$date": "2025-11-01T09:58:00.108Z"
+  },
+  "is_archived": false,
+  "restored_at": {
+    "$date": "2025-11-01T10:03:39.519Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6901d8adff43f13e2d57c305"
+  },
+  "product_id": "PROD_007",
+  "product_name": "Ink - Cyan (C)",
+  "category": "Ink",
+  "stock_quantity": 5,
+  "unit_price": 250,
+  "status": "In Stock",
+  "created_at": {
+    "$date": "2025-10-29T09:04:45.346Z"
+  },
+  "updated_at": {
+    "$date": "2025-10-29T18:09:24.765Z"
+  },
+  "minimum_stock": 2,
+  "category_id": {
+    "$oid": "690049f5b2556b9713601b51"
+  }
+},
+{
+  "_id": {
+    "$oid": "6901d8bfff43f13e2d57c306"
+  },
+  "product_id": "PROD_008",
+  "product_name": "Ink - Magenta (M)",
+  "category": "Ink",
+  "stock_quantity": 10,
+  "unit_price": 250,
+  "status": "In Stock",
+  "created_at": {
+    "$date": "2025-10-29T09:05:03.138Z"
+  },
+  "updated_at": {
+    "$date": "2025-10-29T18:09:33.983Z"
+  },
+  "minimum_stock": 2,
+  "category_id": {
+    "$oid": "690049f5b2556b9713601b51"
+  }
+},
+{
+  "_id": {
+    "$oid": "6901d8ceff43f13e2d57c307"
+  },
+  "product_id": "PROD_009",
+  "product_name": "Ink - Yellow (Y)",
+  "category": "Ink",
+  "stock_quantity": 20,
+  "unit_price": 250,
+  "status": "In Stock",
+  "created_at": {
+    "$date": "2025-10-29T09:05:18.708Z"
+  },
+  "updated_at": {
+    "$date": "2025-10-29T13:53:32.868Z"
+  },
+  "minimum_stock": 2,
+  "category_id": {
+    "$oid": "690049f5b2556b9713601b51"
+  }
+},
+{
+  "_id": {
+    "$oid": "6901d8deff43f13e2d57c308"
+  },
+  "product_id": "PROD_010",
+  "product_name": "Ink - Black (K)",
+  "category": "Ink",
+  "stock_quantity": 20,
+  "unit_price": 250,
+  "status": "In Stock",
+  "created_at": {
+    "$date": "2025-10-29T09:05:34.428Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T07:15:07.657Z"
+  },
+  "minimum_stock": 2,
+  "category_id": {
+    "$oid": "690049f5b2556b9713601b51"
+  },
+  "archived_at": {
+    "$date": "2025-11-01T20:34:39.108Z"
+  },
+  "is_archived": false,
+  "restored_at": {
+    "$date": "2025-11-07T07:15:07.657Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6901e37713ff25db149f98c4"
+  },
+  "product_id": "PROD_011",
+  "product_name": "Small - Blue Corner",
+  "category": "T-shirt",
+  "stock_quantity": 199,
+  "unit_price": 250,
+  "status": "In Stock",
+  "created_at": {
+    "$date": "2025-10-29T09:50:47.123Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T07:01:31.676Z"
+  },
+  "minimum_stock": 20,
+  "category_id": {
+    "$oid": "6901e36213ff25db149f98c3"
+  },
+  "archived_at": {
+    "$date": "2025-11-07T07:01:21.112Z"
+  },
+  "is_archived": false,
+  "restored_at": {
+    "$date": "2025-11-07T07:01:31.676Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6901e3a213ff25db149f98c5"
+  },
+  "product_id": "PROD_012",
+  "product_name": "Medium - Blue Corner\t",
+  "category": "T-shirt",
+  "stock_quantity": 200,
+  "unit_price": 250,
+  "status": "In Stock",
+  "created_at": {
+    "$date": "2025-10-29T09:51:30.278Z"
+  },
+  "updated_at": {
+    "$date": "2025-10-29T13:54:09.296Z"
+  },
+  "minimum_stock": 20,
+  "category_id": {
+    "$oid": "6901e36213ff25db149f98c3"
+  }
+},
+{
+  "_id": {
+    "$oid": "6901e3b113ff25db149f98c6"
+  },
+  "product_id": "PROD_013",
+  "product_name": "Large - Blue Corner\t",
+  "category": "T-shirt",
+  "stock_quantity": 199,
+  "unit_price": 250,
+  "status": "In Stock",
+  "created_at": {
+    "$date": "2025-10-29T09:51:45.330Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T08:17:56.223Z"
+  },
+  "minimum_stock": 20,
+  "category_id": {
+    "$oid": "6901e36213ff25db149f98c3"
+  }
+},
+{
+  "_id": {
+    "$oid": "6901e3bf13ff25db149f98c7"
+  },
+  "product_id": "PROD_014",
+  "product_name": "XL - Blue Corner\t",
+  "category": "T-shirt",
+  "stock_quantity": 200,
+  "unit_price": 250,
+  "status": "In Stock",
+  "created_at": {
+    "$date": "2025-10-29T09:51:59.778Z"
+  },
+  "updated_at": {
+    "$date": "2025-10-29T13:54:24.704Z"
+  },
+  "minimum_stock": 20,
+  "category_id": {
+    "$oid": "6901e36213ff25db149f98c3"
+  }
+},
+{
+  "_id": {
+    "$oid": "6901e3cb13ff25db149f98c8"
+  },
+  "product_id": "PROD_015",
+  "product_name": "XXL - Blue Corner\t",
+  "category": "T-shirt",
+  "stock_quantity": 200,
+  "unit_price": 250,
+  "status": "In Stock",
+  "created_at": {
+    "$date": "2025-10-29T09:52:11.992Z"
+  },
+  "updated_at": {
+    "$date": "2025-10-29T13:54:29.912Z"
+  },
+  "minimum_stock": 20,
+  "category_id": {
+    "$oid": "6901e36213ff25db149f98c3"
+  }
+},
+{
+  "_id": {
+    "$oid": "6901e3df13ff25db149f98c9"
+  },
+  "product_id": "PROD_016",
+  "product_name": "XXXL - Blue Corner\t",
+  "category": "T-shirt",
+  "stock_quantity": 199,
+  "unit_price": 250,
+  "status": "In Stock",
+  "created_at": {
+    "$date": "2025-10-29T09:52:31.079Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-01T13:21:43.358Z"
+  },
+  "minimum_stock": 20,
+  "category_id": {
+    "$oid": "6901e36213ff25db149f98c3"
+  }
+},
+{
+  "_id": {
+    "$oid": "69033dbb69540eadf4af2fbd"
+  },
+  "product_id": "PROD_017",
+  "product_name": "Tulip",
+  "category_id": {
+    "$oid": "69033761e0e0bf98d5a25d7b"
+  },
+  "category": "",
+  "stock_quantity": 198,
+  "minimum_stock": 20,
+  "unit_price": 5,
+  "status": "In Stock",
+  "created_at": {
+    "$date": "2025-10-30T10:28:11.419Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T07:15:14.877Z"
+  },
+  "archived_at": {
+    "$date": "2025-11-01T18:06:50.810Z"
+  },
+  "is_archived": false,
+  "restored_at": {
+    "$date": "2025-11-07T07:15:14.877Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "690342b10f6721d50579373c"
+  },
+  "product_id": "PROD_018",
+  "product_name": "Rose",
+  "category_id": {
+    "$oid": "69033761e0e0bf98d5a25d7b"
+  },
+  "category": "",
+  "stock_quantity": 499,
+  "minimum_stock": 20,
+  "unit_price": 5,
+  "status": "In Stock",
+  "created_at": {
+    "$date": "2025-10-30T10:49:21.044Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T07:15:18.189Z"
+  },
+  "archived_at": {
+    "$date": "2025-11-01T18:06:46.923Z"
+  },
+  "is_archived": false,
+  "restored_at": {
+    "$date": "2025-11-07T07:15:18.189Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69060ee3fefc59d9933b7850"
+  },
+  "product_id": "PROD_019",
+  "product_name": "Black - Ballpen",
+  "category_id": {
+    "$oid": "6905fab4744d0a59318c88ed"
+  },
+  "category": "",
+  "stock_quantity": 500,
+  "minimum_stock": 50,
+  "unit_price": 5,
+  "status": "In Stock",
+  "is_archived": false,
+  "created_at": {
+    "$date": "2025-11-01T13:45:07.871Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T07:15:11.430Z"
+  },
+  "archived_at": {
+    "$date": "2025-11-01T18:36:03.752Z"
+  },
+  "restored_at": {
+    "$date": "2025-11-07T07:15:11.430Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "690626d81775a5dc4a324692"
+  },
+  "product_id": "PROD_020",
+  "product_name": "Blue - Ballpen",
+  "category_id": {
+    "$oid": "6905fab4744d0a59318c88ed"
+  },
+  "category": "",
+  "stock_quantity": 500,
+  "minimum_stock": 200,
+  "unit_price": 10,
+  "status": "In Stock",
+  "is_archived": false,
+  "created_at": {
+    "$date": "2025-11-01T15:27:20.315Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T07:15:21.503Z"
+  },
+  "archived_at": {
+    "$date": "2025-11-01T18:06:42.479Z"
+  },
+  "restored_at": {
+    "$date": "2025-11-07T07:15:21.503Z"
+  }
+}]

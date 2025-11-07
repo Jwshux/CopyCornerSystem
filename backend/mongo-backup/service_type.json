@@ -1,0 +1,173 @@
+[{
+  "_id": {
+    "$oid": "6901fc2f3040c413285a260d"
+  },
+  "service_id": "ST-002",
+  "service_name": "Photocopying",
+  "category": "Paper",
+  "status": "Active",
+  "created_at": {
+    "$date": "2025-10-29T11:36:15.515Z"
+  },
+  "updated_at": {
+    "$date": "2025-10-29T11:36:15.515Z"
+  },
+  "category_id": {
+    "$oid": "68f5191180573e1d5c226711"
+  }
+},
+{
+  "_id": {
+    "$oid": "6901fc463040c413285a260e"
+  },
+  "service_id": "ST-003",
+  "service_name": "T-shirt Printing",
+  "category": "T-shirt",
+  "status": "Active",
+  "created_at": {
+    "$date": "2025-10-29T11:36:38.715Z"
+  },
+  "updated_at": {
+    "$date": "2025-10-29T13:30:13.426Z"
+  },
+  "category_id": {
+    "$oid": "6901e36213ff25db149f98c3"
+  }
+},
+{
+  "_id": {
+    "$oid": "6901fc543040c413285a260f"
+  },
+  "service_id": "ST-004",
+  "service_name": "Thesis Hardbound",
+  "category": "Paper",
+  "status": "Active",
+  "created_at": {
+    "$date": "2025-10-29T11:36:52.016Z"
+  },
+  "updated_at": {
+    "$date": "2025-10-29T11:36:52.016Z"
+  },
+  "category_id": {
+    "$oid": "68f5191180573e1d5c226711"
+  }
+},
+{
+  "_id": {
+    "$oid": "6901fc5b3040c413285a2610"
+  },
+  "service_id": "ST-005",
+  "service_name": "Softbound",
+  "category": "Paper",
+  "status": "Active",
+  "created_at": {
+    "$date": "2025-10-29T11:36:59.158Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-01T09:28:26.930Z"
+  },
+  "category_id": {
+    "$oid": "68f5191180573e1d5c226711"
+  },
+  "archived_at": {
+    "$date": "2025-11-01T09:28:21.578Z"
+  },
+  "is_archived": false,
+  "restored_at": {
+    "$date": "2025-11-01T09:28:26.930Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6901fc683040c413285a2611"
+  },
+  "service_id": "ST-006",
+  "service_name": "School Supplies",
+  "category": "",
+  "status": "Active",
+  "created_at": {
+    "$date": "2025-10-29T11:37:12.105Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-01T10:04:30.135Z"
+  },
+  "category_id": {
+    "$oid": "6901d7e9ff43f13e2d57c301"
+  },
+  "archived_at": {
+    "$date": "2025-11-01T10:00:21.136Z"
+  },
+  "is_archived": false,
+  "restored_at": {
+    "$date": "2025-11-01T10:03:13.044Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69050fe61c1aa9243cc0f42c"
+  },
+  "service_id": "ST-007",
+  "service_name": "Valentine’s Flower Sales",
+  "category_id": {
+    "$oid": "69033761e0e0bf98d5a25d7b"
+  },
+  "category": "",
+  "status": "Active",
+  "is_archived": false,
+  "created_at": {
+    "$date": "2025-10-31T19:37:10.287Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-01T13:24:11.853Z"
+  },
+  "archived_at": {
+    "$date": "2025-11-01T07:52:07.039Z"
+  },
+  "restored_at": {
+    "$date": "2025-11-01T13:22:28.621Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69060ef7fefc59d9933b7851"
+  },
+  "service_id": "ST-008",
+  "service_name": "Ballpen Sales",
+  "category_id": {
+    "$oid": "6905fab4744d0a59318c88ed"
+  },
+  "category": "",
+  "status": "Inactive",
+  "is_archived": false,
+  "created_at": {
+    "$date": "2025-11-01T13:45:27.622Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T13:41:25.424Z"
+  },
+  "archived_at": {
+    "$date": "2025-11-02T13:30:18.688Z"
+  },
+  "restored_at": {
+    "$date": "2025-11-07T13:41:25.424Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "690df70f9ae7235014b7b9af"
+  },
+  "service_id": "ST-008",
+  "service_name": "Printing",
+  "category_id": {
+    "$oid": "68f5191180573e1d5c226711"
+  },
+  "category": "",
+  "status": "Active",
+  "is_archived": false,
+  "created_at": {
+    "$date": "2025-11-07T13:41:35.863Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T13:41:35.863Z"
+  }
+}]

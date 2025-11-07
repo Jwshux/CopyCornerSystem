@@ -1,0 +1,209 @@
+[{
+  "_id": {
+    "$oid": "690da755d300c22749c90f47"
+  },
+  "queue_number": "001",
+  "transaction_id": "T-001",
+  "customer_name": "J. Riana",
+  "service_type": "Photocopying",
+  "paper_type": "Long Bond Paper",
+  "size_type": "",
+  "supply_type": "",
+  "product_id": {
+    "$oid": "68f89a71ab9780fb449e338b"
+  },
+  "product_name": "Long Bond Paper",
+  "total_pages": 15,
+  "price_per_unit": 15,
+  "quantity": 2,
+  "total_amount": 30,
+  "date": "2025-11-07",
+  "status": "Completed",
+  "is_archived": false,
+  "created_at": {
+    "$date": "2025-11-07T08:01:25.452Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T08:02:00.542Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "690da932d300c22749c90f4b"
+  },
+  "queue_number": "003",
+  "transaction_id": "T-003",
+  "customer_name": "S. Parreño",
+  "service_type": "Photocopying",
+  "paper_type": "Long Bond Paper",
+  "size_type": "",
+  "supply_type": "",
+  "product_id": {
+    "$oid": "68f89a71ab9780fb449e338b"
+  },
+  "product_name": "Long Bond Paper",
+  "total_pages": 5,
+  "price_per_unit": 5,
+  "quantity": 1,
+  "total_amount": 5,
+  "date": "2025-11-07",
+  "status": "Completed",
+  "is_archived": false,
+  "created_at": {
+    "$date": "2025-11-07T08:09:22.502Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T08:16:25.118Z"
+  },
+  "archived_at": {
+    "$date": "2025-11-07T08:16:14.472Z"
+  },
+  "restored_at": {
+    "$date": "2025-11-07T08:16:25.118Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "690daafbd300c22749c90f4c"
+  },
+  "queue_number": "003",
+  "transaction_id": "T-003",
+  "customer_name": "N. Lopez",
+  "service_type": "School Supplies",
+  "paper_type": "",
+  "size_type": "",
+  "supply_type": "Pencil",
+  "product_id": {
+    "$oid": "6901d7f6ff43f13e2d57c302"
+  },
+  "product_name": "Pencil",
+  "total_pages": 0,
+  "price_per_unit": 10,
+  "quantity": 1,
+  "total_amount": 10,
+  "date": "2025-11-07",
+  "status": "Completed",
+  "is_archived": false,
+  "created_at": {
+    "$date": "2025-11-07T08:16:59.298Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T08:17:39.816Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "690dab0ed300c22749c90f4d"
+  },
+  "queue_number": "004",
+  "transaction_id": "T-004",
+  "customer_name": "M. Santiago",
+  "service_type": "T-shirt Printing",
+  "paper_type": "",
+  "size_type": "Large - Blue Corner\t",
+  "supply_type": "",
+  "product_id": {
+    "$oid": "6901e3b113ff25db149f98c6"
+  },
+  "product_name": "Large - Blue Corner\t",
+  "total_pages": 0,
+  "price_per_unit": 175,
+  "quantity": 1,
+  "total_amount": 175,
+  "date": "2025-11-07",
+  "status": "Completed",
+  "is_archived": false,
+  "created_at": {
+    "$date": "2025-11-07T08:17:18.730Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T08:17:56.141Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "690dab88d300c22749c90f4e"
+  },
+  "queue_number": "005",
+  "transaction_id": "T-005",
+  "customer_name": "J. Riana",
+  "service_type": "Photocopying",
+  "paper_type": "Short Bond Paper",
+  "size_type": "",
+  "supply_type": "",
+  "product_id": {
+    "$oid": "68f89a7eab9780fb449e338c"
+  },
+  "product_name": "Short Bond Paper",
+  "total_pages": 3,
+  "price_per_unit": 3,
+  "quantity": 1,
+  "total_amount": 3,
+  "date": "2025-11-07",
+  "status": "Completed",
+  "is_archived": false,
+  "created_at": {
+    "$date": "2025-11-07T08:19:20.359Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T08:19:22.263Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "690dac3ed300c22749c90f4f"
+  },
+  "queue_number": "006",
+  "transaction_id": "T-006",
+  "customer_name": "J. Riana",
+  "service_type": "Photocopying",
+  "paper_type": "A4 Bond Paper",
+  "size_type": "",
+  "supply_type": "",
+  "product_id": {
+    "$oid": "68f5da17a0ae407b7d74eaeb"
+  },
+  "product_name": "A4 Bond Paper",
+  "total_pages": 5,
+  "price_per_unit": 5,
+  "quantity": 5,
+  "total_amount": 25,
+  "date": "2025-11-07",
+  "status": "Completed",
+  "is_archived": false,
+  "created_at": {
+    "$date": "2025-11-07T08:22:22.699Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T08:22:24.430Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "690dac8ed300c22749c90f50"
+  },
+  "queue_number": "007",
+  "transaction_id": "T-007",
+  "customer_name": "J. Riana",
+  "service_type": "Photocopying",
+  "paper_type": "A4 Bond Paper",
+  "size_type": "",
+  "supply_type": "",
+  "product_id": {
+    "$oid": "68f5da17a0ae407b7d74eaeb"
+  },
+  "product_name": "A4 Bond Paper",
+  "total_pages": 10,
+  "price_per_unit": 10,
+  "quantity": 5,
+  "total_amount": 50,
+  "date": "2025-11-07",
+  "status": "Completed",
+  "is_archived": false,
+  "created_at": {
+    "$date": "2025-11-07T08:23:42.231Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T08:23:44.955Z"
+  }
+}]

@@ -1,0 +1,56 @@
+[{
+  "_id": {
+    "$oid": "68f5db4f8ebe3f868e83f7cb"
+  },
+  "group_name": "Administrator",
+  "group_level": 0,
+  "status": "Active",
+  "created_at": {
+    "$date": "2025-10-20T06:48:47.456Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-02T09:54:20.564Z"
+  },
+  "archived_at": {
+    "$date": "2025-11-01T07:58:13.149Z"
+  },
+  "is_archived": false,
+  "restored_at": {
+    "$date": "2025-11-01T07:58:17.706Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68f5db588ebe3f868e83f7cc"
+  },
+  "group_name": "Staff Member",
+  "group_level": 1,
+  "status": "Active",
+  "created_at": {
+    "$date": "2025-10-20T06:48:56.047Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-02T12:53:23.522Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "690479058c4542fdc4e053e8"
+  },
+  "group_name": "VIP",
+  "group_level": 0,
+  "status": "Active",
+  "created_at": {
+    "$date": "2025-10-31T08:53:25.427Z"
+  },
+  "updated_at": {
+    "$date": "2025-11-07T07:08:46.306Z"
+  },
+  "archived_at": {
+    "$date": "2025-11-07T07:08:38.583Z"
+  },
+  "is_archived": false,
+  "restored_at": {
+    "$date": "2025-11-07T07:08:46.306Z"
+  }
+}]
