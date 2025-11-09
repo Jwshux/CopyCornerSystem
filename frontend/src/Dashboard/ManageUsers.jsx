@@ -43,12 +43,16 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
   const [showArchivedView, setShowArchivedView] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Pagination state - FIXED TO 10 ONLY
+  // Pagination state - SEPARATE for main and archived views (FIXED)
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10; // Fixed constant, no state needed
+  const [archivedCurrentPage, setArchivedCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const [totalPages, setTotalPages] = useState(1);
+  const [archivedTotalPages, setArchivedTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [archivedTotalCount, setArchivedTotalCount] = useState(0);
 
-  // Fetch active users from backend
+  // Fetch active users from backend - UPDATED
   const fetchUsers = async (page = 1) => {
     setLoading(true);
     try {
@@ -59,17 +63,22 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
         setUsers(data.users);
         setCurrentPage(data.pagination.page);
         setTotalPages(data.pagination.total_pages);
+        setTotalCount(data.pagination.total_users);
       } else {
         console.error('Failed to fetch users');
+        setUsers([]);
+        setTotalCount(0);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
+      setUsers([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch archived users
+  // Fetch archived users - UPDATED
   const fetchArchivedUsers = async (page = 1) => {
     setLoading(true);
     try {
@@ -77,13 +86,18 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         const data = await response.json();
         setArchivedUsers(data.users);
-        setCurrentPage(data.pagination.page);
-        setTotalPages(data.pagination.total_pages);
+        setArchivedCurrentPage(data.pagination.page);
+        setArchivedTotalPages(data.pagination.total_pages);
+        setArchivedTotalCount(data.pagination.total_users);
       } else {
         console.error('Failed to fetch archived users');
+        setArchivedUsers([]);
+        setArchivedTotalCount(0);
       }
     } catch (error) {
       console.error('Error fetching archived users:', error);
+      setArchivedUsers([]);
+      setArchivedTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -129,7 +143,6 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     }
   }, [showAddModal, showEditModal]);
 
-
   // Reset archive success state when archive modal closes
   useEffect(() => {
     if (!showArchiveModal) {
@@ -144,26 +157,45 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     }
   }, [showRestoreModal]);
 
-  // Pagination handlers
+  // Pagination handlers - UPDATED with separate logic
   const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      if (showArchivedView) {
-        fetchArchivedUsers(currentPage + 1);
-      } else {
+    if (showArchivedView) {
+      if (archivedCurrentPage < archivedTotalPages) {
+        fetchArchivedUsers(archivedCurrentPage + 1);
+      }
+    } else {
+      if (currentPage < totalPages) {
         fetchUsers(currentPage + 1);
       }
     }
   };
 
   const handlePrevPage = () => {
-    if (currentPage > 1) {
-      if (showArchivedView) {
-        fetchArchivedUsers(currentPage - 1);
-      } else {
+    if (showArchivedView) {
+      if (archivedCurrentPage > 1) {
+        fetchArchivedUsers(archivedCurrentPage - 1);
+      }
+    } else {
+      if (currentPage > 1) {
         fetchUsers(currentPage - 1);
       }
     }
   };
+
+  // Calculate display ranges CORRECTLY
+  const getDisplayRange = () => {
+    if (showArchivedView) {
+      const start = (archivedCurrentPage - 1) * ITEMS_PER_PAGE + 1;
+      const end = Math.min(archivedCurrentPage * ITEMS_PER_PAGE, archivedTotalCount);
+      return { start, end, total: archivedTotalCount };
+    } else {
+      const start = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+      const end = Math.min(currentPage * ITEMS_PER_PAGE, totalCount);
+      return { start, end, total: totalCount };
+    }
+  };
+
+  const displayRange = getDisplayRange();
 
   const checkUsername = (username) => {
     if (!username) {
@@ -504,7 +536,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
         setRestoreSuccess(true);
         setTimeout(async () => {
           // Refresh from server instead of local filtering
-          await fetchArchivedUsers(currentPage);
+          await fetchArchivedUsers(archivedCurrentPage);
           await fetchUsers(1); // Also refresh main users list
           closeRestoreModal();
         }, 1500);
@@ -653,34 +685,36 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
             </tbody>
           </table>
 
-          {/* PAGINATION CONTROLS - ALWAYS SHOWN */}
-          <div className="pagination-controls">
-            <div className="pagination-info">
-              <span className="pagination-text">
-                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, users.length)} of {users.length} items
-              </span>
+          {/* PAGINATION CONTROLS - UPDATED */}
+          {users.length > 0 && (
+            <div className="pagination-controls">
+              <div className="pagination-info">
+                <span className="pagination-text">
+                  Showing {displayRange.start}-{displayRange.end} of {displayRange.total} items
+                </span>
+              </div>
+              
+              <div className="pagination-buttons">
+                <button 
+                  onClick={handlePrevPage} 
+                  disabled={currentPage === 1 || loading}
+                  className="pagination-btn"
+                >
+                  Previous
+                </button>
+                <span className="page-info">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button 
+                  onClick={handleNextPage} 
+                  disabled={currentPage === totalPages || loading}
+                  className="pagination-btn"
+                >
+                  Next
+                </button>
+              </div>
             </div>
-            
-            <div className="pagination-buttons">
-              <button 
-                onClick={handlePrevPage} 
-                disabled={currentPage === 1 || loading}
-                className="pagination-btn"
-              >
-                Previous
-              </button>
-              <span className="page-info">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button 
-                onClick={handleNextPage} 
-                disabled={currentPage === totalPages || loading}
-                className="pagination-btn"
-              >
-                Next
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -766,34 +800,36 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
             </tbody>
           </table>
 
-          {/* PAGINATION FOR ARCHIVED USERS - ALWAYS SHOWN */}
-          <div className="pagination-controls">
-            <div className="pagination-info">
-              <span className="pagination-text">
-                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, archivedUsers.length)} of {archivedUsers.length} items
-              </span>
+          {/* PAGINATION FOR ARCHIVED USERS - UPDATED */}
+          {archivedUsers.length > 0 && (
+            <div className="pagination-controls">
+              <div className="pagination-info">
+                <span className="pagination-text">
+                  Showing {displayRange.start}-{displayRange.end} of {displayRange.total} items
+                </span>
+              </div>
+              
+              <div className="pagination-buttons">
+                <button 
+                  onClick={handlePrevPage} 
+                  disabled={archivedCurrentPage === 1 || loading}
+                  className="pagination-btn"
+                >
+                  Previous
+                </button>
+                <span className="page-info">
+                  Page {archivedCurrentPage} of {archivedTotalPages}
+                </span>
+                <button 
+                  onClick={handleNextPage} 
+                  disabled={archivedCurrentPage === archivedTotalPages || loading}
+                  className="pagination-btn"
+                >
+                  Next
+                </button>
+              </div>
             </div>
-            
-            <div className="pagination-buttons">
-              <button 
-                onClick={handlePrevPage} 
-                disabled={currentPage === 1 || loading}
-                className="pagination-btn"
-              >
-                Previous
-              </button>
-              <span className="page-info">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button 
-                onClick={handleNextPage} 
-                disabled={currentPage === totalPages || loading}
-                className="pagination-btn"
-              >
-                Next
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       )}
 

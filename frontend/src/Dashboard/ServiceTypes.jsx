@@ -12,7 +12,7 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showErrorModal, setShowErrorModal] = useState(false); // Add this
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const [serviceTypes, setServiceTypes] = useState([]);
   const [archivedServiceTypes, setArchivedServiceTypes] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -27,7 +27,7 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
   const [archiveSuccess, setArchiveSuccess] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [restoreSuccess, setRestoreSuccess] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(""); // Add this
+  const [errorMessage, setErrorMessage] = useState("");
   
   const [formData, setFormData] = useState({
     service_name: "",
@@ -39,9 +39,14 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
   const [showArchivedView, setShowArchivedView] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Pagination state - SEPARATE for main and archived views
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10; // Fixed constant
+  const [archivedCurrentPage, setArchivedCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const [totalPages, setTotalPages] = useState(1);
+  const [archivedTotalPages, setArchivedTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [archivedTotalCount, setArchivedTotalCount] = useState(0);
 
   // Add error modal functions
   const showError = (message) => {
@@ -74,36 +79,62 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
           setServiceTypes(data);
           setCurrentPage(1);
           setTotalPages(1);
+          setTotalCount(data.length);
         } else if (data.service_types) {
           setServiceTypes(data.service_types || []);
           setCurrentPage(data.pagination?.page || 1);
           setTotalPages(data.pagination?.total_pages || 1);
+          setTotalCount(data.pagination?.total_service_types || data.service_types.length);
         } else {
           setServiceTypes([]);
+          setTotalCount(0);
         }
       } else {
         console.error('Failed to fetch service types');
+        setServiceTypes([]);
+        setTotalCount(0);
       }
     } catch (error) {
       console.error('Error fetching service types:', error);
+      setServiceTypes([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch archived service types
-  const fetchArchivedServiceTypes = async () => {
+  // Fetch archived service types - UPDATED WITH PAGINATION
+  const fetchArchivedServiceTypes = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/service_types/archived`);
+      const response = await fetch(`${API_BASE}/service_types/archived?page=${page}&per_page=${ITEMS_PER_PAGE}`);
       if (response.ok) {
         const data = await response.json();
-        setArchivedServiceTypes(Array.isArray(data) ? data : []);
+        console.log('Archived Service Types API Response:', data);
+        
+        if (Array.isArray(data)) {
+          setArchivedServiceTypes(data);
+          setArchivedCurrentPage(1);
+          setArchivedTotalPages(1);
+          setArchivedTotalCount(data.length);
+        } else if (data.service_types) {
+          setArchivedServiceTypes(data.service_types || []);
+          setArchivedCurrentPage(data.pagination?.page || 1);
+          setArchivedTotalPages(data.pagination?.total_pages || 1);
+          setArchivedTotalCount(data.pagination?.total_service_types || data.service_types.length);
+        } else {
+          setArchivedServiceTypes([]);
+          setArchivedTotalCount(0);
+        }
       } else {
         console.error('Failed to fetch archived service types');
+        setArchivedServiceTypes([]);
+        setArchivedTotalCount(0);
       }
     } catch (error) {
       console.error('Error fetching archived service types:', error);
+      setArchivedServiceTypes([]);
+      setArchivedTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -171,17 +202,45 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
     }
   }, [showErrorModal]);
 
+  // Pagination handlers - UPDATED with separate logic
   const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      fetchServiceTypes(currentPage + 1);
+    if (showArchivedView) {
+      if (archivedCurrentPage < archivedTotalPages) {
+        fetchArchivedServiceTypes(archivedCurrentPage + 1);
+      }
+    } else {
+      if (currentPage < totalPages) {
+        fetchServiceTypes(currentPage + 1);
+      }
     }
   };
 
   const handlePrevPage = () => {
-    if (currentPage > 1) {
-      fetchServiceTypes(currentPage - 1);
+    if (showArchivedView) {
+      if (archivedCurrentPage > 1) {
+        fetchArchivedServiceTypes(archivedCurrentPage - 1);
+      }
+    } else {
+      if (currentPage > 1) {
+        fetchServiceTypes(currentPage - 1);
+      }
     }
   };
+
+  // Calculate display ranges CORRECTLY
+  const getDisplayRange = () => {
+    if (showArchivedView) {
+      const start = (archivedCurrentPage - 1) * ITEMS_PER_PAGE + 1;
+      const end = Math.min(archivedCurrentPage * ITEMS_PER_PAGE, archivedTotalCount);
+      return { start, end, total: archivedTotalCount };
+    } else {
+      const start = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+      const end = Math.min(currentPage * ITEMS_PER_PAGE, totalCount);
+      return { start, end, total: totalCount };
+    }
+  };
+
+  const displayRange = getDisplayRange();
 
   const checkServiceName = (serviceName) => {
     if (!serviceName) {
@@ -405,8 +464,8 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setRestoreSuccess(true);
         setTimeout(async () => {
-          await fetchArchivedServiceTypes();
-          await fetchServiceTypes(currentPage);
+          await fetchArchivedServiceTypes(archivedCurrentPage);
+          await fetchServiceTypes(1);
           closeRestoreModal();
         }, 1500);
       } else {
@@ -482,7 +541,7 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
             ) : (
               <button className="view-archive-btn" onClick={() => {
                 setShowArchivedView(true);
-                fetchArchivedServiceTypes();
+                fetchArchivedServiceTypes(1);
               }}>
                 📦 View Archived Service Types
               </button>
@@ -531,7 +590,7 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
                   ) : (
                     serviceTypes.map((serviceType, index) => (
                       <tr key={serviceType._id}>
-                        <td>{(currentPage - 1) * 10 + index + 1}</td>
+                        <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                         <td>{serviceType.service_id}</td>
                         <td>{serviceType.service_name}</td>
                         <td>{getCategoryName(serviceType)}</td>
@@ -570,12 +629,12 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
                 </tbody>
               </table>
 
-              {/* PAGINATION CONTROLS - ALWAYS SHOWN */}
+              {/* PAGINATION CONTROLS - UPDATED */}
               {serviceTypes.length > 0 && (
                 <div className="pagination-controls">
                   <div className="pagination-info">
                     <span className="pagination-text">
-                      Showing {(currentPage - 1) * 10 + 1}-{Math.min(currentPage * 10, serviceTypes.length)} of {serviceTypes.length} items
+                      Showing {displayRange.start}-{displayRange.end} of {displayRange.total} items
                     </span>
                   </div>
                   
@@ -674,6 +733,37 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
                   }
                 </tbody>
               </table>
+
+              {/* PAGINATION FOR ARCHIVED SERVICE TYPES - ADDED */}
+              {archivedServiceTypes.length > 0 && (
+                <div className="pagination-controls">
+                  <div className="pagination-info">
+                    <span className="pagination-text">
+                      Showing {displayRange.start}-{displayRange.end} of {displayRange.total} items
+                    </span>
+                  </div>
+                  
+                  <div className="pagination-buttons">
+                    <button 
+                      onClick={handlePrevPage} 
+                      disabled={archivedCurrentPage === 1 || loading}
+                      className="pagination-btn"
+                    >
+                      Previous
+                    </button>
+                    <span className="page-info">
+                      Page {archivedCurrentPage} of {archivedTotalPages}
+                    </span>
+                    <button 
+                      onClick={handleNextPage} 
+                      disabled={archivedCurrentPage === archivedTotalPages || loading}
+                      className="pagination-btn"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

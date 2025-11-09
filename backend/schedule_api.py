@@ -77,6 +77,15 @@ def create_schedule():
     try:
         data = request.json
         
+        # Check if staff is archived before creating schedule
+        if data.get('staff_id'):
+            staff_user = users_collection.find_one({
+                '_id': ObjectId(data['staff_id']),
+                'is_archived': True
+            })
+            if staff_user:
+                return jsonify({'error': 'Cannot assign archived staff to schedule'}), 400
+        
         # Get staff name before creating the schedule
         staff_name = "Unknown"
         if data.get('staff_id'):
@@ -106,6 +115,15 @@ def create_schedule():
 def update_schedule(schedule_id):
     try:
         data = request.json
+        
+        # Check if staff is archived before updating
+        if data.get('staff_id'):
+            staff_user = users_collection.find_one({
+                '_id': ObjectId(data['staff_id']),
+                'is_archived': True
+            })
+            if staff_user:
+                return jsonify({'error': 'Cannot assign archived staff to schedule'}), 400
         
         # Get staff name before updating
         staff_name = "Unknown"
@@ -151,7 +169,7 @@ def delete_schedule(schedule_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Get available staff (users with staff role) - FIXED VERSION
+# Get available staff (users with staff role)
 @schedules_bp.route('/api/schedules/staff', methods=['GET'])
 def get_available_staff():
     try:
@@ -189,10 +207,11 @@ def get_available_staff():
         # Get group IDs for staff groups
         staff_group_ids = [group['_id'] for group in staff_groups]
         
-        # Find users who belong to staff groups and are active
+        # Find users who belong to staff groups, are active, AND are NOT archived
         staff_users = users_collection.find({
             'group_id': {'$in': staff_group_ids},
-            'status': 'Active'
+            'status': 'Active',
+            'is_archived': {'$ne': True}  # ADD THIS LINE - exclude archived staff
         }, {'name': 1, 'username': 1, 'group_id': 1})
         
         staff_list = []
@@ -208,7 +227,7 @@ def get_available_staff():
                 'role': group_name
             })
         
-        print(f"📋 Found {len(staff_list)} staff users for scheduling:")
+        print(f"📋 Found {len(staff_list)} active, non-archived staff users for scheduling:")
         for staff in staff_list:
             print(f"   - {staff['name']} ({staff['role']})")
         

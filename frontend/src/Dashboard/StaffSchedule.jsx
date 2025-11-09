@@ -7,7 +7,7 @@ import deleteAnimation from "../animations/delete.json";
 
 const API_BASE = "http://localhost:5000/api";
 
-function StaffSchedule({ showAddModal, onAddModalClose }) {
+function StaffSchedule({ showAddModal, onAddModalClose, userRoleLevel = 0 }) {
   const [schedules, setSchedules] = useState([]);
   const [staffList, setStaffList] = useState([]);
   const [tableLoading, setTableLoading] = useState(false);
@@ -28,12 +28,15 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
     end_time: "",
   });
 
-  // Handle modal from parent
+  // Check if user is staff (read-only)
+  const isStaff = userRoleLevel === 1;
+
+  // Handle modal from parent - Only for admins
   useEffect(() => {
-    if (showAddModal) {
+    if (showAddModal && !isStaff) {
       setShowModal(true);
     }
-  }, [showAddModal]);
+  }, [showAddModal, isStaff]);
 
   const fetchSchedules = async (isInitialLoad = false) => {
     if (isInitialLoad) {
@@ -110,6 +113,8 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
   };
 
   const handleEdit = (schedule) => {
+    if (isStaff) return; // Staff cannot edit
+    
     setEditing({ id: schedule._id });
     setTempTime({
       start: schedule.start_time,
@@ -118,6 +123,8 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
   };
 
   const handleSave = async (scheduleId) => {
+    if (isStaff) return; // Staff cannot save
+    
     setTableActionLoading(true);
     try {
       const response = await fetch(`${API_BASE}/schedules/${scheduleId}`, {
@@ -149,6 +156,8 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
   };
 
   const openDeleteModal = (schedule) => {
+    if (isStaff) return; // Staff cannot delete
+    
     setScheduleToDelete(schedule);
     setShowDeleteModal(true);
   };
@@ -161,7 +170,7 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
   };
 
   const handleDeleteSchedule = async () => {
-    if (!scheduleToDelete) return;
+    if (!scheduleToDelete || isStaff) return; // Staff cannot delete
 
     setDeleting(true);
     try {
@@ -189,6 +198,7 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
 
   const handleAddStaff = async (e) => {
     if (e) e.preventDefault();
+    if (isStaff) return; // Staff cannot add
     
     setModalLoading(true);
     try {
@@ -241,20 +251,20 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
       <table className="schedule-table">
         <colgroup>
           <col style={{ width: "22%" }} />
-          <col style={{ width: "58%" }} />
-          <col style={{ width: "20%" }} />
+          <col style={{ width: isStaff ? "78%" : "58%" }} />
+          {!isStaff && <col style={{ width: "20%" }} />}
         </colgroup>
         <thead>
           <tr>
             <th>Day</th>
             <th>Staff & Time</th>
-            <th>Actions</th>
+            {!isStaff && <th>Actions</th>} {/* Hide Actions column for staff */}
           </tr>
         </thead>
         <tbody>
           {tableLoading ? (
             <tr>
-              <td colSpan="3" style={{ textAlign: "center", padding: "40px 0" }}>
+              <td colSpan={isStaff ? 2 : 3} style={{ textAlign: "center", padding: "40px 0" }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                   <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
                 </div>
@@ -266,7 +276,7 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
                 {daySchedules.length === 0 ? (
                   <tr>
                     <td className="day-cell">{day}</td>
-                    <td className="no-staff" colSpan={2}>
+                    <td className="no-staff" colSpan={isStaff ? 1 : 2}>
                       No staff assigned
                     </td>
                   </tr>
@@ -291,6 +301,7 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
                                   setTempTime({ ...tempTime, start: e.target.value })
                                 }
                                 className="time-input"
+                                disabled={isStaff} // Disable for staff
                               />
                               <span> to </span>
                               <input
@@ -300,6 +311,7 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
                                   setTempTime({ ...tempTime, end: e.target.value })
                                 }
                                 className="time-input"
+                                disabled={isStaff} // Disable for staff
                               />
                             </div>
                           ) : (
@@ -311,32 +323,34 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
                         </div>
                       </td>
 
-                      <td className="action-buttons">
-                        <button
-                          className="edit-btn"
-                          onClick={() => {
-                            if (editing.id === schedule._id) {
-                              handleSave(schedule._id);
-                            } else {
-                              handleEdit(schedule);
-                            }
-                          }}
-                          disabled={tableActionLoading}
-                        >
-                          {editing.id === schedule._id ? (
-                            tableActionLoading ? "⏳" : "Save"
-                          ) : (
-                            "Edit"
-                          )}
-                        </button>
-                        <button
-                          className="delete-btn"
-                          onClick={() => openDeleteModal(schedule)}
-                          disabled={tableActionLoading}
-                        >
-                          Delete
-                        </button>
-                      </td>
+                      {!isStaff && ( // Hide action buttons for staff
+                        <td className="action-buttons">
+                          <button
+                            className="edit-btn"
+                            onClick={() => {
+                              if (editing.id === schedule._id) {
+                                handleSave(schedule._id);
+                              } else {
+                                handleEdit(schedule);
+                              }
+                            }}
+                            disabled={tableActionLoading || isStaff}
+                          >
+                            {editing.id === schedule._id ? (
+                              tableActionLoading ? "⏳" : "Save"
+                            ) : (
+                              "Edit"
+                            )}
+                          </button>
+                          <button
+                            className="delete-btn"
+                            onClick={() => openDeleteModal(schedule)}
+                            disabled={tableActionLoading || isStaff}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}
@@ -346,8 +360,8 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
         </tbody>
       </table>
 
-      {/* === Add Schedule Modal === */}
-      {showModal && (
+      {/* === Add Schedule Modal - Only show for admins === */}
+      {!isStaff && showModal && (
         <div className="modal-backdrop">
           <div className="modal-box">
             <h3>Add New Schedule</h3>
@@ -377,6 +391,7 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
                   required
                   onInvalid={(e) => e.target.setCustomValidity('Please select a day')}
                   onInput={(e) => e.target.setCustomValidity('')}
+                  disabled={isStaff} // Disable for staff
                 >
                   <option value="" disabled>Select A Day</option>
                   {Object.keys(scheduleByDay).map((d) => (
@@ -391,6 +406,7 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
                   required
                   onInvalid={(e) => e.target.setCustomValidity('Please select a staff member')}
                   onInput={(e) => e.target.setCustomValidity('')}
+                  disabled={isStaff} // Disable for staff
                 >
                   <option value="" disabled>Select Staff</option>
                   {staffList.map((staff) => (
@@ -408,6 +424,7 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
                   required
                   onInvalid={(e) => e.target.setCustomValidity('Please select a start time')}
                   onInput={(e) => e.target.setCustomValidity('')}
+                  disabled={isStaff} // Disable for staff
                 />
 
                 <label>End Time:</label>
@@ -418,13 +435,14 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
                   required
                   onInvalid={(e) => e.target.setCustomValidity('Please select an end time')}
                   onInput={(e) => e.target.setCustomValidity('')}
+                  disabled={isStaff} // Disable for staff
                 />
 
                 <div className="modal-actions">
-                  <button type="submit" className="save-btn" disabled={modalLoading}>
+                  <button type="submit" className="save-btn" disabled={modalLoading || isStaff}>
                     {modalLoading ? "⏳ Adding..." : "Save"}
                   </button>
-                  <button type="button" className="cancel-btn" onClick={() => setShowModal(false)} disabled={modalLoading}>
+                  <button type="button" className="cancel-btn" onClick={() => setShowModal(false)} disabled={modalLoading || isStaff}>
                     Cancel
                   </button>
                 </div>
@@ -434,8 +452,8 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
         </div>
       )}
 
-      {/* === Delete Confirmation Modal === */}
-      {showDeleteModal && scheduleToDelete && (
+      {/* === Delete Confirmation Modal - Only show for admins === */}
+      {!isStaff && showDeleteModal && scheduleToDelete && (
         <div className="modal-backdrop">
           <div className="modal-box delete-confirmation">
             {deleting ? (
@@ -465,10 +483,10 @@ function StaffSchedule({ showAddModal, onAddModalClose }) {
                 <p className="delete-warning">This action cannot be undone.</p>
                 
                 <div className="modal-actions">
-                  <button className="confirm-delete-btn" onClick={handleDeleteSchedule}>
+                  <button className="confirm-delete-btn" onClick={handleDeleteSchedule} disabled={isStaff}>
                     Yes
                   </button>
-                  <button className="cancel-btn" onClick={closeDeleteModal}>Cancel</button>
+                  <button className="cancel-btn" onClick={closeDeleteModal} disabled={isStaff}>Cancel</button>
                 </div>
               </>
             )}

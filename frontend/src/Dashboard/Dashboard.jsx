@@ -32,6 +32,7 @@ function AdminDashboard({ user, onLogout }) {
   const [showAddRoleModal, setShowAddRoleModal] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const profileRef = useRef(null);
+  const isStaff = userRoleLevel === 1;
 
   useEffect(() => {
     const getUserRoleLevel = async () => {
@@ -182,6 +183,7 @@ function AdminDashboard({ user, onLogout }) {
         return <StaffSchedule 
           showAddModal={showAddScheduleModal}
           onAddModalClose={() => setShowAddScheduleModal(false)}
+          userRoleLevel={userRoleLevel}
         />;
       case "Sales":
         return <Sales />;
@@ -393,7 +395,7 @@ function AdminDashboard({ user, onLogout }) {
               Add Product
             </button>
           )}
-          {activePage === "Staffs Schedule" && (
+          {activePage === "Staffs Schedule" && !isStaff && (
             <button className="add-schedule-btn" onClick={() => setShowAddScheduleModal(true)}>
               Add Schedule
             </button>
