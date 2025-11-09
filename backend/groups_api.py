@@ -24,6 +24,10 @@ def serialize_doc(doc):
         doc['_id'] = str(doc['_id'])
     return doc
 
+def is_protected_role(group_name):
+    protected_roles = ['Administrator', 'Staff Member']
+    return group_name in protected_roles
+
 # Get all groups - UPDATED FOR PAGINATION AND ARCHIVE
 @groups_bp.route('/api/groups', methods=['GET'])
 def get_groups():
@@ -158,6 +162,11 @@ def update_group(group_id):
     try:
         data = request.json
         
+        # Get the current group to check if it's protected
+        current_group = groups_collection.find_one({'_id': ObjectId(group_id)})
+        if current_group and is_protected_role(current_group.get('group_name')):
+            return jsonify({'error': 'Cannot edit protected system roles'}), 400
+        
         # Check if group name already exists (excluding current group and archived ones)
         existing_group = groups_collection.find_one({
             'group_name': data['group_name'],
@@ -198,6 +207,10 @@ def archive_group(group_id):
         if not group:
             return jsonify({'error': 'Role not found'}), 404
         
+        # Prevent archiving protected roles
+        if is_protected_role(group.get('group_name')):
+            return jsonify({'error': 'Cannot archive protected system roles'}), 400
+        
         # Check if group is being used by any active users
         active_users_count = users_collection.count_documents({
             'group_id': ObjectId(group_id),
@@ -209,7 +222,7 @@ def archive_group(group_id):
             active_users = users_collection.find({
                 'group_id': ObjectId(group_id),
                 'is_archived': {'$ne': True}
-            }).limit(5)  # Limit to 5 users for the error message
+            }).limit(5)
             
             user_details = []
             for user in active_users:

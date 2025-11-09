@@ -37,7 +37,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
   const [showArchivedView, setShowArchivedView] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Pagination state - SEPARATE for main and archived views (FIXED)
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [archivedCurrentPage, setArchivedCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5;
@@ -46,7 +46,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
   const [totalCount, setTotalCount] = useState(0);
   const [archivedTotalCount, setArchivedTotalCount] = useState(0);
 
-  // Role levels with descriptions - ONLY 2 LEVELS
+  // Role levels with descriptions
   const roleLevels = [
     { 
       value: "0", 
@@ -60,6 +60,12 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     }
   ];
 
+  // Check if role is protected (core system role)
+  const isProtectedRole = (groupName) => {
+    const protectedRoles = ['Administrator', 'Staff Member'];
+    return protectedRoles.includes(groupName);
+  };
+
   // Handle modal from parent
   useEffect(() => {
     if (showAddModal) {
@@ -67,7 +73,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     }
   }, [showAddModal]);
 
-  // Fetch active groups from backend - UPDATED
+  // Fetch active groups from backend
   const fetchGroups = async (page = 1) => {
     setLoading(true);
     try {
@@ -92,7 +98,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     }
   };
 
-  // Fetch archived groups - UPDATED
+  // Fetch archived groups
   const fetchArchivedGroups = async (page = 1) => {
     setLoading(true);
     try {
@@ -151,7 +157,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     }
   }, [showRestoreModal]);
 
-  // Pagination handlers - UPDATED with separate logic
+  // Pagination handlers
   const handleNextPage = () => {
     if (showArchivedView) {
       if (archivedCurrentPage < archivedTotalPages) {
@@ -176,7 +182,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     }
   };
 
-  // Calculate display ranges CORRECTLY
+  // Calculate display ranges
   const getDisplayRange = () => {
     if (showArchivedView) {
       const start = (archivedCurrentPage - 1) * ITEMS_PER_PAGE + 1;
@@ -253,6 +259,13 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
 
     try {
       if (isEditing) {
+        // Prevent editing protected roles
+        if (isProtectedRole(currentGroup.group_name)) {
+          alert("Cannot edit protected system roles.");
+          setSaving(false);
+          return;
+        }
+
         // Update existing group
         const response = await fetch(`${API_BASE}/groups/${currentGroup._id}`, {
           method: 'PUT',
@@ -313,6 +326,12 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
   };
 
   const handleEdit = (group) => {
+    // Prevent editing protected roles
+    if (isProtectedRole(group.group_name)) {
+      alert("Cannot edit protected system roles.");
+      return;
+    }
+    
     setCurrentGroup({
       _id: group._id,
       group_name: group.group_name,
@@ -326,6 +345,12 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
 
   // Archive group functions
   const openArchiveModal = (group) => {
+    // Prevent archiving protected roles
+    if (isProtectedRole(group.group_name)) {
+      alert("Cannot archive protected system roles.");
+      return;
+    }
+    
     setGroupToArchive(group);
     setShowArchiveModal(true);
   };
@@ -340,6 +365,13 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
   const handleArchiveGroup = async () => {
     if (!groupToArchive) return;
 
+    // Double-check protection (shouldn't reach here for protected roles)
+    if (isProtectedRole(groupToArchive.group_name)) {
+      alert("Cannot archive protected system roles.");
+      closeArchiveModal();
+      return;
+    }
+
     setArchiving(true);
     
     try {
@@ -350,7 +382,6 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setArchiveSuccess(true);
         setTimeout(async () => {
-          // Refresh from server instead of local filtering
           await fetchGroups(currentPage);
           closeArchiveModal();
         }, 1500);
@@ -410,9 +441,8 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setRestoreSuccess(true);
         setTimeout(async () => {
-          // Refresh BOTH views
-          await fetchArchivedGroups(archivedCurrentPage); // Remove from archive view
-          await fetchGroups(1); // Add to main view (go to page 1 to see it)
+          await fetchArchivedGroups(archivedCurrentPage);
+          await fetchGroups(1);
           closeRestoreModal();
         }, 1500);
       } else {
@@ -534,27 +564,40 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
                   </td>
                 </tr>
               ) : (
-                groups.map((group, index) => (
-                  <tr key={group._id}>
-                    <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
-                    <td>{group.group_name}</td>
-                    <td>Level {group.group_level}</td>
-                    <td>{getLevelDescription(group.group_level)}</td>
-                    <td>
-                      <span className={`status ${group.status.toLowerCase()}`}>
-                        {group.status}
-                      </span>
-                    </td>
-                    <td>
-                      <button className="edit-btn" onClick={() => handleEdit(group)}>
-                        Edit
-                      </button>
-                      <button className="archive-btn" onClick={() => openArchiveModal(group)}>
-                        Archive
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                groups.map((group, index) => {
+                  const isProtected = isProtectedRole(group.group_name);
+                  return (
+                    <tr key={group._id}>
+                      <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
+                      <td>{group.group_name}</td>
+                      <td>Level {group.group_level}</td>
+                      <td>{getLevelDescription(group.group_level)}</td>
+                      <td>
+                        <span className={`status ${group.status.toLowerCase()}`}>
+                          {group.status}
+                        </span>
+                      </td>
+                      <td>
+                        <button 
+                          className={`edit-btn ${isProtected ? 'disabled-btn' : ''}`} 
+                          onClick={() => !isProtected && handleEdit(group)}
+                          disabled={isProtected}
+                          title={isProtected ? "Protected system role - cannot be edited" : "Edit role"}
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          className={`archive-btn ${isProtected ? 'disabled-btn' : ''}`} 
+                          onClick={() => !isProtected && openArchiveModal(group)}
+                          disabled={isProtected}
+                          title={isProtected ? "Protected system role - cannot be archived" : "Archive role"}
+                        >
+                          Archive
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
               
               {/* Add empty rows to maintain consistent height */}
@@ -573,7 +616,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
             </tbody>
           </table>
 
-          {/* PAGINATION CONTROLS - UPDATED */}
+          {/* PAGINATION CONTROLS */}
           {groups.length > 0 && (
             <div className="pagination-controls">
               <div className="pagination-info">
@@ -672,7 +715,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
             </tbody>
           </table>
 
-          {/* PAGINATION FOR ARCHIVED GROUPS - UPDATED */}
+          {/* PAGINATION FOR ARCHIVED GROUPS */}
           {archivedGroups.length > 0 && (
             <div className="pagination-controls">
               <div className="pagination-info">
