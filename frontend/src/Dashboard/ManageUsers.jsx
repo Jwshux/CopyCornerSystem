@@ -523,36 +523,47 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     setRestoreSuccess(false);
   };
 
-  const handleRestoreUser = async () => {
-    if (!userToRestore) return;
+const handleRestoreUser = async () => {
+  if (!userToRestore) return;
 
-    setRestoring(true);
-    try {
-      const response = await fetch(`${API_BASE}/users/${userToRestore._id}/restore`, {
-        method: 'PUT',
-      });
+  setRestoring(true);
+  try {
+    const response = await fetch(`${API_BASE}/users/${userToRestore._id}/restore`, {
+      method: 'PUT',
+    });
 
-      if (response.ok) {
-        setRestoreSuccess(true);
-        setTimeout(async () => {
-          // Refresh from server instead of local filtering
-          await fetchArchivedUsers(archivedCurrentPage);
-          await fetchUsers(1); // Also refresh main users list
-          closeRestoreModal();
-        }, 1500);
+    if (response.ok) {
+      setRestoreSuccess(true);
+      setTimeout(async () => {
+        await fetchArchivedUsers(archivedCurrentPage);
+        await fetchUsers(1);
+        closeRestoreModal();
+      }, 1500);
+    } else {
+      const errorData = await response.json();
+      
+      if (errorData.error && errorData.error.includes('role is currently archived')) {
+        let errorMessage = errorData.error;
+        
+        if (errorData.role_name) {
+          errorMessage += '\n\nPlease restore the role first in Manage Roles.';
+        }
+        
+        setErrorMessage(errorMessage);
+        setShowErrorModal(true);
       } else {
-        const errorData = await response.json();
         setErrorMessage(errorData.error || 'Failed to restore user');
         setShowErrorModal(true);
-        setRestoring(false);
       }
-    } catch (error) {
-      console.error('Error restoring user:', error);
-      setErrorMessage('Error restoring user');
-      setShowErrorModal(true);
       setRestoring(false);
     }
-  };
+  } catch (error) {
+    console.error('Error restoring user:', error);
+    setErrorMessage('Error restoring user');
+    setShowErrorModal(true);
+    setRestoring(false);
+  }
+};
 
   const closeModals = () => {
     setShowEditModal(false);
@@ -1211,8 +1222,9 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
             <div className="error-modal-header">Operation Failed</div>
             <div className="error-modal-title">
               {errorMessage.includes('archive') ? 'Cannot archive user' : 
-               errorMessage.includes('create') ? 'Cannot create user' : 
-               errorMessage.includes('update') ? 'Cannot update user' : 'Operation failed'}
+              errorMessage.includes('create') ? 'Cannot create user' : 
+              errorMessage.includes('update') ? 'Cannot update user' : 
+              errorMessage.includes('restore') ? 'Cannot restore user' : 'Operation failed'}
             </div>
             <div className="error-modal-message">
               {errorMessage.split('\n\n')[0]}
@@ -1225,7 +1237,13 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                   ))}
                 </div>
               )}
-              {errorMessage.split('\n\n')[1] && (
+              {/* ADDED: Role archived error handling */}
+              {errorMessage.includes('role is currently archived') && (
+                <div style={{ marginTop: '15px', color: '#d9534f', fontWeight: 'bold' }}>
+                  {errorMessage.split('\n\n')[1]}
+                </div>
+              )}
+              {errorMessage.split('\n\n')[1] && !errorMessage.includes('role is currently archived') && (
                 <div style={{ marginTop: '15px', color: '#d9534f', fontWeight: 'bold' }}>
                   {errorMessage.split('\n\n')[1]}
                 </div>

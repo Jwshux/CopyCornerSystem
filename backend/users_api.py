@@ -462,6 +462,15 @@ def restore_user(user_id):
         if existing_user:
             return jsonify({'error': 'A user with this username already exists'}), 400
         
+        # NEW CHECK: Check if the user's role is archived
+        if user.get('group_id'):
+            user_role = groups_collection.find_one({'_id': ObjectId(user['group_id'])})
+            if user_role and user_role.get('is_archived'):
+                return jsonify({
+                    'error': f'Cannot restore user. The role "{user_role.get("group_name", "Unknown")}" is currently archived.',
+                    'role_name': user_role.get('group_name', 'Unknown')
+                }), 400
+        
         # Restore the user (set is_archived to False)
         result = users_collection.update_one(
             {'_id': ObjectId(user_id)},
@@ -476,24 +485,6 @@ def restore_user(user_id):
             return jsonify({'message': 'User restored successfully'})
         return jsonify({'error': 'Failed to restore user'}), 500
         
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# Update last login when user logs in
-@users_bp.route('/api/users/<user_id>/last-login', methods=['PUT'])
-def update_last_login(user_id):
-    try:
-        result = users_collection.update_one(
-            {'_id': ObjectId(user_id)},
-            {'$set': {
-                'last_login': datetime.utcnow(),
-                'updated_at': datetime.utcnow()
-            }}
-        )
-        
-        if result.matched_count:
-            return jsonify({'message': 'Last login updated successfully'})
-        return jsonify({'error': 'User not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
