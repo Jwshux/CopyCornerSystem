@@ -408,7 +408,7 @@
 
 .add-form form input, .add-form select {
   width: 100%;
-  margin-bottom: 12px;
+  margin-bottom: 2px; /* Reduced margin to eliminate gap */
   padding: 10px;
   border-radius: 6px;
   border: 1px solid #d1d5db;
@@ -431,6 +431,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  margin-bottom: 8px;
 }
 
 .form-group label {
@@ -640,84 +641,47 @@
   background-color: #c9302c;
 }
 
-/* Error Styling */
+/* Enhanced Error Styling - NO GAPS */
 .error-input {
-  border: 2px solid #ff4444;
-  background-color: #fff8f8;
+  border: 2px solid #ff4444 !important;
+  background-color: #fff8f8 !important;
 }
 
 .error-message {
   color: #ff4444;
-  font-size: 12px;
-  margin: 4px 0 0 0;
-  padding: 4px 8px;
+  font-size: 11px; /* Slightly smaller */
+  margin: 1px 0 0 0; /* Minimal margin to eliminate gap */
+  padding: 2px 6px;
   background-color: #fff8f8;
-  border-radius: 4px;
-  border-left: 3px solid #ff4444;
+  border-radius: 3px;
+  border-left: 2px solid #ff4444;
   width: 100%;
   box-sizing: border-box;
+  line-height: 1.1; /* Tighter line height */
+  white-space: nowrap; /* Prevent wrapping */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 16px; /* Fixed height */
 }
 
-/* Pagination Styles */
-.pagination-controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: auto;
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border-top: 1px solid #dee2e6;
-  position: sticky;
-  bottom: 0;
-  z-index: 100;
+.character-count {
+  color: #666;
+  font-size: 12px;
+  margin-top: 2px; /* Reduced margin */
+  text-align: right;
+  line-height: 1.2;
 }
 
-.pagination-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  color: #6c757d;
+/* Disabled button styling */
+.save-btn:disabled {
+  background: #9ca3af !important;
+  cursor: not-allowed !important;
+  opacity: 0.6;
 }
 
-.pagination-text {
-  font-weight: 600;
-}
-
-.pagination-buttons {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.pagination-btn {
-  padding: 8px 16px;
-  border: 1px solid #00205B;
-  background: white;
-  color: #00205B;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.pagination-btn:hover:not(:disabled) {
-  background: #00205B;
-  color: white;
-}
-
-.pagination-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  border-color: #6c757d;
-  color: #6c757d;
-}
-
-.page-info {
-  font-size: 14px;
-  font-weight: 600;
-  color: #00205B;
+.save-btn:disabled:hover {
+  background: #9ca3af !important;
+  transform: none !important;
 }
 
 /* Error Modal Styles */

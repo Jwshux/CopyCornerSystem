@@ -27,6 +27,9 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   const [transactionToDelete, setTransactionToDelete] = useState(null);
 
   const [customerNameError, setCustomerNameError] = useState("");
+  const [priceError, setPriceError] = useState("");
+  const [quantityError, setQuantityError] = useState("");
+  const [pagesError, setPagesError] = useState("");
   const [archiving, setArchiving] = useState(false);
   const [archiveSuccess, setArchiveSuccess] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -69,18 +72,106 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     }
   }, [showAddModal]);
 
+  // Enhanced customer name validation
   const checkCustomerName = (customerName) => {
     if (!customerName) {
       setCustomerNameError("");
       return;
     }
 
+    // Length validation
+    if (customerName.length < 2) {
+      setCustomerNameError("Customer name must be at least 2 characters long");
+      return;
+    }
+
+    if (customerName.length > 100) {
+      setCustomerNameError("Customer name must be less than 100 characters");
+      return;
+    }
+
+    // Check if contains only numbers
     if (/^\d+$/.test(customerName)) {
       setCustomerNameError("Customer name cannot contain only numbers");
       return;
     }
 
+    // Check if contains only special characters (no letters or numbers)
+    if (/^[^a-zA-Z0-9]+$/.test(customerName)) {
+      setCustomerNameError("Please enter a valid customer name");
+      return;
+    }
+
+    // Check if contains at least one letter
+    if (!/[a-zA-Z]/.test(customerName)) {
+      setCustomerNameError("Customer name must contain at least one letter");
+      return;
+    }
+
     setCustomerNameError("");
+  };
+
+  // Price validation
+  const checkPrice = (price) => {
+    if (!price) {
+      setPriceError("");
+      return;
+    }
+
+    const priceValue = parseFloat(price);
+    if (isNaN(priceValue) || priceValue <= 0) {
+      setPriceError("Price must be greater than 0");
+      return;
+    }
+
+    if (priceValue < 0.01) {
+      setPriceError("Price must be at least 0.01");
+      return;
+    }
+
+    setPriceError("");
+  };
+
+  // Quantity validation
+  const checkQuantity = (quantity) => {
+    if (!quantity) {
+      setQuantityError("");
+      return;
+    }
+
+    const quantityValue = parseInt(quantity);
+    if (isNaN(quantityValue) || quantityValue <= 0) {
+      setQuantityError("Quantity must be greater than 0");
+      return;
+    }
+
+    if (quantityValue < 1) {
+      setQuantityError("Quantity must be at least 1");
+      return;
+    }
+
+    setQuantityError("");
+  };
+
+  // Pages validation
+  const checkPages = (pages) => {
+    if (!pages) {
+      setPagesError("");
+      return;
+    }
+
+    const pagesValue = parseInt(pages);
+    if (isNaN(pagesValue) || pagesValue <= 0) {
+      setPagesError("Pages must be greater than 0");
+      return;
+    }
+
+    if (pagesValue < 1) {
+      setPagesError("Pages must be at least 1");
+      return;
+    }
+
+    setPagesError("");
   };
 
   // Fetch active transactions
@@ -309,6 +400,17 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     const { name, value } = e.target;
     let updated = { ...formData, [name]: value };
 
+    // Real-time validation
+    if (name === "customer_name") {
+      checkCustomerName(value);
+    } else if (name === "price_per_unit") {
+      checkPrice(value);
+    } else if (name === "quantity") {
+      checkQuantity(value);
+    } else if (name === "total_pages") {
+      checkPages(value);
+    }
+
     if (name === "price_per_unit" || name === "quantity") {
       const price = parseFloat(updated.price_per_unit) || 0;
       const qty = parseFloat(updated.quantity) || 0;
@@ -327,10 +429,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       updated.product_type = "";
       updated.product_id = "";
       updated.total_pages = "";
-    }
-
-    if (name === "customer_name") {
-      checkCustomerName(value);
+      setPagesError("");
     }
 
     setFormData(updated);
@@ -359,6 +458,9 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       date: dateString,
     });
     setCustomerNameError("");
+    setPriceError("");
+    setQuantityError("");
+    setPagesError("");
     setIsEditing(false);
     setShowFormModal(true);
   };
@@ -404,6 +506,9 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       date: transaction.date || new Date().toISOString().split("T")[0],
     });
     setCustomerNameError("");
+    setPriceError("");
+    setQuantityError("");
+    setPagesError("");
     setEditIndex(transaction._id);
     setIsEditing(true);
     setShowFormModal(true);
@@ -412,8 +517,39 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   const handleSave = async (e) => {
     e.preventDefault();
     
-    if (customerNameError) {
-      alert("Please fix the customer name error before saving.");
+    // Final validation before submission
+    checkCustomerName(formData.customer_name);
+    checkPrice(formData.price_per_unit);
+    checkQuantity(formData.quantity);
+    
+    if (getServiceCategory(formData.service_type) === "Paper") {
+      checkPages(formData.total_pages);
+    }
+    
+    if (customerNameError || priceError || quantityError || pagesError) {
+      alert("Please fix the validation errors before saving.");
+      return;
+    }
+
+    // Additional validation for empty required fields
+    if (!formData.customer_name.trim()) {
+      setCustomerNameError("Customer name is required");
+      return;
+    }
+
+    if (!formData.price_per_unit || parseFloat(formData.price_per_unit) <= 0) {
+      setPriceError("Price must be greater than 0");
+      return;
+    }
+
+    if (!formData.quantity || parseInt(formData.quantity) <= 0) {
+      setQuantityError("Quantity must be greater than 0");
+      return;
+    }
+
+    // Paper service validation
+    if (getServiceCategory(formData.service_type) === "Paper" && (!formData.total_pages || parseInt(formData.total_pages) <= 0)) {
+      setPagesError("Pages must be greater than 0");
       return;
     }
 
@@ -451,7 +587,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
 
     const serviceCategory = getServiceCategory(formData.service_type);
     if (serviceCategory === "Paper" && (!formData.total_pages || formData.total_pages < 1)) {
-      alert("Please enter total pages (minimum 1)");
+      setPagesError("Please enter total pages (minimum 1)");
       return;
     }
 
@@ -520,6 +656,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     }
   };
 
+  // [Rest of the functions remain the same - archive, restore, delete, etc.]
   // Archive transaction functions
   const openArchiveModal = (transaction) => {
     setTransactionToArchive(transaction);
@@ -789,6 +926,9 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       date: "",
     });
     setCustomerNameError("");
+    setPriceError("");
+    setQuantityError("");
+    setPagesError("");
     setEditIndex(null);
   };
 
@@ -914,6 +1054,9 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   };
 
   const displayRange = getDisplayRange();
+
+  // Check if form has any validation errors
+  const hasFormErrors = customerNameError || priceError || quantityError || pagesError;
 
   return (
     <div className="transactions-container">
@@ -1237,12 +1380,16 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                   onChange={handleChange}
                   className={customerNameError ? "error-input" : ""}
                   required
+                  maxLength="100"
                   pattern=".*[a-zA-Z].*"
-                  title="Customer name must contain letters and cannot be only numbers"
-                  onInvalid={(e) => e.target.setCustomValidity('Please enter a valid customer name')}
+                  title="Customer name must contain letters and cannot be only numbers or special characters"
+                  onInvalid={(e) => e.target.setCustomValidity('Please enter a valid customer name with at least one letter')}
                   onInput={(e) => e.target.setCustomValidity('')}
                 />
                 {customerNameError && <div className="error-message">{customerNameError}</div>}
+                <small className="character-count">
+                  {formData.customer_name.length}/100 characters
+                </small>
               </div>
               
               <div className="form-group">
@@ -1318,9 +1465,11 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                     onChange={handleChange}
                     required
                     min="1"
+                    className={pagesError ? "error-input" : ""}
                     onInvalid={(e) => e.target.setCustomValidity('Pages cannot be below 1')}
                     onInput={(e) => e.target.setCustomValidity('')}
                   />
+                  {pagesError && <div className="error-message">{pagesError}</div>}
                 </div>
               )}
 
@@ -1335,10 +1484,12 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                     value={formData.price_per_unit}
                     onChange={handleChange}
                     required
-                    min="0"
-                    onInvalid={(e) => e.target.setCustomValidity('Price must be greater than or equal to 0')}
+                    min="0.01"
+                    className={priceError ? "error-input" : ""}
+                    onInvalid={(e) => e.target.setCustomValidity('Price must be greater than 0')}
                     onInput={(e) => e.target.setCustomValidity('')}
                   />
+                  {priceError && <div className="error-message">{priceError}</div>}
                 </div>
                 <div className="form-group">
                   <label>Quantity:</label>
@@ -1350,9 +1501,11 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                     onChange={handleChange}
                     required
                     min="1"
-                    onInvalid={(e) => e.target.setCustomValidity('Quantity must be greater than or equal to 1')}
+                    className={quantityError ? "error-input" : ""}
+                    onInvalid={(e) => e.target.setCustomValidity('Quantity must be greater than 0')}
                     onInput={(e) => e.target.setCustomValidity('')}
                   />
+                  {quantityError && <div className="error-message">{quantityError}</div>}
                 </div>
               </div>
 
@@ -1367,7 +1520,12 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
               </div>
 
               <div className="form-buttons">
-                <button type="submit" className="save-btn" disabled={customerNameError}>
+                <button 
+                  type="submit" 
+                  className="save-btn" 
+                  disabled={hasFormErrors}
+                  title={hasFormErrors ? "Please fix validation errors before saving" : ""}
+                >
                   {isEditing ? "Update" : "Save"}
                 </button>
                 <button

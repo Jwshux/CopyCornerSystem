@@ -66,6 +66,55 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
     }
   }, [showAddModal]);
 
+  // Enhanced service name validation
+  const checkServiceName = (serviceName) => {
+    if (!serviceName) {
+      setServiceNameError("");
+      return;
+    }
+
+    // Length validation
+    if (serviceName.length < 2) {
+      setServiceNameError("Service name must be at least 2 characters long");
+      return;
+    }
+
+    if (serviceName.length > 100) {
+      setServiceNameError("Service name must be less than 100 characters");
+      return;
+    }
+
+    // Check if contains only numbers
+    if (/^\d+$/.test(serviceName)) {
+      setServiceNameError("Service name cannot contain only numbers");
+      return;
+    }
+
+    // Check if contains only special characters (no letters or numbers)
+    if (/^[^a-zA-Z0-9]+$/.test(serviceName)) {
+      setServiceNameError("Please enter a valid service name");
+      return;
+    }
+
+    // Check if contains at least one letter
+    if (!/[a-zA-Z]/.test(serviceName)) {
+      setServiceNameError("Service name must contain at least one letter");
+      return;
+    }
+
+    // Check for duplicate service names
+    const existingService = serviceTypes.find(service => 
+      service.service_name.toLowerCase() === serviceName.toLowerCase() &&
+      (!selectedServiceType || service._id !== selectedServiceType._id)
+    );
+
+    if (existingService) {
+      setServiceNameError("Service name already exists");
+    } else {
+      setServiceNameError("");
+    }
+  };
+
   // Fetch active service types
   const fetchServiceTypes = async (page = 1) => {
     setLoading(true);
@@ -242,29 +291,6 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
 
   const displayRange = getDisplayRange();
 
-  const checkServiceName = (serviceName) => {
-    if (!serviceName) {
-      setServiceNameError("");
-      return;
-    }
-
-    if (/^\d+$/.test(serviceName)) {
-      setServiceNameError("Service name cannot contain only numbers");
-      return;
-    }
-
-    const existingService = serviceTypes.find(service => 
-      service.service_name.toLowerCase() === serviceName.toLowerCase() &&
-      (!selectedServiceType || service._id !== selectedServiceType._id)
-    );
-
-    if (existingService) {
-      setServiceNameError("Service name already exists");
-    } else {
-      setServiceNameError("");
-    }
-  };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -287,8 +313,17 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
   const handleAddServiceType = async (e) => {
     e.preventDefault();
     
+    // Final validation before submission
+    checkServiceName(formData.service_name);
+    
     if (serviceNameError) {
       showError("Please fix the service name error before saving.");
+      return;
+    }
+
+    // Additional validation for empty required fields
+    if (!formData.service_name.trim()) {
+      setServiceNameError("Service name is required");
       return;
     }
 
@@ -337,8 +372,17 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
   const handleUpdateServiceType = async (e) => {
     e.preventDefault();
     
+    // Final validation before submission
+    checkServiceName(formData.service_name);
+    
     if (serviceNameError) {
       showError("Please fix the service name error before updating.");
+      return;
+    }
+
+    // Additional validation for empty required fields
+    if (!formData.service_name.trim()) {
+      setServiceNameError("Service name is required");
       return;
     }
 
@@ -528,6 +572,9 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
+
+  // Check if form has any validation errors
+  const hasFormErrors = serviceNameError;
 
   return (
       <div className="service-types-page">
@@ -798,6 +845,7 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
                     placeholder="Auto-generated"
                     value="Auto-generated"
                     readOnly
+                    className="readonly-field"
                   />
                 </div>
                 
@@ -811,10 +859,16 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
                     onChange={handleInputChange}
                     className={serviceNameError ? "error-input" : ""}
                     required
+                    maxLength="100"
                     pattern=".*[a-zA-Z].*"
-                    title="Service name must contain letters and cannot be only numbers"
+                    title="Service name must contain letters and cannot be only numbers or special characters"
+                    onInvalid={(e) => e.target.setCustomValidity('Please enter a valid service name with at least one letter')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
                   {serviceNameError && <div className="error-message">{serviceNameError}</div>}
+                  <small className="character-count">
+                    {formData.service_name.length}/100 characters
+                  </small>
                 </div>
 
                 <div className="form-field">
@@ -853,7 +907,12 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
                 </div>
 
                 <div className="form-buttons">
-                  <button type="submit" className="save-btn" disabled={loading || serviceNameError}>
+                  <button 
+                    type="submit" 
+                    className="save-btn" 
+                    disabled={loading || hasFormErrors}
+                    title={hasFormErrors ? "Please fix validation errors before saving" : ""}
+                  >
                     {loading ? "Saving..." : "Save"}
                   </button>
                   <button type="button" className="cancel-btn" onClick={closeModals}>
@@ -897,6 +956,7 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
                     placeholder="Service ID"
                     value={selectedServiceType?.service_id || ""}
                     readOnly
+                    className="readonly-field"
                   />
                 </div>
                 
@@ -910,10 +970,16 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
                     onChange={handleInputChange}
                     className={serviceNameError ? "error-input" : ""}
                     required
+                    maxLength="100"
                     pattern=".*[a-zA-Z].*"
-                    title="Service name must contain letters and cannot be only numbers"
+                    title="Service name must contain letters and cannot be only numbers or special characters"
+                    onInvalid={(e) => e.target.setCustomValidity('Please enter a valid service name with at least one letter')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
                   {serviceNameError && <div className="error-message">{serviceNameError}</div>}
+                  <small className="character-count">
+                    {formData.service_name.length}/100 characters
+                  </small>
                 </div>
 
                 <div className="form-field">
@@ -952,7 +1018,12 @@ function ServiceTypes({ showAddModal, onAddModalClose }) {
                 </div>
 
                 <div className="form-buttons">
-                  <button type="submit" className="save-btn" disabled={loading || serviceNameError}>
+                  <button 
+                    type="submit" 
+                    className="save-btn" 
+                    disabled={loading || hasFormErrors}
+                    title={hasFormErrors ? "Please fix validation errors before updating" : ""}
+                  >
                     {loading ? "Updating..." : "Update"}
                   </button>
                   <button type="button" className="cancel-btn" onClick={closeModals}>

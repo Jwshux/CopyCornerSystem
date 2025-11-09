@@ -2,19 +2,19 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 20px 20px;
+  padding: 20px;
   font-family: "Poppins", sans-serif;
   align-items: flex-start;
 }
 
-/* Table container with fixed height */
+/* Table container */
 .table-container {
   background: #fff;
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   width: 100%;
-  min-height: 600px; /* Fixed height to always show space for 10 rows */
+  min-height: 600px;
   display: flex;
   flex-direction: column;
 }
@@ -25,13 +25,12 @@
   border-collapse: collapse;
   min-width: 500px;
   table-layout: fixed;
-  flex: 1; /* Take remaining space */
+  flex: 1;
 }
 
-/* Fixed table body height - ALWAYS show 10 rows space */
 .service-types-table tbody {
   display: block;
-  min-height: 650px; /* Height for exactly 10 rows */
+  min-height: 650px;
 }
 
 .service-types-table thead,
@@ -41,9 +40,8 @@
   table-layout: fixed;
 }
 
-/* Ensure table rows have consistent height */
 .service-types-table tr {
-  height: 40px; /* Fixed row height */
+  height: 40px;
 }
 
 .service-types-table th,
@@ -70,21 +68,7 @@
   font-weight: 600;
 }
 
-.status-tag {
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  color: white;
-}
-
-.in-stock {
-  background-color: #22c55e;
-}
-
-.out-stock {
-  background-color: #ef4444;
-}
-
+/* Column widths */
 .service-types-table th:nth-child(1),
 .service-types-table td:nth-child(1) {
   width: 50px;
@@ -117,7 +101,7 @@
   text-align: center;
 }
 
-/* Table Header with Archive and Search */
+/* Table Header */
 .table-header {
   display: flex;
   justify-content: space-between;
@@ -156,6 +140,7 @@
   transform: translateY(-1px);
 }
 
+/* Search */
 .search-container {
   display: flex;
   align-items: center;
@@ -176,12 +161,12 @@
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
-/* Pagination Styles - Same as others */
+/* Pagination */
 .pagination-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: auto; /* Push to bottom of container */
+  margin-top: auto;
   padding: 15px;
   background: #f8f9fa;
   border-radius: 8px;
@@ -236,11 +221,6 @@
   font-size: 14px;
   font-weight: 600;
   color: #00205B;
-}
-
-/* Remove the old simple pagination styles */
-.simple-pagination {
-  display: none;
 }
 
 /* Modal Styles */
@@ -298,7 +278,7 @@
   outline: none;
   font-size: 14px;
   box-sizing: border-box;
-  margin-bottom: 15px;
+  margin-bottom: 5px;
 }
 
 .service-types-page .form-field select {
@@ -366,6 +346,7 @@
   box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
 }
 
+/* Action buttons */
 .edit-btn,
 .delete-btn,
 .archive-btn,
@@ -417,177 +398,20 @@
   background-color: #059669;
 }
 
-/* Archive Confirmation Modal */
-.archive-confirmation {
-  text-align: center;
-  max-width: 400px;
-}
-
-.archive-icon {
-  font-size: 48px;
-  margin-bottom: 15px;
-}
-
-.archive-confirmation h3 {
-  color: #8b5cf6;
-  margin-bottom: 15px;
-}
-
-.archive-confirmation p {
-  margin-bottom: 10px;
-  color: #555;
-}
-
-.archive-warning {
-  color: #8b5cf6;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.confirm-archive-btn {
-  background-color: #8b5cf6;
+/* Status tags */
+.status-tag {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
   color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
 }
 
-.confirm-archive-btn:hover:not(:disabled) {
-  background-color: #7c3aed;
+.in-stock {
+  background-color: #22c55e;
 }
 
-.confirm-archive-btn:disabled {
-  background-color: #8b5cf6;
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Restore Confirmation Modal */
-.restore-confirmation {
-  max-width: 400px;
-}
-
-.restore-icon {
-  font-size: 48px;
-  margin-bottom: 15px;
-  text-align: center;
-}
-
-.restore-confirmation h3 {
-  color: #10b981;
-  margin-bottom: 15px;
-}
-
-.restore-warning {
-  color: #10b981;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.confirm-restore-btn {
-  background-color: #10b981;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.confirm-restore-btn:hover:not(:disabled) {
-  background-color: #059669;
-}
-
-/* Centered Modals */
-.centered-modal {
-  text-align: center;
-}
-
-.centered-text {
-  text-align: center;
-  margin: 10px 0;
-}
-
-.centered-buttons {
-  justify-content: center;
-}
-
-/* Archive Animation Center */
-.archive-animation-center {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 300px;
-  text-align: center;
-}
-
-/* Restore Animation Center */
-.restore-animation-center {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 300px;
-  text-align: center;
-}
-
-/* Make sure the confirmation modals have enough height */
-.archive-confirmation,
-.restore-confirmation {
-  min-height: 300px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-/* Delete Confirmation */
-.delete-confirmation {
-  text-align: center;
-  max-width: 400px;
-}
-
-.delete-icon {
-  font-size: 48px;
-  margin-bottom: 15px;
-}
-
-.delete-confirmation h3 {
-  color: #d9534f;
-  margin-bottom: 15px;
-}
-
-.delete-confirmation p {
-  margin-bottom: 10px;
-  color: #555;
-}
-
-.delete-warning {
-  color: #d9534f;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.confirm-delete-btn {
-  background-color: #d9534f;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.confirm-delete-btn:hover:not(:disabled) {
-  background-color: #c9302c;
-}
-
-.confirm-delete-btn:disabled {
-  background-color: #d9534f;
-  opacity: 0.6;
-  cursor: not-allowed;
+.out-stock {
+  background-color: #ef4444;
 }
 
 /* Error Styling */
@@ -608,52 +432,103 @@
   box-sizing: border-box;
 }
 
-/* Animation Centers */
-.form-animation-center {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 400px;
-}
-
-.delete-animation-center {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 300px;
+/* Confirmation modals */
+.archive-confirmation,
+.restore-confirmation,
+.delete-confirmation,
+.error-modal {
   text-align: center;
-}
-
-.delete-confirmation {
+  max-width: 400px;
   min-height: 300px;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
-/* Error Modal Styles */
-.error-modal {
-  text-align: center;
-  max-width: 400px;
-}
-
+.archive-icon,
+.restore-icon,
+.delete-icon,
 .error-icon {
   font-size: 48px;
   margin-bottom: 15px;
 }
 
-.error-modal h3 {
-  color: #d9534f;
-  margin-bottom: 15px;
+.archive-confirmation h3 {
+  color: #8b5cf6;
 }
 
-.error-message-text {
-  color: #555;
-  margin-bottom: 20px;
-  line-height: 1.5;
-  padding: 0 10px;
-  white-space: pre-line;
+.restore-confirmation h3 {
+  color: #10b981;
+}
+
+.delete-confirmation h3 {
+  color: #d9534f;
+}
+
+.error-modal h3 {
+  color: #d9534f;
+}
+
+.archive-warning {
+  color: #8b5cf6;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.restore-warning {
+  color: #10b981;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.delete-warning {
+  color: #d9534f;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.confirm-archive-btn {
+  background-color: #8b5cf6;
+  color: white;
+}
+
+.confirm-archive-btn:hover:not(:disabled) {
+  background-color: #7c3aed;
+}
+
+.confirm-restore-btn {
+  background-color: #10b981;
+  color: white;
+}
+
+.confirm-restore-btn:hover:not(:disabled) {
+  background-color: #059669;
+}
+
+.confirm-delete-btn {
+  background-color: #d9534f;
+  color: white;
+}
+
+.confirm-delete-btn:hover:not(:disabled) {
+  background-color: #c9302c;
+}
+
+.confirm-archive-btn,
+.confirm-restore-btn,
+.confirm-delete-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.confirm-archive-btn:disabled,
+.confirm-restore-btn:disabled,
+.confirm-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Modal Content */
@@ -667,36 +542,29 @@
   margin: 0 auto;
 }
 
-/* Form Buttons */
-.form-buttons {
+/* Animation Centers */
+.form-animation-center,
+.delete-animation-center,
+.archive-animation-center,
+.restore-animation-center {
   display: flex;
+  flex-direction: column;
   justify-content: center;
-  gap: 12px;
-  margin-top: 10px;
+  align-items: center;
+  height: 300px;
+  text-align: center;
 }
 
-.cancel-btn {
-  background: #6b7280;
-  color: white;
-  border: 2px solid #6b7280;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(107, 114, 128, 0.1);
-  min-width: 100px;
-  height: 36px;
-  box-sizing: border-box;
+.form-animation-center {
+  height: 400px;
 }
 
-.cancel-btn:hover {
-  background: #4b5563;
-  border-color: #4b5563;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+.error-message-text {
+  color: #555;
+  margin-bottom: 20px;
+  line-height: 1.5;
+  padding: 0 10px;
+  white-space: pre-line;
 }
 
 /* Responsive design */
