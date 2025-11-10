@@ -38,6 +38,11 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
   });
   const [usernameError, setUsernameError] = useState("");
   const [nameError, setNameError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [studentNumberError, setStudentNumberError] = useState("");
+  const [courseError, setCourseError] = useState("");
+  const [sectionError, setSectionError] = useState("");
+  const [passwordStrength, setPasswordStrength] = useState("");
   
   // Archive view and search
   const [showArchivedView, setShowArchivedView] = useState(false);
@@ -52,52 +57,267 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
   const [totalCount, setTotalCount] = useState(0);
   const [archivedTotalCount, setArchivedTotalCount] = useState(0);
 
+  // Store all data for client-side filtering
+  const [allUsers, setAllUsers] = useState([]);
+  const [allArchivedUsers, setAllArchivedUsers] = useState([]);
+
+  // Enhanced validation functions - SAME AS OTHERS
+  const checkName = (name) => {
+    if (!name) {
+      setNameError("");
+      return;
+    }
+
+    // Length validation
+    if (name.length < 2) {
+      setNameError("Full name must be at least 2 characters long");
+      return;
+    }
+
+    if (name.length > 100) {
+      setNameError("Full name must be less than 100 characters");
+      return;
+    }
+
+    // Check if contains only numbers
+    if (/^\d+$/.test(name)) {
+      setNameError("Full name cannot contain only numbers");
+      return;
+    }
+
+    // Check if contains only special characters (no letters or numbers)
+    if (/^[^a-zA-Z0-9]+$/.test(name)) {
+      setNameError("Please enter a valid full name");
+      return;
+    }
+
+    // Check if contains at least one letter
+    if (!/[a-zA-Z]/.test(name)) {
+      setNameError("Full name must contain at least one letter");
+      return;
+    }
+
+    setNameError("");
+  };
+
+  const checkUsername = (username) => {
+    if (!username) {
+      setUsernameError("");
+      return;
+    }
+
+    // Length validation
+    if (username.length < 2) {
+      setUsernameError("Username must be at least 2 characters long");
+      return;
+    }
+
+    if (username.length > 50) {
+      setUsernameError("Username must be less than 50 characters");
+      return;
+    }
+
+    // Check if contains only numbers
+    if (/^\d+$/.test(username)) {
+      setUsernameError("Username cannot contain only numbers");
+      return;
+    }
+
+    // Check if contains only special characters (no letters or numbers)
+    if (/^[^a-zA-Z0-9]+$/.test(username)) {
+      setUsernameError("Please enter a valid username");
+      return;
+    }
+
+    // Check if contains at least one letter
+    if (!/[a-zA-Z]/.test(username)) {
+      setUsernameError("Username must contain at least one letter");
+      return;
+    }
+
+    const existingUser = allUsers.find(user => 
+      user.username.toLowerCase() === username.toLowerCase() &&
+      (!selectedUser || user._id !== selectedUser._id)
+    );
+
+    if (existingUser) {
+      setUsernameError("Username already exists");
+    } else {
+      setUsernameError("");
+    }
+  };
+
+  const checkPassword = (password) => {
+    if (!password) {
+      setPasswordError("");
+      setPasswordStrength("");
+      return;
+    }
+
+    // Length validation
+    if (password.length < 6) {
+      setPasswordError("Password must be at least 6 characters long");
+      setPasswordStrength("Weak");
+      return;
+    }
+
+    if (password.length > 100) {
+      setPasswordError("Password must be less than 100 characters");
+      setPasswordStrength("");
+      return;
+    }
+
+    // Password strength calculation
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^a-zA-Z0-9]/.test(password)) strength++;
+
+    if (strength <= 2) {
+      setPasswordStrength("Weak");
+    } else if (strength <= 4) {
+      setPasswordStrength("Moderate");
+    } else {
+      setPasswordStrength("Strong");
+    }
+
+    setPasswordError("");
+  };
+
+  const checkStudentNumber = (studentNumber) => {
+    if (!studentNumber) {
+      setStudentNumberError("");
+      return;
+    }
+
+    // PDM-0001-000001 format validation
+    const studentNumberPattern = /^PDM-\d{4}-\d{6}$/;
+    if (!studentNumberPattern.test(studentNumber)) {
+      setStudentNumberError("Student number must be in format: PDM-0001-000001");
+      return;
+    }
+
+    setStudentNumberError("");
+  };
+
+  const checkCourse = (course) => {
+    if (!course) {
+      setCourseError("");
+      return;
+    }
+
+    // Valid course codes
+    const validCourses = ['BSIT', 'BSCS', 'BSHM', 'BSTM', 'BSOAD', 'BECED', 'BTLED'];
+    if (!validCourses.includes(course.toUpperCase())) {
+      setCourseError("Course must be one of: BSIT, BSCS, BSHM, BSTM, BSOAD, BECED, BTLED");
+      return;
+    }
+
+    setCourseError("");
+  };
+
+  const checkSection = (section) => {
+    if (!section) {
+      setSectionError("");
+      return;
+    }
+
+    // Section format validation (e.g., 31A, 32B, 21B)
+    const sectionPattern = /^[1-4][1-4][A-D]$/i;
+    if (!sectionPattern.test(section)) {
+      setSectionError("Section must be in format: 31A, 32B, 21B (2 digits + 1 letter)");
+      return;
+    }
+
+    setSectionError("");
+  };
+
+  // Filter users based on search term
+  const filterUsers = (users, term) => {
+    if (!term.trim()) return users;
+    
+    return users.filter(user =>
+      user.name.toLowerCase().includes(term.toLowerCase()) ||
+      user.username.toLowerCase().includes(term.toLowerCase()) ||
+      user.role.toLowerCase().includes(term.toLowerCase()) ||
+      (user.studentNumber && user.studentNumber.toLowerCase().includes(term.toLowerCase())) ||
+      (user.course && user.course.toLowerCase().includes(term.toLowerCase())) ||
+      (user.section && user.section.toLowerCase().includes(term.toLowerCase()))
+    );
+  };
+
   // Fetch active users from backend - UPDATED
-  const fetchUsers = async (page = 1) => {
+  const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/users?page=${page}&per_page=${ITEMS_PER_PAGE}`);
+      const response = await fetch(`${API_BASE}/users`);
       if (response.ok) {
         const data = await response.json();
         console.log('Users data from API:', data);
-        setUsers(data.users);
-        setCurrentPage(data.pagination.page);
-        setTotalPages(data.pagination.total_pages);
-        setTotalCount(data.pagination.total_users);
+        
+        let usersData = [];
+        if (Array.isArray(data)) {
+          usersData = data;
+        } else if (data.users && Array.isArray(data.users)) {
+          usersData = data.users;
+        } else {
+          usersData = [];
+        }
+        
+        setAllUsers(usersData);
+        
+        // Apply search filter if there's a search term
+        const filteredData = filterUsers(usersData, searchTerm);
+        setUsers(filteredData);
+        
       } else {
         console.error('Failed to fetch users');
+        setAllUsers([]);
         setUsers([]);
-        setTotalCount(0);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
+      setAllUsers([]);
       setUsers([]);
-      setTotalCount(0);
     } finally {
       setLoading(false);
     }
   };
 
   // Fetch archived users - UPDATED
-  const fetchArchivedUsers = async (page = 1) => {
+  const fetchArchivedUsers = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/users/archived?page=${page}&per_page=${ITEMS_PER_PAGE}`);
+      const response = await fetch(`${API_BASE}/users/archived`);
       if (response.ok) {
         const data = await response.json();
-        setArchivedUsers(data.users);
-        setArchivedCurrentPage(data.pagination.page);
-        setArchivedTotalPages(data.pagination.total_pages);
-        setArchivedTotalCount(data.pagination.total_users);
+        
+        let archivedData = [];
+        if (Array.isArray(data)) {
+          archivedData = data;
+        } else if (data.users && Array.isArray(data.users)) {
+          archivedData = data.users;
+        } else {
+          archivedData = [];
+        }
+        
+        setAllArchivedUsers(archivedData);
+        
+        // Apply search filter if there's a search term
+        const filteredData = filterUsers(archivedData, searchTerm);
+        setArchivedUsers(filteredData);
+        
       } else {
         console.error('Failed to fetch archived users');
+        setAllArchivedUsers([]);
         setArchivedUsers([]);
-        setArchivedTotalCount(0);
       }
     } catch (error) {
       console.error('Error fetching archived users:', error);
+      setAllArchivedUsers([]);
       setArchivedUsers([]);
-      setArchivedTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -120,11 +340,18 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     fetchRoles();
   }, []);
 
+  // Update displayed data when search term changes
   useEffect(() => {
     if (showArchivedView) {
-      fetchArchivedUsers(1);
+      const filteredData = filterUsers(allArchivedUsers, searchTerm);
+      setArchivedUsers(filteredData);
+      setArchivedCurrentPage(1); // Reset to first page when searching
+    } else {
+      const filteredData = filterUsers(allUsers, searchTerm);
+      setUsers(filteredData);
+      setCurrentPage(1); // Reset to first page when searching
     }
-  }, [showArchivedView]);
+  }, [searchTerm, showArchivedView]);
 
   // Handle modal from parent
   useEffect(() => {
@@ -157,15 +384,42 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     }
   }, [showRestoreModal]);
 
-  // Pagination handlers - UPDATED with separate logic
+  // Pagination calculations
+  const getPaginatedData = (data, page) => {
+    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return data.slice(startIndex, endIndex);
+  };
+
+  const getTotalPages = (data) => {
+    return Math.ceil(data.length / ITEMS_PER_PAGE);
+  };
+
+  const getDisplayRange = (data, page) => {
+    const start = (page - 1) * ITEMS_PER_PAGE + 1;
+    const end = Math.min(page * ITEMS_PER_PAGE, data.length);
+    return { start, end, total: data.length };
+  };
+
+  // Current displayed data with pagination applied
+  const displayedUsers = getPaginatedData(users, currentPage);
+  const displayedArchivedUsers = getPaginatedData(archivedUsers, archivedCurrentPage);
+
+  const usersDisplayRange = getDisplayRange(users, currentPage);
+  const archivedUsersDisplayRange = getDisplayRange(archivedUsers, archivedCurrentPage);
+
+  const usersTotalPages = getTotalPages(users);
+  const archivedUsersTotalPages = getTotalPages(archivedUsers);
+
+  // Pagination handlers
   const handleNextPage = () => {
     if (showArchivedView) {
-      if (archivedCurrentPage < archivedTotalPages) {
-        fetchArchivedUsers(archivedCurrentPage + 1);
+      if (archivedCurrentPage < archivedUsersTotalPages) {
+        setArchivedCurrentPage(archivedCurrentPage + 1);
       }
     } else {
-      if (currentPage < totalPages) {
-        fetchUsers(currentPage + 1);
+      if (currentPage < usersTotalPages) {
+        setCurrentPage(currentPage + 1);
       }
     }
   };
@@ -173,65 +427,13 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
   const handlePrevPage = () => {
     if (showArchivedView) {
       if (archivedCurrentPage > 1) {
-        fetchArchivedUsers(archivedCurrentPage - 1);
+        setArchivedCurrentPage(archivedCurrentPage - 1);
       }
     } else {
       if (currentPage > 1) {
-        fetchUsers(currentPage - 1);
+        setCurrentPage(currentPage - 1);
       }
     }
-  };
-
-  // Calculate display ranges CORRECTLY
-  const getDisplayRange = () => {
-    if (showArchivedView) {
-      const start = (archivedCurrentPage - 1) * ITEMS_PER_PAGE + 1;
-      const end = Math.min(archivedCurrentPage * ITEMS_PER_PAGE, archivedTotalCount);
-      return { start, end, total: archivedTotalCount };
-    } else {
-      const start = (currentPage - 1) * ITEMS_PER_PAGE + 1;
-      const end = Math.min(currentPage * ITEMS_PER_PAGE, totalCount);
-      return { start, end, total: totalCount };
-    }
-  };
-
-  const displayRange = getDisplayRange();
-
-  const checkUsername = (username) => {
-    if (!username) {
-      setUsernameError("");
-      return;
-    }
-
-    if (/^\d+$/.test(username)) {
-      setUsernameError("Username cannot contain only numbers");
-      return;
-    }
-
-    const existingUser = users.find(user => 
-      user.username.toLowerCase() === username.toLowerCase() &&
-      (!selectedUser || user._id !== selectedUser._id)
-    );
-
-    if (existingUser) {
-      setUsernameError("Username already exists");
-    } else {
-      setUsernameError("");
-    }
-  };
-
-  const checkName = (name) => {
-    if (!name) {
-      setNameError("");
-      return;
-    }
-
-    if (/^\d+$/.test(name)) {
-      setNameError("Full name cannot contain only numbers");
-      return;
-    }
-
-    setNameError("");
   };
 
   const handleInputChange = (e) => {
@@ -243,12 +445,19 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       setFormData({ ...formData, [name]: value });
     }
 
-    if (name === "username") {
-      checkUsername(value);
-    }
-    
+    // Real-time validation
     if (name === "name") {
       checkName(value);
+    } else if (name === "username") {
+      checkUsername(value);
+    } else if (name === "password") {
+      checkPassword(value);
+    } else if (name === "studentNumber") {
+      checkStudentNumber(value);
+    } else if (name === "course") {
+      checkCourse(value);
+    } else if (name === "section") {
+      checkSection(value);
     }
   };
 
@@ -266,6 +475,11 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     setSelectedUser(null);
     setUsernameError("");
     setNameError("");
+    setPasswordError("");
+    setStudentNumberError("");
+    setCourseError("");
+    setSectionError("");
+    setPasswordStrength("");
     setSaveSuccess(false);
   };
 
@@ -273,10 +487,14 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     return formData.role.toLowerCase().includes("staff");
   };
 
+  // Check if form has any validation errors
+  const hasFormErrors = usernameError || nameError || passwordError || 
+                       (isStaffRole() && (studentNumberError || courseError || sectionError));
+
   const handleAddUser = async (e) => {
     if (e) e.preventDefault();
     
-    if (usernameError || nameError) {
+    if (hasFormErrors) {
       setErrorMessage("Please fix the form errors before saving.");
       setShowErrorModal(true);
       return;
@@ -324,7 +542,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setSaveSuccess(true);
         setTimeout(async () => {
-          await fetchUsers(currentPage);
+          await fetchUsers();
           resetForm();
           setSaving(false);
           if (onAddModalClose) {
@@ -359,13 +577,18 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     });
     setUsernameError("");
     setNameError("");
+    setPasswordError("");
+    setStudentNumberError("");
+    setCourseError("");
+    setSectionError("");
+    setPasswordStrength("");
     setShowEditModal(true);
   };
 
   const handleUpdateUser = async (e) => {
     if (e) e.preventDefault();
     
-    if (usernameError || nameError) {
+    if (hasFormErrors) {
       setErrorMessage("Please fix the form errors before updating.");
       setShowErrorModal(true);
       return;
@@ -416,7 +639,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setSaveSuccess(true);
         setTimeout(async () => {
-          await fetchUsers(currentPage);
+          await fetchUsers();
           setShowEditModal(false);
           resetForm();
           setSaving(false);
@@ -476,8 +699,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setArchiveSuccess(true);
         setTimeout(async () => {
-          // Refresh from server instead of local filtering
-          await fetchUsers(currentPage);
+          await fetchUsers();
           closeArchiveModal();
         }, 1500);
       } else {
@@ -523,47 +745,47 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     setRestoreSuccess(false);
   };
 
-const handleRestoreUser = async () => {
-  if (!userToRestore) return;
+  const handleRestoreUser = async () => {
+    if (!userToRestore) return;
 
-  setRestoring(true);
-  try {
-    const response = await fetch(`${API_BASE}/users/${userToRestore._id}/restore`, {
-      method: 'PUT',
-    });
+    setRestoring(true);
+    try {
+      const response = await fetch(`${API_BASE}/users/${userToRestore._id}/restore`, {
+        method: 'PUT',
+      });
 
-    if (response.ok) {
-      setRestoreSuccess(true);
-      setTimeout(async () => {
-        await fetchArchivedUsers(archivedCurrentPage);
-        await fetchUsers(1);
-        closeRestoreModal();
-      }, 1500);
-    } else {
-      const errorData = await response.json();
-      
-      if (errorData.error && errorData.error.includes('role is currently archived')) {
-        let errorMessage = errorData.error;
-        
-        if (errorData.role_name) {
-          errorMessage += '\n\nPlease restore the role first in Manage Roles.';
-        }
-        
-        setErrorMessage(errorMessage);
-        setShowErrorModal(true);
+      if (response.ok) {
+        setRestoreSuccess(true);
+        setTimeout(async () => {
+          await fetchArchivedUsers();
+          await fetchUsers();
+          closeRestoreModal();
+        }, 1500);
       } else {
-        setErrorMessage(errorData.error || 'Failed to restore user');
-        setShowErrorModal(true);
+        const errorData = await response.json();
+        
+        if (errorData.error && errorData.error.includes('role is currently archived')) {
+          let errorMessage = errorData.error;
+          
+          if (errorData.role_name) {
+            errorMessage += '\n\nPlease restore the role first in Manage Roles.';
+          }
+          
+          setErrorMessage(errorMessage);
+          setShowErrorModal(true);
+        } else {
+          setErrorMessage(errorData.error || 'Failed to restore user');
+          setShowErrorModal(true);
+        }
+        setRestoring(false);
       }
+    } catch (error) {
+      console.error('Error restoring user:', error);
+      setErrorMessage('Error restoring user');
+      setShowErrorModal(true);
       setRestoring(false);
     }
-  } catch (error) {
-    console.error('Error restoring user:', error);
-    setErrorMessage('Error restoring user');
-    setShowErrorModal(true);
-    setRestoring(false);
-  }
-};
+  };
 
   const closeModals = () => {
     setShowEditModal(false);
@@ -606,6 +828,16 @@ const handleRestoreUser = async () => {
     return formData[field] || '';
   };
 
+  // Get password strength color
+  const getPasswordStrengthColor = () => {
+    switch (passwordStrength) {
+      case "Weak": return "#ff4444";
+      case "Moderate": return "#ffa726";
+      case "Strong": return "#4caf50";
+      default: return "#666";
+    }
+  };
+
   return (
     <div className="manage-users">
       {/* MAIN USERS VIEW */}
@@ -615,7 +847,9 @@ const handleRestoreUser = async () => {
           <div className="table-header">
             <button className="view-archive-btn" onClick={() => {
               setShowArchivedView(true);
-              fetchArchivedUsers(1);
+              setSearchTerm("");
+              setArchivedCurrentPage(1);
+              fetchArchivedUsers();
             }}>
               📦 View Archived Users
             </button>
@@ -644,7 +878,7 @@ const handleRestoreUser = async () => {
               </tr>
             </thead>
             <tbody>
-              {users.length === 0 ? (
+              {displayedUsers.length === 0 ? (
                 <tr>
                   <td colSpan="7" style={{ textAlign: "center", color: "#888" }}>
                     {loading ? (
@@ -659,7 +893,7 @@ const handleRestoreUser = async () => {
                   </td>
                 </tr>
               ) : (
-                users.map((user, index) => (
+                displayedUsers.map((user, index) => (
                   <tr key={user._id}>
                     <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                     <td>{user.name}</td>
@@ -680,8 +914,8 @@ const handleRestoreUser = async () => {
               )}
               
               {/* Add empty rows to maintain consistent height */}
-              {users.length > 0 && users.length < 10 &&
-                Array.from({ length: 10 - users.length }).map((_, index) => (
+              {displayedUsers.length > 0 && displayedUsers.length < 10 &&
+                Array.from({ length: 10 - displayedUsers.length }).map((_, index) => (
                   <tr key={`empty-${index}`} style={{ visibility: 'hidden' }}>
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>
@@ -696,12 +930,12 @@ const handleRestoreUser = async () => {
             </tbody>
           </table>
 
-          {/* PAGINATION CONTROLS - UPDATED */}
-          {users.length > 0 && (
+          {/* PAGINATION CONTROLS */}
+          {displayedUsers.length > 0 && (
             <div className="pagination-controls">
               <div className="pagination-info">
                 <span className="pagination-text">
-                  Showing {displayRange.start}-{displayRange.end} of {displayRange.total} items
+                  Showing {usersDisplayRange.start}-{usersDisplayRange.end} of {usersDisplayRange.total} items
                 </span>
               </div>
               
@@ -714,11 +948,11 @@ const handleRestoreUser = async () => {
                   Previous
                 </button>
                 <span className="page-info">
-                  Page {currentPage} of {totalPages}
+                  Page {currentPage} of {usersTotalPages}
                 </span>
                 <button 
                   onClick={handleNextPage} 
-                  disabled={currentPage === totalPages || loading}
+                  disabled={currentPage === usersTotalPages || loading}
                   className="pagination-btn"
                 >
                   Next
@@ -733,7 +967,11 @@ const handleRestoreUser = async () => {
       {showArchivedView && (
         <div className="user-table">
           <div className="table-header">
-            <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
+            <button className="back-to-main-btn" onClick={() => {
+              setShowArchivedView(false);
+              setSearchTerm("");
+              setCurrentPage(1);
+            }}>
               ← Back to Main View
             </button>
             
@@ -760,7 +998,7 @@ const handleRestoreUser = async () => {
               </tr>
             </thead>
             <tbody>
-              {archivedUsers.length === 0 ? (
+              {displayedArchivedUsers.length === 0 ? (
                 <tr>
                   <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
                     {loading ? (
@@ -775,7 +1013,7 @@ const handleRestoreUser = async () => {
                   </td>
                 </tr>
               ) : (
-                archivedUsers.map((user, index) => (
+                displayedArchivedUsers.map((user, index) => (
                   <tr key={user._id}>
                     <td>{user.name}</td>
                     <td>{user.username}</td>
@@ -796,8 +1034,8 @@ const handleRestoreUser = async () => {
               )}
               
               {/* Add empty rows to maintain consistent height */}
-              {archivedUsers.length > 0 && archivedUsers.length < 10 &&
-                Array.from({ length: 10 - archivedUsers.length }).map((_, index) => (
+              {displayedArchivedUsers.length > 0 && displayedArchivedUsers.length < 10 &&
+                Array.from({ length: 10 - displayedArchivedUsers.length }).map((_, index) => (
                   <tr key={`empty-archived-${index}`} style={{ visibility: 'hidden' }}>
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>
@@ -811,12 +1049,12 @@ const handleRestoreUser = async () => {
             </tbody>
           </table>
 
-          {/* PAGINATION FOR ARCHIVED USERS - UPDATED */}
-          {archivedUsers.length > 0 && (
+          {/* PAGINATION FOR ARCHIVED USERS */}
+          {displayedArchivedUsers.length > 0 && (
             <div className="pagination-controls">
               <div className="pagination-info">
                 <span className="pagination-text">
-                  Showing {displayRange.start}-{displayRange.end} of {displayRange.total} items
+                  Showing {archivedUsersDisplayRange.start}-{archivedUsersDisplayRange.end} of {archivedUsersDisplayRange.total} items
                 </span>
               </div>
               
@@ -829,11 +1067,11 @@ const handleRestoreUser = async () => {
                   Previous
                 </button>
                 <span className="page-info">
-                  Page {archivedCurrentPage} of {archivedTotalPages}
+                  Page {archivedCurrentPage} of {archivedUsersTotalPages}
                 </span>
                 <button 
                   onClick={handleNextPage} 
-                  disabled={archivedCurrentPage === archivedTotalPages || loading}
+                  disabled={archivedCurrentPage === archivedUsersTotalPages || loading}
                   className="pagination-btn"
                 >
                   Next
@@ -868,47 +1106,72 @@ const handleRestoreUser = async () => {
               </div>
             ) : (
               <form onSubmit={handleAddUser}>
-                <label>Full Name</label>
-                <input 
-                  name="name" 
-                  value={formData.name} 
-                  onChange={handleInputChange} 
-                  placeholder="Full Name" 
-                  className={nameError ? "error-input" : ""}
-                  required 
-                  pattern=".*[a-zA-Z].*"
-                  title="Full name must contain letters and cannot be only numbers"
-                  onInvalid={(e) => e.target.setCustomValidity('Please enter a valid full name')}
-                  onInput={(e) => e.target.setCustomValidity('')}
-                />
-                {nameError && <div className="error-message">{nameError}</div>}
+                <div className="input-with-error">
+                  <label>Full Name</label>
+                  <input 
+                    name="name" 
+                    value={formData.name} 
+                    onChange={handleInputChange} 
+                    placeholder="Full Name" 
+                    className={nameError ? "error-input" : ""}
+                    required 
+                    maxLength="100"
+                    pattern=".*[a-zA-Z].*"
+                    title="Full name must contain letters and cannot be only numbers or special characters"
+                    onInvalid={(e) => e.target.setCustomValidity('Please enter a valid full name with at least one letter')}
+                    onInput={(e) => e.target.setCustomValidity('')}
+                  />
+                  {nameError && <div className="error-message">{nameError}</div>}
+                  <small className="character-count">
+                    {formData.name.length}/100 characters
+                  </small>
+                </div>
                 
-                <label>Username</label>
-                <input 
-                  name="username" 
-                  value={formData.username} 
-                  onChange={handleInputChange} 
-                  placeholder="Username" 
-                  className={usernameError ? "error-input" : ""}
-                  required
-                  pattern=".*[a-zA-Z].*"
-                  title="Username must contain letters and cannot be only numbers"
-                  onInvalid={(e) => e.target.setCustomValidity('Please enter a valid username')}
-                  onInput={(e) => e.target.setCustomValidity('')}
-                />
-                {usernameError && <div className="error-message">{usernameError}</div>}
+                <div className="input-with-error">
+                  <label>Username</label>
+                  <input 
+                    name="username" 
+                    value={formData.username} 
+                    onChange={handleInputChange} 
+                    placeholder="Username" 
+                    className={usernameError ? "error-input" : ""}
+                    required
+                    maxLength="50"
+                    pattern=".*[a-zA-Z].*"
+                    title="Username must contain letters and cannot be only numbers or special characters"
+                    onInvalid={(e) => e.target.setCustomValidity('Please enter a valid username with at least one letter')}
+                    onInput={(e) => e.target.setCustomValidity('')}
+                  />
+                  {usernameError && <div className="error-message">{usernameError}</div>}
+                  <small className="character-count">
+                    {formData.username.length}/50 characters
+                  </small>
+                </div>
                 
-                <label>Password</label>
-                <input 
-                  type="password" 
-                  name="password" 
-                  value={formData.password} 
-                  onChange={handleInputChange} 
-                  placeholder="Password" 
-                  required 
-                  onInvalid={(e) => e.target.setCustomValidity('Please enter password')}
-                  onInput={(e) => e.target.setCustomValidity('')}
-                />
+                <div className="input-with-error">
+                  <label>Password</label>
+                  <input 
+                    type="password" 
+                    name="password" 
+                    value={formData.password} 
+                    onChange={handleInputChange} 
+                    placeholder="Password" 
+                    className={passwordError ? "error-input" : ""}
+                    required 
+                    maxLength="100"
+                    onInvalid={(e) => e.target.setCustomValidity('Please enter password')}
+                    onInput={(e) => e.target.setCustomValidity('')}
+                  />
+                  {passwordError && <div className="error-message">{passwordError}</div>}
+                  {passwordStrength && !passwordError && (
+                    <small className="password-strength" style={{ color: getPasswordStrengthColor() }}>
+                      Password Strength: {passwordStrength}
+                    </small>
+                  )}
+                  <small className="character-count">
+                    {formData.password.length}/100 characters
+                  </small>
+                </div>
                 
                 <label>User Role</label>
                 <select 
@@ -927,38 +1190,53 @@ const handleRestoreUser = async () => {
                 
                 {isStaffRole() && (
                   <>
-                    <label>Student Number</label>
-                    <input 
-                      name="studentNumber" 
-                      value={getInputValue('studentNumber')} 
-                      onChange={handleInputChange} 
-                      placeholder="e.g., 2023-00123" 
-                      required={isStaffRole()}
-                      onInvalid={(e) => e.target.setCustomValidity('Please enter student number')}
-                      onInput={(e) => e.target.setCustomValidity('')}
-                    />
+                    <div className="input-with-error">
+                      <label>Student Number</label>
+                      <input 
+                        name="studentNumber" 
+                        value={getInputValue('studentNumber')} 
+                        onChange={handleInputChange} 
+                        placeholder="e.g., PDM-0001-000001" 
+                        className={studentNumberError ? "error-input" : ""}
+                        required={isStaffRole()}
+                        maxLength="15"
+                        onInvalid={(e) => e.target.setCustomValidity('Please enter student number in format: PDM-0001-000001')}
+                        onInput={(e) => e.target.setCustomValidity('')}
+                      />
+                      {studentNumberError && <div className="error-message">{studentNumberError}</div>}
+                    </div>
                     
-                    <label>Course</label>
-                    <input 
-                      name="course" 
-                      value={getInputValue('course')} 
-                      onChange={handleInputChange} 
-                      placeholder="e.g., BSIT, BSCS, BSIS" 
-                      required={isStaffRole()}
-                      onInvalid={(e) => e.target.setCustomValidity('Please enter course')}
-                      onInput={(e) => e.target.setCustomValidity('')}
-                    />
+                    <div className="input-with-error">
+                      <label>Course</label>
+                      <input 
+                        name="course" 
+                        value={getInputValue('course')} 
+                        onChange={handleInputChange} 
+                        placeholder="e.g., BSIT, BSCS, BSHM" 
+                        className={courseError ? "error-input" : ""}
+                        required={isStaffRole()}
+                        maxLength="10"
+                        onInvalid={(e) => e.target.setCustomValidity('Please enter course (BSIT, BSCS, BSHM, BSTM, BSOAD, BECED, BTLED)')}
+                        onInput={(e) => e.target.setCustomValidity('')}
+                      />
+                      {courseError && <div className="error-message">{courseError}</div>}
+                    </div>
                     
-                    <label>Section</label>
-                    <input 
-                      name="section" 
-                      value={getInputValue('section')} 
-                      onChange={handleInputChange} 
-                      placeholder="e.g., 3A, 2B" 
-                      required={isStaffRole()}
-                      onInvalid={(e) => e.target.setCustomValidity('Please enter section')}
-                      onInput={(e) => e.target.setCustomValidity('')}
-                    />
+                    <div className="input-with-error">
+                      <label>Section</label>
+                      <input 
+                        name="section" 
+                        value={getInputValue('section')} 
+                        onChange={handleInputChange} 
+                        placeholder="e.g., 31A, 32B, 21B" 
+                        className={sectionError ? "error-input" : ""}
+                        required={isStaffRole()}
+                        maxLength="3"
+                        onInvalid={(e) => e.target.setCustomValidity('Please enter section in format: 31A, 32B, 21B')}
+                        onInput={(e) => e.target.setCustomValidity('')}
+                      />
+                      {sectionError && <div className="error-message">{sectionError}</div>}
+                    </div>
                   </>
                 )}
                 
@@ -977,8 +1255,13 @@ const handleRestoreUser = async () => {
                 </select>
 
                 <div className="modal-buttons">
-                  <button type="submit" className="save-btn" disabled={usernameError || nameError}>
-                    Save
+                  <button 
+                    type="submit" 
+                    className="save-btn" 
+                    disabled={saving || hasFormErrors}
+                    title={hasFormErrors ? "Please fix validation errors before saving" : ""}
+                  >
+                    {saving ? "Saving..." : "Save"}
                   </button>
                   <button type="button" className="cancel-btn" onClick={closeModals}>
                     Cancel
@@ -1014,42 +1297,67 @@ const handleRestoreUser = async () => {
               </div>
             ) : (
               <form onSubmit={handleUpdateUser}>
-                <label>Full Name</label>
-                <input 
-                  name="name" 
-                  value={formData.name} 
-                  onChange={handleInputChange} 
-                  className={nameError ? "error-input" : ""}
-                  required 
-                  pattern=".*[a-zA-Z].*"
-                  title="Full name must contain letters and cannot be only numbers"
-                  onInvalid={(e) => e.target.setCustomValidity('Please enter a valid full name')}
-                  onInput={(e) => e.target.setCustomValidity('')}
-                />
-                {nameError && <div className="error-message">{nameError}</div>}
+                <div className="input-with-error">
+                  <label>Full Name</label>
+                  <input 
+                    name="name" 
+                    value={formData.name} 
+                    onChange={handleInputChange} 
+                    className={nameError ? "error-input" : ""}
+                    required 
+                    maxLength="100"
+                    pattern=".*[a-zA-Z].*"
+                    title="Full name must contain letters and cannot be only numbers or special characters"
+                    onInvalid={(e) => e.target.setCustomValidity('Please enter a valid full name with at least one letter')}
+                    onInput={(e) => e.target.setCustomValidity('')}
+                  />
+                  {nameError && <div className="error-message">{nameError}</div>}
+                  <small className="character-count">
+                    {formData.name.length}/100 characters
+                  </small>
+                </div>
                 
-                <label>Username</label>
-                <input 
-                  name="username" 
-                  value={formData.username} 
-                  onChange={handleInputChange} 
-                  className={usernameError ? "error-input" : ""}
-                  required
-                  pattern=".*[a-zA-Z].*"
-                  title="Username must contain letters and cannot be only numbers"
-                  onInvalid={(e) => e.target.setCustomValidity('Please enter a valid username')}
-                  onInput={(e) => e.target.setCustomValidity('')}
-                />
-                {usernameError && <div className="error-message">{usernameError}</div>}
+                <div className="input-with-error">
+                  <label>Username</label>
+                  <input 
+                    name="username" 
+                    value={formData.username} 
+                    onChange={handleInputChange} 
+                    className={usernameError ? "error-input" : ""}
+                    required
+                    maxLength="50"
+                    pattern=".*[a-zA-Z].*"
+                    title="Username must contain letters and cannot be only numbers or special characters"
+                    onInvalid={(e) => e.target.setCustomValidity('Please enter a valid username with at least one letter')}
+                    onInput={(e) => e.target.setCustomValidity('')}
+                  />
+                  {usernameError && <div className="error-message">{usernameError}</div>}
+                  <small className="character-count">
+                    {formData.username.length}/50 characters
+                  </small>
+                </div>
                 
-                <label>Password</label>
-                <input 
-                  type="password" 
-                  name="password" 
-                  value={formData.password} 
-                  onChange={handleInputChange} 
-                  placeholder="New Password (optional)" 
-                />
+                <div className="input-with-error">
+                  <label>Password</label>
+                  <input 
+                    type="password" 
+                    name="password" 
+                    value={formData.password} 
+                    onChange={handleInputChange} 
+                    placeholder="New Password (optional)" 
+                    className={passwordError ? "error-input" : ""}
+                    maxLength="100"
+                  />
+                  {passwordError && <div className="error-message">{passwordError}</div>}
+                  {passwordStrength && !passwordError && formData.password && (
+                    <small className="password-strength" style={{ color: getPasswordStrengthColor() }}>
+                      Password Strength: {passwordStrength}
+                    </small>
+                  )}
+                  <small className="character-count">
+                    {formData.password.length}/100 characters
+                  </small>
+                </div>
                 
                 <label>User Role</label>
                 <select 
@@ -1068,38 +1376,53 @@ const handleRestoreUser = async () => {
                 
                 {isStaffRole() && (
                   <>
-                    <label>Student Number</label>
-                    <input 
-                      name="studentNumber" 
-                      value={getInputValue('studentNumber')} 
-                      onChange={handleInputChange} 
-                      placeholder="e.g., 2023-00123" 
-                      required={isStaffRole()}
-                      onInvalid={(e) => e.target.setCustomValidity('Please enter student number')}
-                      onInput={(e) => e.target.setCustomValidity('')}
-                    />
+                    <div className="input-with-error">
+                      <label>Student Number</label>
+                      <input 
+                        name="studentNumber" 
+                        value={getInputValue('studentNumber')} 
+                        onChange={handleInputChange} 
+                        placeholder="e.g., PDM-0001-000001" 
+                        className={studentNumberError ? "error-input" : ""}
+                        required={isStaffRole()}
+                        maxLength="15"
+                        onInvalid={(e) => e.target.setCustomValidity('Please enter student number in format: PDM-0001-000001')}
+                        onInput={(e) => e.target.setCustomValidity('')}
+                      />
+                      {studentNumberError && <div className="error-message">{studentNumberError}</div>}
+                    </div>
                     
-                    <label>Course</label>
-                    <input 
-                      name="course" 
-                      value={getInputValue('course')} 
-                      onChange={handleInputChange} 
-                      placeholder="e.g., BSIT, BSCS, BSIS" 
-                      required={isStaffRole()}
-                      onInvalid={(e) => e.target.setCustomValidity('Please enter course')}
-                      onInput={(e) => e.target.setCustomValidity('')}
-                    />
+                    <div className="input-with-error">
+                      <label>Course</label>
+                      <input 
+                        name="course" 
+                        value={getInputValue('course')} 
+                        onChange={handleInputChange} 
+                        placeholder="e.g., BSIS, BSIT, BSCS" 
+                        className={courseError ? "error-input" : ""}
+                        required={isStaffRole()}
+                        maxLength="10"
+                        onInvalid={(e) => e.target.setCustomValidity('Please enter course (BSIS, BSIT, BSCS, BSEMC, BSCpE)')}
+                        onInput={(e) => e.target.setCustomValidity('')}
+                      />
+                      {courseError && <div className="error-message">{courseError}</div>}
+                    </div>
                     
-                    <label>Section</label>
-                    <input 
-                      name="section" 
-                      value={getInputValue('section')} 
-                      onChange={handleInputChange} 
-                      placeholder="e.g., 3A, 2B" 
-                      required={isStaffRole()}
-                      onInvalid={(e) => e.target.setCustomValidity('Please enter section')}
-                      onInput={(e) => e.target.setCustomValidity('')}
-                    />
+                    <div className="input-with-error">
+                      <label>Section</label>
+                      <input 
+                        name="section" 
+                        value={getInputValue('section')} 
+                        onChange={handleInputChange} 
+                        placeholder="e.g., 31A, 32B, 21B" 
+                        className={sectionError ? "error-input" : ""}
+                        required={isStaffRole()}
+                        maxLength="3"
+                        onInvalid={(e) => e.target.setCustomValidity('Please enter section in format: 31A, 32B, 21B')}
+                        onInput={(e) => e.target.setCustomValidity('')}
+                      />
+                      {sectionError && <div className="error-message">{sectionError}</div>}
+                    </div>
                   </>
                 )}
                 
@@ -1118,8 +1441,13 @@ const handleRestoreUser = async () => {
                 </select>
 
                 <div className="modal-buttons">
-                  <button type="submit" className="save-btn" disabled={usernameError || nameError}>
-                    Update
+                  <button 
+                    type="submit" 
+                    className="save-btn" 
+                    disabled={saving || hasFormErrors}
+                    title={hasFormErrors ? "Please fix validation errors before updating" : ""}
+                  >
+                    {saving ? "Updating..." : "Update"}
                   </button>
                   <button type="button" className="cancel-btn" onClick={closeModals}>
                     Cancel

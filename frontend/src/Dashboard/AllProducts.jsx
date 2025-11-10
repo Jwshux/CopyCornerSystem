@@ -20,6 +20,9 @@ function AllProducts({ showAddModal, onAddModalClose }) {
   const [productToRestore, setProductToRestore] = useState(null);
   const [loading, setLoading] = useState(false);
   const [productNameError, setProductNameError] = useState("");
+  const [stockQuantityError, setStockQuantityError] = useState("");
+  const [minimumStockError, setMinimumStockError] = useState("");
+  const [unitPriceError, setUnitPriceError] = useState("");
   const [addSuccess, setAddSuccess] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [archiving, setArchiving] = useState(false);
@@ -54,6 +57,108 @@ function AllProducts({ showAddModal, onAddModalClose }) {
       setShowAddForm(true);
     }
   }, [showAddModal]);
+
+  // Enhanced product name validation
+  const checkProductName = (productName) => {
+    if (!productName) {
+      setProductNameError("");
+      return;
+    }
+
+    // Length validation
+    if (productName.length < 2) {
+      setProductNameError("Product name must be at least 2 characters long");
+      return;
+    }
+
+    if (productName.length > 100) {
+      setProductNameError("Product name must be less than 100 characters");
+      return;
+    }
+
+    // Check if contains only numbers
+    if (/^\d+$/.test(productName)) {
+      setProductNameError("Product name cannot contain only numbers");
+      return;
+    }
+
+    // Check if contains only special characters (no letters or numbers)
+    if (/^[^a-zA-Z0-9]+$/.test(productName)) {
+      setProductNameError("Please enter a valid product name");
+      return;
+    }
+
+    // Check if contains at least one letter
+    if (!/[a-zA-Z]/.test(productName)) {
+      setProductNameError("Product name must contain at least one letter");
+      return;
+    }
+
+    // Check if product name already exists
+    const existingProduct = products.find(product => 
+      product.product_name.toLowerCase() === productName.toLowerCase() &&
+      (!selectedProduct || product._id !== selectedProduct._id)
+    );
+
+    if (existingProduct) {
+      setProductNameError("Product name already exists");
+    } else {
+      setProductNameError("");
+    }
+  };
+
+  // Stock quantity validation
+  const checkStockQuantity = (quantity) => {
+    if (!quantity) {
+      setStockQuantityError("");
+      return;
+    }
+
+    const quantityValue = parseInt(quantity);
+    if (isNaN(quantityValue) || quantityValue < 0) {
+      setStockQuantityError("Stock quantity cannot be negative");
+      return;
+    }
+
+    setStockQuantityError("");
+  };
+
+  // Minimum stock validation
+  const checkMinimumStock = (minimumStock) => {
+    if (!minimumStock) {
+      setMinimumStockError("");
+      return;
+    }
+
+    const minimumStockValue = parseInt(minimumStock);
+    if (isNaN(minimumStockValue) || minimumStockValue <= 0) {
+      setMinimumStockError("Minimum stock must be greater than 0");
+      return;
+    }
+
+    setMinimumStockError("");
+  };
+
+  // Unit price validation
+  const checkUnitPrice = (price) => {
+    if (!price) {
+      setUnitPriceError("");
+      return;
+    }
+
+    const priceValue = parseFloat(price);
+    if (isNaN(priceValue) || priceValue <= 0) {
+      setUnitPriceError("Unit price must be greater than 0");
+      return;
+    }
+
+    if (priceValue < 0.01) {
+      setUnitPriceError("Unit price must be at least 0.01");
+      return;
+    }
+
+    setUnitPriceError("");
+  };
 
   const fetchProducts = async (page = 1) => {
     setLoading(true);
@@ -216,37 +321,19 @@ function AllProducts({ showAddModal, onAddModalClose }) {
     }
   };
 
-  const checkProductName = (productName) => {
-    if (!productName) {
-      setProductNameError("");
-      return;
-    }
-
-    // Check if product name contains only numbers
-    if (/^\d+$/.test(productName)) {
-      setProductNameError("Product name cannot contain only numbers");
-      return;
-    }
-
-    // Check if product name already exists
-    const existingProduct = products.find(product => 
-      product.product_name.toLowerCase() === productName.toLowerCase() &&
-      (!selectedProduct || product._id !== selectedProduct._id)
-    );
-
-    if (existingProduct) {
-      setProductNameError("Product name already exists");
-    } else {
-      setProductNameError("");
-    }
-  };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
 
+    // Real-time validation
     if (name === "product_name") {
       checkProductName(value);
+    } else if (name === "stock_quantity") {
+      checkStockQuantity(value);
+    } else if (name === "minimum_stock") {
+      checkMinimumStock(value);
+    } else if (name === "unit_price") {
+      checkUnitPrice(value);
     }
   };
 
@@ -260,6 +347,9 @@ function AllProducts({ showAddModal, onAddModalClose }) {
     });
     setSelectedProduct(null);
     setProductNameError("");
+    setStockQuantityError("");
+    setMinimumStockError("");
+    setUnitPriceError("");
   };
 
   const showError = (message) => {
@@ -275,8 +365,35 @@ function AllProducts({ showAddModal, onAddModalClose }) {
   const handleAddProduct = async (e) => {
     e.preventDefault();
     
-    if (productNameError) {
-      showError("Please fix the product name error before saving.");
+    // Final validation before submission
+    checkProductName(formData.product_name);
+    checkStockQuantity(formData.stock_quantity);
+    checkMinimumStock(formData.minimum_stock);
+    checkUnitPrice(formData.unit_price);
+    
+    if (productNameError || stockQuantityError || minimumStockError || unitPriceError) {
+      showError("Please fix the validation errors before saving.");
+      return;
+    }
+
+    // Additional validation for empty required fields
+    if (!formData.product_name.trim()) {
+      setProductNameError("Product name is required");
+      return;
+    }
+
+    if (!formData.stock_quantity || parseInt(formData.stock_quantity) < 0) {
+      setStockQuantityError("Stock quantity cannot be negative");
+      return;
+    }
+
+    if (!formData.minimum_stock || parseInt(formData.minimum_stock) <= 0) {
+      setMinimumStockError("Minimum stock must be greater than 0");
+      return;
+    }
+
+    if (!formData.unit_price || parseFloat(formData.unit_price) <= 0) {
+      setUnitPriceError("Unit price must be greater than 0");
       return;
     }
 
@@ -320,14 +437,44 @@ function AllProducts({ showAddModal, onAddModalClose }) {
       unit_price: product.unit_price
     });
     setProductNameError("");
+    setStockQuantityError("");
+    setMinimumStockError("");
+    setUnitPriceError("");
     setShowEditModal(true);
   };
 
   const handleUpdateProduct = async (e) => {
     e.preventDefault();
     
-    if (productNameError) {
-      showError("Please fix the product name error before updating.");
+    // Final validation before submission
+    checkProductName(formData.product_name);
+    checkStockQuantity(formData.stock_quantity);
+    checkMinimumStock(formData.minimum_stock);
+    checkUnitPrice(formData.unit_price);
+    
+    if (productNameError || stockQuantityError || minimumStockError || unitPriceError) {
+      showError("Please fix the validation errors before updating.");
+      return;
+    }
+
+    // Additional validation for empty required fields
+    if (!formData.product_name.trim()) {
+      setProductNameError("Product name is required");
+      return;
+    }
+
+    if (!formData.stock_quantity || parseInt(formData.stock_quantity) < 0) {
+      setStockQuantityError("Stock quantity cannot be negative");
+      return;
+    }
+
+    if (!formData.minimum_stock || parseInt(formData.minimum_stock) <= 0) {
+      setMinimumStockError("Minimum stock must be greater than 0");
+      return;
+    }
+
+    if (!formData.unit_price || parseFloat(formData.unit_price) <= 0) {
+      setUnitPriceError("Unit price must be greater than 0");
       return;
     }
 
@@ -512,6 +659,9 @@ function AllProducts({ showAddModal, onAddModalClose }) {
   };
 
   const displayRange = getDisplayRange();
+
+  // Check if form has any validation errors
+  const hasFormErrors = productNameError || stockQuantityError || minimumStockError || unitPriceError;
 
   return (
     <div className="product-page">
@@ -786,17 +936,18 @@ function AllProducts({ showAddModal, onAddModalClose }) {
               </div>
             ) : (
               <form onSubmit={handleAddProduct}>
-                <div className="form-field">
+                <div className="form-group">
                   <label>Product ID</label>
                   <input
                     type="text"
                     placeholder="Auto-generated"
                     value="Auto-generated"
                     readOnly
+                    className="readonly-field"
                   />
                 </div>
                 
-                <div className="form-field">
+                <div className="form-group">
                   <label>Product Name</label>
                   <input
                     type="text"
@@ -806,13 +957,19 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                     onChange={handleInputChange}
                     className={productNameError ? "error-input" : ""}
                     required
+                    maxLength="100"
                     pattern=".*[a-zA-Z].*"
-                    title="Product name must contain letters and cannot be only numbers"
+                    title="Product name must contain letters and cannot be only numbers or special characters"
+                    onInvalid={(e) => e.target.setCustomValidity('Please enter a valid product name with at least one letter')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
                   {productNameError && <div className="error-message">{productNameError}</div>}
+                  <small className="character-count">
+                    {formData.product_name.length}/100 characters
+                  </small>
                 </div>
                 
-                <div className="form-field">
+                <div className="form-group">
                   <label>Category</label>
                   <select
                     name="category_id"
@@ -831,7 +988,7 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                   </select>
                 </div>
                 
-                <div className="form-field">
+                <div className="form-group">
                   <label>Stock Quantity</label>
                   <input
                     type="number"
@@ -841,12 +998,14 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                     onChange={handleInputChange}
                     required
                     min="0"
-                    onInvalid={(e) => e.target.setCustomValidity('Stock quantity must be greater than or equal to 0')}
+                    className={stockQuantityError ? "error-input" : ""}
+                    onInvalid={(e) => e.target.setCustomValidity('Stock quantity cannot be negative')}
                     onInput={(e) => e.target.setCustomValidity('')}
                   />
+                  {stockQuantityError && <div className="error-message">{stockQuantityError}</div>}
                 </div>
                 
-                <div className="form-field">
+                <div className="form-group">
                   <label>Minimum Stock Level</label>
                   <input
                     type="number"
@@ -855,16 +1014,18 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                     value={formData.minimum_stock}
                     onChange={handleInputChange}
                     required
-                    min="0"
-                    onInvalid={(e) => e.target.setCustomValidity('Minimum stock must be greater than or equal to 0')}
+                    min="1"
+                    className={minimumStockError ? "error-input" : ""}
+                    onInvalid={(e) => e.target.setCustomValidity('Minimum stock must be greater than 0')}
                     onInput={(e) => e.target.setCustomValidity('')}
                   />
+                  {minimumStockError && <div className="error-message">{minimumStockError}</div>}
                   <small style={{color: '#666', fontSize: '12px', marginTop: '5px'}}>
                     Product will show "Low Stock" when quantity reaches this level
                   </small>
                 </div>
                 
-                <div className="form-field">
+                <div className="form-group">
                   <label>Unit Price</label>
                   <input
                     type="number"
@@ -874,14 +1035,21 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                     value={formData.unit_price}
                     onChange={handleInputChange}
                     required
-                    min="0"
-                    onInvalid={(e) => e.target.setCustomValidity('Unit price must be greater than or equal to 0')}
+                    min="0.01"
+                    className={unitPriceError ? "error-input" : ""}
+                    onInvalid={(e) => e.target.setCustomValidity('Unit price must be greater than 0')}
                     onInput={(e) => e.target.setCustomValidity('')}
                   />
+                  {unitPriceError && <div className="error-message">{unitPriceError}</div>}
                 </div>
 
                 <div className="form-buttons">
-                  <button type="submit" className="save-btn" disabled={loading || productNameError}>
+                  <button 
+                    type="submit" 
+                    className="save-btn" 
+                    disabled={loading || hasFormErrors}
+                    title={hasFormErrors ? "Please fix validation errors before saving" : ""}
+                  >
                     {loading ? "Saving..." : "Save"}
                   </button>
                   <button type="button" className="cancel-btn" onClick={closeModals}>
@@ -918,17 +1086,18 @@ function AllProducts({ showAddModal, onAddModalClose }) {
               </div>
             ) : (
               <form onSubmit={handleUpdateProduct}>
-                <div className="form-field">
+                <div className="form-group">
                   <label>Product ID</label>
                   <input
                     type="text"
                     placeholder="Product ID"
                     value={selectedProduct?.product_id || ""}
                     readOnly
+                    className="readonly-field"
                   />
                 </div>
                 
-                <div className="form-field">
+                <div className="form-group">
                   <label>Product Name</label>
                   <input
                     type="text"
@@ -938,13 +1107,19 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                     onChange={handleInputChange}
                     className={productNameError ? "error-input" : ""}
                     required
+                    maxLength="100"
                     pattern=".*[a-zA-Z].*"
-                    title="Product name must contain letters and cannot be only numbers"
+                    title="Product name must contain letters and cannot be only numbers or special characters"
+                    onInvalid={(e) => e.target.setCustomValidity('Please enter a valid product name with at least one letter')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
                   {productNameError && <div className="error-message">{productNameError}</div>}
+                  <small className="character-count">
+                    {formData.product_name.length}/100 characters
+                  </small>
                 </div>
                 
-                <div className="form-field">
+                <div className="form-group">
                   <label>Category</label>
                   <select
                     name="category_id"
@@ -954,7 +1129,7 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                     onInvalid={(e) => e.target.setCustomValidity('Please select a category')}
                     onInput={(e) => e.target.setCustomValidity('')}
                   >
-                    <option value="" disabled>-- Select Category --</option>
+                    <option value="" disabled>Select Category</option>
                     {categories.map((category) => (
                       <option key={category._id} value={category._id}>
                         {category.name}
@@ -963,7 +1138,7 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                   </select>
                 </div>
                 
-                <div className="form-field">
+                <div className="form-group">
                   <label>Stock Quantity</label>
                   <input
                     type="number"
@@ -973,12 +1148,14 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                     onChange={handleInputChange}
                     required
                     min="0"
-                    onInvalid={(e) => e.target.setCustomValidity('Stock quantity must be greater than or equal to 0')}
+                    className={stockQuantityError ? "error-input" : ""}
+                    onInvalid={(e) => e.target.setCustomValidity('Stock quantity cannot be negative')}
                     onInput={(e) => e.target.setCustomValidity('')}
                   />
+                  {stockQuantityError && <div className="error-message">{stockQuantityError}</div>}
                 </div>
                 
-                <div className="form-field">
+                <div className="form-group">
                   <label>Minimum Stock Level</label>
                   <input
                     type="number"
@@ -987,16 +1164,18 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                     value={formData.minimum_stock}
                     onChange={handleInputChange}
                     required
-                    min="0"
-                    onInvalid={(e) => e.target.setCustomValidity('Minimum stock must be greater than or equal to 0')}
+                    min="1"
+                    className={minimumStockError ? "error-input" : ""}
+                    onInvalid={(e) => e.target.setCustomValidity('Minimum stock must be greater than 0')}
                     onInput={(e) => e.target.setCustomValidity('')}
                   />
+                  {minimumStockError && <div className="error-message">{minimumStockError}</div>}
                   <small style={{color: '#666', fontSize: '12px', marginTop: '5px'}}>
                     Product will show "Low Stock" when quantity reaches this level
                   </small>
                 </div>
                 
-                <div className="form-field">
+                <div className="form-group">
                   <label>Unit Price</label>
                   <input
                     type="number"
@@ -1006,14 +1185,21 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                     value={formData.unit_price}
                     onChange={handleInputChange}
                     required
-                    min="0"
-                    onInvalid={(e) => e.target.setCustomValidity('Unit price must be greater than or equal to 0')}
+                    min="0.01"
+                    className={unitPriceError ? "error-input" : ""}
+                    onInvalid={(e) => e.target.setCustomValidity('Unit price must be greater than 0')}
                     onInput={(e) => e.target.setCustomValidity('')}
                   />
+                  {unitPriceError && <div className="error-message">{unitPriceError}</div>}
                 </div>
 
                 <div className="form-buttons">
-                  <button type="submit" className="save-btn" disabled={loading || productNameError}>
+                  <button 
+                    type="submit" 
+                    className="save-btn" 
+                    disabled={loading || hasFormErrors}
+                    title={hasFormErrors ? "Please fix validation errors before updating" : ""}
+                  >
                     {loading ? "Updating..." : "Update"}
                   </button>
                   <button type="button" className="cancel-btn" onClick={closeModals}>

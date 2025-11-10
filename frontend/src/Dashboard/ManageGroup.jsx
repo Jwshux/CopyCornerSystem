@@ -41,10 +41,10 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [archivedCurrentPage, setArchivedCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5;
-  const [totalPages, setTotalPages] = useState(1);
-  const [archivedTotalPages, setArchivedTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const [archivedTotalCount, setArchivedTotalCount] = useState(0);
+
+  // Store all data for client-side filtering
+  const [allGroups, setAllGroups] = useState([]);
+  const [allArchivedGroups, setAllArchivedGroups] = useState([]);
 
   // Role levels with descriptions
   const roleLevels = [
@@ -73,51 +73,137 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     }
   }, [showAddModal]);
 
+  // Enhanced group name validation - SAME AS SERVICE TYPES AND CATEGORIES
+  const checkGroupName = (groupName) => {
+    if (!groupName) {
+      setGroupNameError("");
+      return;
+    }
+
+    // Length validation
+    if (groupName.length < 2) {
+      setGroupNameError("Role name must be at least 2 characters long");
+      return;
+    }
+
+    if (groupName.length > 100) {
+      setGroupNameError("Role name must be less than 100 characters");
+      return;
+    }
+
+    // Check if contains only numbers
+    if (/^\d+$/.test(groupName)) {
+      setGroupNameError("Role name cannot contain only numbers");
+      return;
+    }
+
+    // Check if contains only special characters (no letters or numbers)
+    if (/^[^a-zA-Z0-9]+$/.test(groupName)) {
+      setGroupNameError("Please enter a valid role name");
+      return;
+    }
+
+    // Check if contains at least one letter
+    if (!/[a-zA-Z]/.test(groupName)) {
+      setGroupNameError("Role name must contain at least one letter");
+      return;
+    }
+
+    // Check for duplicate group names
+    const existingGroup = allGroups.find(group => 
+      group.group_name.toLowerCase() === groupName.toLowerCase() &&
+      (!currentGroup._id || group._id !== currentGroup._id)
+    );
+
+    if (existingGroup) {
+      setGroupNameError("Role name already exists");
+    } else {
+      setGroupNameError("");
+    }
+  };
+
+  // Filter groups based on search term
+const filterGroups = (groups, term) => {
+  if (!term.trim()) return groups;
+  
+  return groups.filter(group =>
+    group.group_name.toLowerCase().includes(term.toLowerCase()) ||
+    getLevelDescription(group.group_level).toLowerCase().includes(term.toLowerCase()) ||
+    `level ${group.group_level}`.includes(term.toLowerCase()) || // Search by "level 0", "level 1"
+    getLevelLabel(group.group_level).toLowerCase().includes(term.toLowerCase()) || // Search by "Administrator", "Staff"
+    group.group_level.toString().includes(term) // Search by "0", "1"
+  );
+};
+
   // Fetch active groups from backend
-  const fetchGroups = async (page = 1) => {
+  const fetchGroups = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/groups?page=${page}&per_page=${ITEMS_PER_PAGE}`);
+      const response = await fetch(`${API_BASE}/groups`);
       if (response.ok) {
         const data = await response.json();
-        setGroups(data.groups);
-        setCurrentPage(data.pagination.page);
-        setTotalPages(data.pagination.total_pages);
-        setTotalCount(data.pagination.total_groups);
+        
+        let groupsData = [];
+        if (Array.isArray(data)) {
+          groupsData = data;
+        } else if (data.groups && Array.isArray(data.groups)) {
+          groupsData = data.groups;
+        } else {
+          groupsData = [];
+        }
+        
+        setAllGroups(groupsData);
+        
+        // Apply search filter if there's a search term
+        const filteredData = filterGroups(groupsData, searchTerm);
+        setGroups(filteredData);
+        
       } else {
         console.error('Failed to fetch groups');
+        setAllGroups([]);
         setGroups([]);
-        setTotalCount(0);
       }
     } catch (error) {
       console.error('Error fetching groups:', error);
+      setAllGroups([]);
       setGroups([]);
-      setTotalCount(0);
     } finally {
       setLoading(false);
     }
   };
 
   // Fetch archived groups
-  const fetchArchivedGroups = async (page = 1) => {
+  const fetchArchivedGroups = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/groups/archived?page=${page}&per_page=${ITEMS_PER_PAGE}`);
+      const response = await fetch(`${API_BASE}/groups/archived`);
       if (response.ok) {
         const data = await response.json();
-        setArchivedGroups(data.groups);
-        setArchivedCurrentPage(data.pagination.page);
-        setArchivedTotalPages(data.pagination.total_pages);
-        setArchivedTotalCount(data.pagination.total_groups);
+        
+        let archivedData = [];
+        if (Array.isArray(data)) {
+          archivedData = data;
+        } else if (data.groups && Array.isArray(data.groups)) {
+          archivedData = data.groups;
+        } else {
+          archivedData = [];
+        }
+        
+        setAllArchivedGroups(archivedData);
+        
+        // Apply search filter if there's a search term
+        const filteredData = filterGroups(archivedData, searchTerm);
+        setArchivedGroups(filteredData);
+        
       } else {
         console.error('Failed to fetch archived groups');
+        setAllArchivedGroups([]);
         setArchivedGroups([]);
-        setArchivedTotalCount(0);
       }
     } catch (error) {
       console.error('Error fetching archived groups:', error);
+      setAllArchivedGroups([]);
       setArchivedGroups([]);
-      setArchivedTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -127,11 +213,18 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     fetchGroups();
   }, []);
 
+  // Update displayed data when search term changes
   useEffect(() => {
     if (showArchivedView) {
-      fetchArchivedGroups(1);
+      const filteredData = filterGroups(allArchivedGroups, searchTerm);
+      setArchivedGroups(filteredData);
+      setArchivedCurrentPage(1); // Reset to first page when searching
+    } else {
+      const filteredData = filterGroups(allGroups, searchTerm);
+      setGroups(filteredData);
+      setCurrentPage(1); // Reset to first page when searching
     }
-  }, [showArchivedView]);
+  }, [searchTerm, showArchivedView]);
 
   // Reset save success state when form closes
   useEffect(() => {
@@ -157,15 +250,42 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     }
   }, [showRestoreModal]);
 
+  // Pagination calculations
+  const getPaginatedData = (data, page) => {
+    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return data.slice(startIndex, endIndex);
+  };
+
+  const getTotalPages = (data) => {
+    return Math.ceil(data.length / ITEMS_PER_PAGE);
+  };
+
+  const getDisplayRange = (data, page) => {
+    const start = (page - 1) * ITEMS_PER_PAGE + 1;
+    const end = Math.min(page * ITEMS_PER_PAGE, data.length);
+    return { start, end, total: data.length };
+  };
+
+  // Current displayed data with pagination applied
+  const displayedGroups = getPaginatedData(groups, currentPage);
+  const displayedArchivedGroups = getPaginatedData(archivedGroups, archivedCurrentPage);
+
+  const groupsDisplayRange = getDisplayRange(groups, currentPage);
+  const archivedGroupsDisplayRange = getDisplayRange(archivedGroups, archivedCurrentPage);
+
+  const groupsTotalPages = getTotalPages(groups);
+  const archivedGroupsTotalPages = getTotalPages(archivedGroups);
+
   // Pagination handlers
   const handleNextPage = () => {
     if (showArchivedView) {
-      if (archivedCurrentPage < archivedTotalPages) {
-        fetchArchivedGroups(archivedCurrentPage + 1);
+      if (archivedCurrentPage < archivedGroupsTotalPages) {
+        setArchivedCurrentPage(archivedCurrentPage + 1);
       }
     } else {
-      if (currentPage < totalPages) {
-        fetchGroups(currentPage + 1);
+      if (currentPage < groupsTotalPages) {
+        setCurrentPage(currentPage + 1);
       }
     }
   };
@@ -173,53 +293,12 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
   const handlePrevPage = () => {
     if (showArchivedView) {
       if (archivedCurrentPage > 1) {
-        fetchArchivedGroups(archivedCurrentPage - 1);
+        setArchivedCurrentPage(archivedCurrentPage - 1);
       }
     } else {
       if (currentPage > 1) {
-        fetchGroups(currentPage - 1);
+        setCurrentPage(currentPage - 1);
       }
-    }
-  };
-
-  // Calculate display ranges
-  const getDisplayRange = () => {
-    if (showArchivedView) {
-      const start = (archivedCurrentPage - 1) * ITEMS_PER_PAGE + 1;
-      const end = Math.min(archivedCurrentPage * ITEMS_PER_PAGE, archivedTotalCount);
-      return { start, end, total: archivedTotalCount };
-    } else {
-      const start = (currentPage - 1) * ITEMS_PER_PAGE + 1;
-      const end = Math.min(currentPage * ITEMS_PER_PAGE, totalCount);
-      return { start, end, total: totalCount };
-    }
-  };
-
-  const displayRange = getDisplayRange();
-
-  // Check if group name is valid
-  const checkGroupName = (groupName) => {
-    if (!groupName) {
-      setGroupNameError("");
-      return;
-    }
-
-    // Check if group name contains only numbers
-    if (/^\d+$/.test(groupName)) {
-      setGroupNameError("Role name cannot contain only numbers");
-      return;
-    }
-
-    // Check if group name already exists
-    const existingGroup = groups.find(group => 
-      group.group_name.toLowerCase() === groupName.toLowerCase() &&
-      (!currentGroup._id || group._id !== currentGroup._id)
-    );
-
-    if (existingGroup) {
-      setGroupNameError("Role name already exists");
-    } else {
-      setGroupNameError("");
     }
   };
 
@@ -250,8 +329,17 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
   const handleSave = async (e) => {
     e.preventDefault();
     
+    // Final validation before submission
+    checkGroupName(currentGroup.group_name);
+    
     if (groupNameError) {
-      alert("Please fix the role name error before saving.");
+      showError("Please fix the role name error before saving.");
+      return;
+    }
+
+    // Additional validation for empty required fields
+    if (!currentGroup.group_name.trim()) {
+      setGroupNameError("Role name is required");
       return;
     }
 
@@ -261,7 +349,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
       if (isEditing) {
         // Prevent editing protected roles
         if (isProtectedRole(currentGroup.group_name)) {
-          alert("Cannot edit protected system roles.");
+          showError("Cannot edit protected system roles.");
           setSaving(false);
           return;
         }
@@ -282,13 +370,13 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
         if (response.ok) {
           setSaveSuccess(true);
           setTimeout(async () => {
-            await fetchGroups(currentPage);
+            await fetchGroups();
             handleCloseForm();
             setSaving(false);
           }, 1500);
         } else {
           const error = await response.json();
-          alert(error.error || 'Failed to update role');
+          showError(error.error || 'Failed to update role');
           setSaving(false);
         }
       } else {
@@ -308,27 +396,39 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
         if (response.ok) {
           setSaveSuccess(true);
           setTimeout(async () => {
-            await fetchGroups(currentPage);
+            await fetchGroups();
             handleCloseForm();
             setSaving(false);
           }, 1500);
         } else {
           const error = await response.json();
-          alert(error.error || 'Failed to create role');
+          showError(error.error || 'Failed to create role');
           setSaving(false);
         }
       }
     } catch (error) {
       console.error('Error saving role:', error);
-      alert('Error saving role');
+      showError('Error saving role');
       setSaving(false);
     }
+  };
+
+  // Show error modal
+  const showError = (message) => {
+    setErrorMessage(message);
+    setShowErrorModal(true);
+  };
+
+  // Close error modal
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorMessage("");
   };
 
   const handleEdit = (group) => {
     // Prevent editing protected roles
     if (isProtectedRole(group.group_name)) {
-      alert("Cannot edit protected system roles.");
+      showError("Cannot edit protected system roles.");
       return;
     }
     
@@ -347,7 +447,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
   const openArchiveModal = (group) => {
     // Prevent archiving protected roles
     if (isProtectedRole(group.group_name)) {
-      alert("Cannot archive protected system roles.");
+      showError("Cannot archive protected system roles.");
       return;
     }
     
@@ -367,7 +467,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
 
     // Double-check protection (shouldn't reach here for protected roles)
     if (isProtectedRole(groupToArchive.group_name)) {
-      alert("Cannot archive protected system roles.");
+      showError("Cannot archive protected system roles.");
       closeArchiveModal();
       return;
     }
@@ -382,7 +482,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setArchiveSuccess(true);
         setTimeout(async () => {
-          await fetchGroups(currentPage);
+          await fetchGroups();
           closeArchiveModal();
         }, 1500);
       } else {
@@ -441,18 +541,18 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setRestoreSuccess(true);
         setTimeout(async () => {
-          await fetchArchivedGroups(archivedCurrentPage);
-          await fetchGroups(1);
+          await fetchArchivedGroups();
+          await fetchGroups();
           closeRestoreModal();
         }, 1500);
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to restore role');
+        showError(error.error || 'Failed to restore role');
         setRestoring(false);
       }
     } catch (error) {
       console.error('Error restoring role:', error);
-      alert('Error restoring role');
+      showError('Error restoring role');
       setRestoring(false);
     }
   };
@@ -484,40 +584,33 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
     }
   };
 
-  const closeErrorModal = () => {
-    setShowErrorModal(false);
-    setErrorMessage("");
-  };
-
   const formatDate = (dateString) => {
     if (!dateString) return 'Unknown';
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
 
-  // Filter groups based on search term
-  const filteredGroups = groups.filter(group =>
-    group.group_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    getLevelDescription(group.group_level).toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredArchivedGroups = archivedGroups.filter(group =>
-    group.group_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    getLevelDescription(group.group_level).toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Check if form has any validation errors
+  const hasFormErrors = groupNameError;
 
   return (
     <div className="manage-group-page">
       {/* Table Header with Archive Button and Search */}
       <div className="table-header">
         {showArchivedView ? (
-          <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
+          <button className="back-to-main-btn" onClick={() => {
+            setShowArchivedView(false);
+            setSearchTerm("");
+            setCurrentPage(1);
+          }}>
             ← Back to Main View
           </button>
         ) : (
           <button className="view-archive-btn" onClick={() => {
             setShowArchivedView(true);
-            fetchArchivedGroups(1);
+            setSearchTerm("");
+            setArchivedCurrentPage(1);
+            fetchArchivedGroups();
           }}>
             📦 View Archived Roles
           </button>
@@ -549,7 +642,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
               </tr>
             </thead>
             <tbody>
-              {groups.length === 0 ? (
+              {displayedGroups.length === 0 ? (
                 <tr>
                   <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
                     {loading ? (
@@ -564,7 +657,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
                   </td>
                 </tr>
               ) : (
-                groups.map((group, index) => {
+                displayedGroups.map((group, index) => {
                   const isProtected = isProtectedRole(group.group_name);
                   return (
                     <tr key={group._id}>
@@ -601,8 +694,8 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
               )}
               
               {/* Add empty rows to maintain consistent height */}
-              {groups.length > 0 && groups.length < 5 &&
-                Array.from({ length: 5 - groups.length }).map((_, index) => (
+              {displayedGroups.length > 0 && displayedGroups.length < 5 &&
+                Array.from({ length: 5 - displayedGroups.length }).map((_, index) => (
                   <tr key={`empty-${index}`} style={{ visibility: 'hidden' }}>
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>
@@ -617,11 +710,11 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
           </table>
 
           {/* PAGINATION CONTROLS */}
-          {groups.length > 0 && (
+          {displayedGroups.length > 0 && (
             <div className="pagination-controls">
               <div className="pagination-info">
                 <span className="pagination-text">
-                  Showing {displayRange.start}-{displayRange.end} of {displayRange.total} items
+                  Showing {groupsDisplayRange.start}-{groupsDisplayRange.end} of {groupsDisplayRange.total} items
                 </span>
               </div>
               
@@ -634,11 +727,11 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
                   Previous
                 </button>
                 <span className="page-info">
-                  Page {currentPage} of {totalPages}
+                  Page {currentPage} of {groupsTotalPages}
                 </span>
                 <button 
                   onClick={handleNextPage} 
-                  disabled={currentPage === totalPages || loading}
+                  disabled={currentPage === groupsTotalPages || loading}
                   className="pagination-btn"
                 >
                   Next
@@ -664,7 +757,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
               </tr>
             </thead>
             <tbody>
-              {archivedGroups.length === 0 ? (
+              {displayedArchivedGroups.length === 0 ? (
                 <tr>
                   <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
                     {loading ? (
@@ -679,7 +772,7 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
                   </td>
                 </tr>
               ) : (
-                archivedGroups.map((group, index) => (
+                displayedArchivedGroups.map((group, index) => (
                   <tr key={group._id}>
                     <td>{group.group_name}</td>
                     <td>Level {group.group_level}</td>
@@ -700,8 +793,8 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
               )}
               
               {/* Add empty rows to maintain consistent height */}
-              {archivedGroups.length > 0 && archivedGroups.length < 5 &&
-                Array.from({ length: 5 - archivedGroups.length }).map((_, index) => (
+              {displayedArchivedGroups.length > 0 && displayedArchivedGroups.length < 5 &&
+                Array.from({ length: 5 - displayedArchivedGroups.length }).map((_, index) => (
                   <tr key={`empty-archived-${index}`} style={{ visibility: 'hidden' }}>
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>
@@ -716,11 +809,11 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
           </table>
 
           {/* PAGINATION FOR ARCHIVED GROUPS */}
-          {archivedGroups.length > 0 && (
+          {displayedArchivedGroups.length > 0 && (
             <div className="pagination-controls">
               <div className="pagination-info">
                 <span className="pagination-text">
-                  Showing {displayRange.start}-{displayRange.end} of {displayRange.total} items
+                  Showing {archivedGroupsDisplayRange.start}-{archivedGroupsDisplayRange.end} of {archivedGroupsDisplayRange.total} items
                 </span>
               </div>
               
@@ -733,11 +826,11 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
                   Previous
                 </button>
                 <span className="page-info">
-                  Page {archivedCurrentPage} of {archivedTotalPages}
+                  Page {archivedCurrentPage} of {archivedGroupsTotalPages}
                 </span>
                 <button 
                   onClick={handleNextPage} 
-                  disabled={archivedCurrentPage === archivedTotalPages || loading}
+                  disabled={archivedCurrentPage === archivedGroupsTotalPages || loading}
                   className="pagination-btn"
                 >
                   Next
@@ -772,21 +865,27 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
               </div>
             ) : (
               <form onSubmit={handleSave}>
-                <label>Role Name</label>
-                <input 
-                  type="text" 
-                  name="group_name"
-                  value={currentGroup.group_name}
-                  onChange={handleInputChange}
-                  className={groupNameError ? "error-input" : ""}
-                  placeholder="e.g., Administrator, Staff Member"
-                  required
-                  pattern=".*[a-zA-Z].*"
-                  title="Role name must contain letters and cannot be only numbers"
-                  onInvalid={(e) => e.target.setCustomValidity('Please enter a valid role name')}
-                  onInput={(e) => e.target.setCustomValidity('')}
-                />
-                {groupNameError && <div className="error-message">{groupNameError}</div>}
+                <div className="input-with-error">
+                  <label>Role Name</label>
+                  <input 
+                    type="text" 
+                    name="group_name"
+                    value={currentGroup.group_name}
+                    onChange={handleInputChange}
+                    className={groupNameError ? "error-input" : ""}
+                    placeholder="e.g., Administrator, Staff Member"
+                    required
+                    maxLength="100"
+                    pattern=".*[a-zA-Z].*"
+                    title="Role name must contain letters and cannot be only numbers or special characters"
+                    onInvalid={(e) => e.target.setCustomValidity('Please enter a valid role name with at least one letter')}
+                    onInput={(e) => e.target.setCustomValidity('')}
+                  />
+                  {groupNameError && <div className="error-message">{groupNameError}</div>}
+                  <small className="character-count">
+                    {currentGroup.group_name.length}/100 characters
+                  </small>
+                </div>
                 
                 <label>Role Level</label>
                 <select 
@@ -823,8 +922,13 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
                 </select>
                 
                 <div className="form-buttons">
-                  <button type="submit" className="save-btn" disabled={groupNameError}>
-                    {isEditing ? "Update" : "Save"}
+                  <button 
+                    type="submit" 
+                    className="save-btn" 
+                    disabled={saving || hasFormErrors}
+                    title={hasFormErrors ? "Please fix validation errors before saving" : ""}
+                  >
+                    {saving ? (isEditing ? "Updating..." : "Saving...") : (isEditing ? "Update" : "Save")}
                   </button>
                   <button type="button" className="cancel-btn" onClick={handleCloseForm}>
                     Cancel
@@ -922,35 +1026,16 @@ function ManageGroup({ showAddModal, onAddModalClose }) {
 
       {/* ERROR MODAL */}
       {showErrorModal && (
-        <div className="error-modal-overlay">
-          <div className="error-modal-content">
-            <div className="error-modal-header">Operation Failed</div>
-            <div className="error-modal-title">
-              {errorMessage.includes('archive') ? 'Cannot archive role' : 'Operation failed'}
+        <div className="overlay">
+          <div className="modal-content error-modal">
+            <div className="error-icon">⚠️</div>
+            <h3>Operation Failed</h3>
+            <p className="error-message-text">{errorMessage}</p>
+            <div className="form-buttons">
+              <button className="cancel-btn" onClick={closeErrorModal}>
+                OK
+              </button>
             </div>
-            <div className="error-modal-message">
-              {errorMessage.split('\n\n')[0]}
-              {errorMessage.includes('Users with this role:') && (
-                <div className="error-modal-schedules">
-                  {errorMessage.split('Users with this role:')[1]?.split('\n\n')[0]?.split('\n').map((user, index) => (
-                    <div key={index} className="error-schedule-item">
-                      {user.trim()}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {errorMessage.split('\n\n')[1] && (
-                <div style={{ marginTop: '15px', color: '#d9534f', fontWeight: 'bold' }}>
-                  {errorMessage.split('\n\n')[1]}
-                </div>
-              )}
-            </div>
-            <button 
-              className="error-modal-ok-btn" 
-              onClick={closeErrorModal}
-            >
-              OK
-            </button>
           </div>
         </div>
       )}

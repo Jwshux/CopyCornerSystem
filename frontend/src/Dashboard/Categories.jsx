@@ -51,67 +51,174 @@ const Categories = () => {
 
   const [updateSuccess, setUpdateSuccess] = useState(false);
 
+  // Store all data for client-side filtering
+  const [allCategories, setAllCategories] = useState([]);
+  const [allArchivedCategories, setAllArchivedCategories] = useState([]);
+
+  // Enhanced category name validation - SAME AS SERVICE TYPES
+  const checkCategoryName = (categoryName, isEdit = false) => {
+    if (!categoryName) {
+      if (isEdit) {
+        setEditCategoryNameError("");
+      } else {
+        setCategoryNameError("");
+      }
+      return;
+    }
+
+    // Length validation
+    if (categoryName.length < 2) {
+      if (isEdit) {
+        setEditCategoryNameError("Category name must be at least 2 characters long");
+      } else {
+        setCategoryNameError("Category name must be at least 2 characters long");
+      }
+      return;
+    }
+
+    if (categoryName.length > 100) {
+      if (isEdit) {
+        setEditCategoryNameError("Category name must be less than 100 characters");
+      } else {
+        setCategoryNameError("Category name must be less than 100 characters");
+      }
+      return;
+    }
+
+    // Check if contains only numbers
+    if (/^\d+$/.test(categoryName)) {
+      if (isEdit) {
+        setEditCategoryNameError("Category name cannot contain only numbers");
+      } else {
+        setCategoryNameError("Category name cannot contain only numbers");
+      }
+      return;
+    }
+
+    // Check if contains only special characters (no letters or numbers)
+    if (/^[^a-zA-Z0-9]+$/.test(categoryName)) {
+      if (isEdit) {
+        setEditCategoryNameError("Please enter a valid category name");
+      } else {
+        setCategoryNameError("Please enter a valid category name");
+      }
+      return;
+    }
+
+    // Check if contains at least one letter
+    if (!/[a-zA-Z]/.test(categoryName)) {
+      if (isEdit) {
+        setEditCategoryNameError("Category name must contain at least one letter");
+      } else {
+        setCategoryNameError("Category name must contain at least one letter");
+      }
+      return;
+    }
+
+    // Check for duplicate category names
+    const existingCategory = allCategories.find(cat => 
+      cat.name.toLowerCase() === categoryName.toLowerCase() &&
+      (!isEdit || cat._id !== selectedCategory?._id)
+    );
+
+    if (existingCategory) {
+      if (isEdit) {
+        setEditCategoryNameError("Category name already exists");
+      } else {
+        setCategoryNameError("Category name already exists");
+      }
+    } else {
+      if (isEdit) {
+        setEditCategoryNameError("");
+      } else {
+        setCategoryNameError("");
+      }
+    }
+  };
+
+  // Filter categories based on search term
+  const filterCategories = (categories, term) => {
+    if (!term.trim()) return categories;
+    
+    return categories.filter(category =>
+      category.name.toLowerCase().includes(term.toLowerCase()) ||
+      (category.description && category.description.toLowerCase().includes(term.toLowerCase()))
+    );
+  };
+
   // Fetch categories from backend
-  const fetchCategories = async (page = 1) => {
+  const fetchCategories = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/categories?page=${page}&per_page=${ITEMS_PER_PAGE}`);
+      const response = await fetch(`${API_BASE}/categories`);
       if (response.ok) {
         const data = await response.json();
-        setCategories(data.categories || []);
-        setCurrentPage(data.pagination?.page || 1);
-        setTotalPages(data.pagination?.total_pages || 1);
-        setTotalCount(data.pagination?.total_count || data.categories?.length || 0);
+        
+        let categoriesData = [];
+        if (Array.isArray(data)) {
+          categoriesData = data;
+        } else if (data.categories && Array.isArray(data.categories)) {
+          categoriesData = data.categories;
+        } else {
+          categoriesData = [];
+        }
+        
+        setAllCategories(categoriesData);
+        
+        // Apply search filter if there's a search term
+        const filteredData = filterCategories(categoriesData, searchTerm);
+        setCategories(filteredData);
+        
       } else {
         console.error('Failed to fetch categories');
         showError('Failed to load categories');
+        setAllCategories([]);
+        setCategories([]);
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
       showError('Error loading categories');
+      setAllCategories([]);
+      setCategories([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch archived categories with pagination
-  const fetchArchivedCategories = async (page = 1) => {
+  // Fetch archived categories
+  const fetchArchivedCategories = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/categories/archived?page=${page}&per_page=${ITEMS_PER_PAGE}`);
+      const response = await fetch(`${API_BASE}/categories/archived`);
       if (response.ok) {
         const data = await response.json();
         
+        let archivedData = [];
         if (Array.isArray(data)) {
-          // Simple array format - no pagination info
-          setArchivedCategories(data);
-          setArchivedCurrentPage(1);
-          setArchivedTotalPages(1);
-          setArchivedTotalCount(data.length);
+          archivedData = data;
         } else if (data.categories && Array.isArray(data.categories)) {
-          // Paginated format
-          setArchivedCategories(data.categories);
-          setArchivedCurrentPage(data.pagination?.page || 1);
-          setArchivedTotalPages(data.pagination?.total_pages || 1);
-          setArchivedTotalCount(data.pagination?.total_count || data.categories.length);
+          archivedData = data.categories;
         } else {
-          // Fallback
-          setArchivedCategories([]);
-          setArchivedCurrentPage(1);
-          setArchivedTotalPages(1);
-          setArchivedTotalCount(0);
+          archivedData = [];
         }
+        
+        setAllArchivedCategories(archivedData);
+        
+        // Apply search filter if there's a search term
+        const filteredData = filterCategories(archivedData, searchTerm);
+        setArchivedCategories(filteredData);
+        
       } else {
         console.error('Failed to fetch archived categories');
         showError('Failed to load archived categories');
+        setAllArchivedCategories([]);
         setArchivedCategories([]);
-        setArchivedTotalCount(0);
       }
     } catch (error) {
       console.error('Error fetching archived categories:', error);
       showError('Error loading archived categories');
+      setAllArchivedCategories([]);
       setArchivedCategories([]);
-      setArchivedTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -120,6 +227,19 @@ const Categories = () => {
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  // Update displayed data when search term changes
+  useEffect(() => {
+    if (showArchivedView) {
+      const filteredData = filterCategories(allArchivedCategories, searchTerm);
+      setArchivedCategories(filteredData);
+      setArchivedCurrentPage(1); // Reset to first page when searching
+    } else {
+      const filteredData = filterCategories(allCategories, searchTerm);
+      setCategories(filteredData);
+      setCurrentPage(1); // Reset to first page when searching
+    }
+  }, [searchTerm, showArchivedView]);
 
   // Reset states when modals close
   useEffect(() => {
@@ -140,15 +260,42 @@ const Categories = () => {
     }
   }, [showRestoreModal]);
 
-  // Pagination handlers - separate for each view
+  // Pagination calculations
+  const getPaginatedData = (data, page) => {
+    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return data.slice(startIndex, endIndex);
+  };
+
+  const getTotalPages = (data) => {
+    return Math.ceil(data.length / ITEMS_PER_PAGE);
+  };
+
+  const getDisplayRange = (data, page) => {
+    const start = (page - 1) * ITEMS_PER_PAGE + 1;
+    const end = Math.min(page * ITEMS_PER_PAGE, data.length);
+    return { start, end, total: data.length };
+  };
+
+  // Current displayed data with pagination applied
+  const displayedCategories = getPaginatedData(categories, currentPage);
+  const displayedArchivedCategories = getPaginatedData(archivedCategories, archivedCurrentPage);
+
+  const categoriesDisplayRange = getDisplayRange(categories, currentPage);
+  const archivedCategoriesDisplayRange = getDisplayRange(archivedCategories, archivedCurrentPage);
+
+  const categoriesTotalPages = getTotalPages(categories);
+  const archivedCategoriesTotalPages = getTotalPages(archivedCategories);
+
+  // Pagination handlers
   const handleNextPage = () => {
     if (showArchivedView) {
-      if (archivedCurrentPage < archivedTotalPages) {
-        fetchArchivedCategories(archivedCurrentPage + 1);
+      if (archivedCurrentPage < archivedCategoriesTotalPages) {
+        setArchivedCurrentPage(archivedCurrentPage + 1);
       }
     } else {
-      if (currentPage < totalPages) {
-        fetchCategories(currentPage + 1);
+      if (currentPage < categoriesTotalPages) {
+        setCurrentPage(currentPage + 1);
       }
     }
   };
@@ -156,59 +303,12 @@ const Categories = () => {
   const handlePrevPage = () => {
     if (showArchivedView) {
       if (archivedCurrentPage > 1) {
-        fetchArchivedCategories(archivedCurrentPage - 1);
+        setArchivedCurrentPage(archivedCurrentPage - 1);
       }
     } else {
       if (currentPage > 1) {
-        fetchCategories(currentPage - 1);
+        setCurrentPage(currentPage - 1);
       }
-    }
-  };
-
-  // Check if category name exists for ADD form
-  const checkCategoryName = (categoryName) => {
-    if (!categoryName) {
-      setCategoryNameError("");
-      return;
-    }
-
-    if (/^\d+$/.test(categoryName)) {
-      setCategoryNameError("Category name cannot contain only numbers");
-      return;
-    }
-
-    const existingCategory = categories.find(cat => 
-      cat.name.toLowerCase() === categoryName.toLowerCase()
-    );
-
-    if (existingCategory) {
-      setCategoryNameError("Category name already exists");
-    } else {
-      setCategoryNameError("");
-    }
-  };
-
-  // Check if category name exists for EDIT form
-  const checkEditCategoryName = (categoryName) => {
-    if (!categoryName) {
-      setEditCategoryNameError("");
-      return;
-    }
-
-    if (/^\d+$/.test(categoryName)) {
-      setEditCategoryNameError("Category name cannot contain only numbers");
-      return;
-    }
-
-    const existingCategory = categories.find(cat => 
-      cat._id !== selectedCategory?._id && 
-      cat.name.toLowerCase() === categoryName.toLowerCase()
-    );
-
-    if (existingCategory) {
-      setEditCategoryNameError("Category name already exists");
-    } else {
-      setEditCategoryNameError("");
     }
   };
 
@@ -216,7 +316,7 @@ const Categories = () => {
   const handleAddNameChange = (e) => {
     const value = e.target.value;
     setNewCategory(value);
-    checkCategoryName(value);
+    checkCategoryName(value, false);
   };
 
   const handleAddDescriptionChange = (e) => {
@@ -248,7 +348,17 @@ const Categories = () => {
   const handleAddCategory = async (e) => {
     e.preventDefault();
     
+    // Final validation before submission
+    checkCategoryName(newCategory, false);
+    
     if (categoryNameError) {
+      showError("Please fix the category name error before saving.");
+      return;
+    }
+
+    // Additional validation for empty required fields
+    if (!newCategory.trim()) {
+      setCategoryNameError("Category name is required");
       return;
     }
 
@@ -266,7 +376,7 @@ const Categories = () => {
       });
 
       if (response.ok) {
-        await fetchCategories(currentPage);
+        await fetchCategories();
         resetForm();
       } else {
         const error = await response.json();
@@ -296,7 +406,7 @@ const Categories = () => {
     });
     
     if (name === "name") {
-      checkEditCategoryName(value);
+      checkCategoryName(value, true);
     }
   };
 
@@ -306,7 +416,17 @@ const Categories = () => {
     
     if (!selectedCategory) return;
 
+    // Final validation before submission
+    checkCategoryName(selectedCategory.name, true);
+    
     if (editCategoryNameError) {
+      showError("Please fix the category name error before updating.");
+      return;
+    }
+
+    // Additional validation for empty required fields
+    if (!selectedCategory.name.trim()) {
+      setEditCategoryNameError("Category name is required");
       return;
     }
 
@@ -326,7 +446,7 @@ const Categories = () => {
       if (response.ok) {
         setUpdateSuccess(true);
         setTimeout(async () => {
-          await fetchCategories(currentPage);
+          await fetchCategories();
           setShowEditModal(false);
           resetForm();
           setUpdatingLoading(false);
@@ -368,13 +488,7 @@ const Categories = () => {
       if (response.ok) {
         setArchiveSuccess(true);
         setTimeout(async () => {
-          const isLastItemOnPage = categories.length === 1;
-          
-          if (isLastItemOnPage && currentPage > 1) {
-            await fetchCategories(currentPage - 1);
-          } else {
-            await fetchCategories(currentPage);
-          }
+          await fetchCategories();
           closeArchiveModal();
         }, 1500);
       } else {
@@ -414,8 +528,8 @@ const Categories = () => {
       if (response.ok) {
         setRestoreSuccess(true);
         setTimeout(async () => {
-          await fetchArchivedCategories(archivedCurrentPage);
-          await fetchCategories(1);
+          await fetchArchivedCategories();
+          await fetchCategories();
           closeRestoreModal();
         }, 1500);
       } else {
@@ -437,22 +551,15 @@ const Categories = () => {
     setEditCategoryNameError("");
   };
 
-  // Filter categories based on search term
-  const filteredCategories = categories.filter(category =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  const filteredArchivedCategories = archivedCategories.filter(category =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
   const formatDate = (dateString) => {
     if (!dateString) return 'Unknown';
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
+
+  // Check if form has any validation errors
+  const hasAddFormErrors = categoryNameError;
+  const hasEditFormErrors = editCategoryNameError;
 
   return (
     <div className="categories-container">
@@ -468,27 +575,36 @@ const Categories = () => {
               onChange={handleAddNameChange}
               className={categoryNameError ? "error-input" : ""}
               required
+              maxLength="100"
               pattern=".*[a-zA-Z].*"
-              title="Category name must contain letters and cannot be only numbers"
-              onInvalid={(e) => e.target.setCustomValidity('Please fill up the category name')}
+              title="Category name must contain letters and cannot be only numbers or special characters"
+              onInvalid={(e) => e.target.setCustomValidity('Please enter a valid category name with at least one letter')}
               onInput={(e) => e.target.setCustomValidity('')}
             />
             {categoryNameError && <div className="error-message">{categoryNameError}</div>}
+            <small className="character-count">
+              {newCategory.length}/100 characters
+            </small>
           </div>
           <div className="input-with-error">
             <textarea
               placeholder="Description"
               value={newDescription}
               onChange={handleAddDescriptionChange}
+              maxLength="500"
               required
               onInvalid={(e) => e.target.setCustomValidity('Please fill up the description')}
               onInput={(e) => e.target.setCustomValidity('')}
             />
+            <small className="character-count">
+              {newDescription.length}/500 characters
+            </small>
           </div>
           <button 
             type="submit" 
             className="add-btn" 
-            disabled={addingLoading || categoryNameError}
+            disabled={addingLoading || hasAddFormErrors}
+            title={hasAddFormErrors ? "Please fix validation errors before saving" : ""}
           >
             {addingLoading ? "Adding..." : "Add Category"}
           </button>
@@ -502,14 +618,17 @@ const Categories = () => {
           {showArchivedView ? (
             <button className="back-to-main-btn" onClick={() => {
               setShowArchivedView(false);
-              fetchCategories(1);
+              setSearchTerm("");
+              setCurrentPage(1);
             }}>
               ← Back to Main View
             </button>
           ) : (
             <button className="view-archive-btn" onClick={() => {
               setShowArchivedView(true);
-              fetchArchivedCategories(1);
+              setSearchTerm("");
+              setArchivedCurrentPage(1);
+              fetchArchivedCategories();
             }}>
               📦 View Archived Categories
             </button>
@@ -539,7 +658,7 @@ const Categories = () => {
                 </tr>
               </thead>
               <tbody>
-                {categories.length === 0 ? (
+                {displayedCategories.length === 0 ? (
                   <tr>
                     <td colSpan="4" style={{ textAlign: "center", color: "#888" }}>
                       {loading ? (
@@ -554,7 +673,7 @@ const Categories = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredCategories.map((category, index) => (
+                  displayedCategories.map((category, index) => (
                     <tr key={category._id}>
                       <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                       <td>{category.name}</td>
@@ -581,12 +700,12 @@ const Categories = () => {
               </tbody>
             </table>
 
-            {/* PAGINATION CONTROLS - FIXED */}
-            {categories.length > 0 && (
+            {/* PAGINATION CONTROLS */}
+            {displayedCategories.length > 0 && (
               <div className="pagination-controls">
                 <div className="pagination-info">
                   <span className="pagination-text">
-                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, totalCount)} of {totalCount} items
+                    Showing {categoriesDisplayRange.start}-{categoriesDisplayRange.end} of {categoriesDisplayRange.total} items
                   </span>
                 </div>
                 
@@ -599,11 +718,11 @@ const Categories = () => {
                     Previous
                   </button>
                   <span className="page-info">
-                    Page {currentPage} of {totalPages}
+                    Page {currentPage} of {categoriesTotalPages}
                   </span>
                   <button 
                     onClick={handleNextPage} 
-                    disabled={currentPage === totalPages || loading}
+                    disabled={currentPage === categoriesTotalPages || loading}
                     className="pagination-btn"
                   >
                     Next
@@ -628,7 +747,7 @@ const Categories = () => {
                 </tr>
               </thead>
               <tbody>
-                {archivedCategories.length === 0 ? (
+                {displayedArchivedCategories.length === 0 ? (
                   <tr>
                     <td colSpan="5" style={{ textAlign: "center", color: "#888" }}>
                       {loading ? (
@@ -643,7 +762,7 @@ const Categories = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredArchivedCategories.map((category, index) => (
+                  displayedArchivedCategories.map((category, index) => (
                     <tr key={category._id}>
                       <td>{(archivedCurrentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                       <td>{category.name}</td>
@@ -665,12 +784,12 @@ const Categories = () => {
               </tbody>
             </table>
 
-            {/* PAGINATION FOR ARCHIVED CATEGORIES - FIXED */}
-            {archivedCategories.length > 0 && (
+            {/* PAGINATION FOR ARCHIVED CATEGORIES */}
+            {displayedArchivedCategories.length > 0 && (
               <div className="pagination-controls">
                 <div className="pagination-info">
                   <span className="pagination-text">
-                    Showing {(archivedCurrentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(archivedCurrentPage * ITEMS_PER_PAGE, archivedTotalCount)} of {archivedTotalCount} items
+                    Showing {archivedCategoriesDisplayRange.start}-{archivedCategoriesDisplayRange.end} of {archivedCategoriesDisplayRange.total} items
                   </span>
                 </div>
                 
@@ -683,11 +802,11 @@ const Categories = () => {
                     Previous
                   </button>
                   <span className="page-info">
-                    Page {archivedCurrentPage} of {archivedTotalPages}
+                    Page {archivedCurrentPage} of {archivedCategoriesTotalPages}
                   </span>
                   <button 
                     onClick={handleNextPage} 
-                    disabled={archivedCurrentPage === archivedTotalPages || loading}
+                    disabled={archivedCurrentPage === archivedCategoriesTotalPages || loading}
                     className="pagination-btn"
                   >
                     Next
@@ -733,12 +852,16 @@ const Categories = () => {
                     onChange={handleEditInputChange}
                     className={editCategoryNameError ? "error-input" : ""}
                     required
+                    maxLength="100"
                     pattern=".*[a-zA-Z].*"
-                    title="Category name must contain letters and cannot be only numbers"
-                    onInvalid={(e) => e.target.setCustomValidity('Please fill up the category name')}
+                    title="Category name must contain letters and cannot be only numbers or special characters"
+                    onInvalid={(e) => e.target.setCustomValidity('Please enter a valid category name with at least one letter')}
                     onInput={(e) => e.target.setCustomValidity('')}
                   />
                   {editCategoryNameError && <div className="error-message">{editCategoryNameError}</div>}
+                  <small className="character-count">
+                    {selectedCategory.name?.length || 0}/100 characters
+                  </small>
                 </div>
                 <div className="input-with-error">
                   <label>Description</label>
@@ -747,16 +870,21 @@ const Categories = () => {
                     placeholder="Description"
                     value={selectedCategory.description || ""}
                     onChange={handleEditInputChange}
+                    maxLength="500"
                     required
                     onInvalid={(e) => e.target.setCustomValidity('Please fill up the description')}
                     onInput={(e) => e.target.setCustomValidity('')}
                   />
+                  <small className="character-count">
+                    {selectedCategory.description?.length || 0}/500 characters
+                  </small>
                 </div>
                 <div className="form-buttons">
                   <button 
                     type="submit" 
                     className="save-btn" 
-                    disabled={updatingLoading || editCategoryNameError}
+                    disabled={updatingLoading || hasEditFormErrors}
+                    title={hasEditFormErrors ? "Please fix validation errors before updating" : ""}
                   >
                     {updatingLoading ? "Updating..." : "Update"}
                   </button>
