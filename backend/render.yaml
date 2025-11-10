@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: copy-corner-backend
+    env: python
+    plan: free
+    buildCommand: "cd backend && pip install -r requirements.txt"
+    startCommand: "cd backend && gunicorn wsgi:app"
