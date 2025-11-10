@@ -27,8 +27,10 @@ def serialize_doc(doc):
 @sales_bp.route('/sales/analytics', methods=['GET'])
 def get_sales_analytics():
     try:
-        # Get all COMPLETED transactions
-        completed_transactions = list(transactions_collection.find({'status': 'Completed'}))
+        # FIXED: Check for completed transactions with case-insensitive matching
+        completed_transactions = list(transactions_collection.find({
+            'status': {'$regex': '^completed$', '$options': 'i'}
+        }))
         
         # Use server's local time (make sure your server is set to Philippine time)
         today = datetime.now().date()
@@ -181,8 +183,10 @@ def get_sales_analytics():
 @sales_bp.route('/sales/by-service-type', methods=['GET'])
 def get_sales_by_service_type():
     try:
-        # Get all completed transactions
-        completed_transactions = list(transactions_collection.find({'status': 'Completed'}))
+        # FIXED: Check for completed transactions with case-insensitive matching
+        completed_transactions = list(transactions_collection.find({
+            'status': {'$regex': '^completed$', '$options': 'i'}
+        }))
         
         # Calculate sales by SERVICE TYPE
         service_type_sales = {}
@@ -206,4 +210,29 @@ def get_sales_by_service_type():
         
     except Exception as e:
         print(f"Error in sales by service type: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# Debug endpoint to check transaction statuses
+@sales_bp.route('/sales/debug-transactions', methods=['GET'])
+def debug_transactions():
+    """Debug endpoint to check transaction statuses"""
+    try:
+        # Get all transactions with their statuses
+        all_transactions = list(transactions_collection.find({}, {'status': 1, 'total_amount': 1, 'date': 1, 'service_type': 1, 'customer_name': 1}))
+        
+        status_counts = {}
+        for t in all_transactions:
+            status = t.get('status', 'No Status')
+            status_counts[status] = status_counts.get(status, 0) + 1
+        
+        completed_transactions = [t for t in all_transactions if str(t.get('status', '')).lower() == 'completed']
+        
+        return jsonify({
+            'status_counts': status_counts,
+            'total_transactions': len(all_transactions),
+            'completed_transactions_count': len(completed_transactions),
+            'completed_transactions_sample': [serialize_doc(t) for t in completed_transactions[:5]]  # First 5 for sample
+        })
+        
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
