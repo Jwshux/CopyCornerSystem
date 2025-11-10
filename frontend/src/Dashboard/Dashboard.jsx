@@ -47,7 +47,7 @@ function AdminDashboard({ user, onLogout }) {
         }
         
         if (user?.id) {
-        const response = await fetch(`https://copycornersystem-backend.onrender.com/api/users/${user.id}/role-level`);
+        const response = await fetch(`https://copycornersystem-backend.onrender.com/users/${user.id}/role-level`);
           if (response.ok) {
             const data = await response.json();
             setUserRoleLevel(data.role_level);
