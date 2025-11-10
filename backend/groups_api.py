@@ -29,7 +29,7 @@ def is_protected_role(group_name):
     return group_name in protected_roles
 
 # Get all groups - UPDATED FOR PAGINATION AND ARCHIVE
-@groups_bp.route('/api/groups', methods=['GET'])
+@groups_bp.route('/groups', methods=['GET'])
 def get_groups():
     try:
         # Get pagination parameters from query string
@@ -71,7 +71,7 @@ def get_groups():
         return jsonify({'error': str(e)}), 500
 
 # GET ARCHIVED GROUPS
-@groups_bp.route('/api/groups/archived', methods=['GET'])
+@groups_bp.route('/groups/archived', methods=['GET'])
 def get_archived_groups():
     try:
         # Get pagination parameters from query string
@@ -112,7 +112,7 @@ def get_archived_groups():
         return jsonify({'error': str(e)}), 500
 
 # Get single group by ID
-@groups_bp.route('/api/groups/<group_id>', methods=['GET'])
+@groups_bp.route('/groups/<group_id>', methods=['GET'])
 def get_group(group_id):
     try:
         group = groups_collection.find_one({'_id': ObjectId(group_id)})
@@ -123,7 +123,7 @@ def get_group(group_id):
         return jsonify({'error': str(e)}), 500
 
 # Create new group
-@groups_bp.route('/api/groups', methods=['POST'])
+@groups_bp.route('/groups', methods=['POST'])
 def create_group():
     try:
         data = request.json
@@ -157,7 +157,7 @@ def create_group():
         return jsonify({'error': str(e)}), 500
 
 # Update group
-@groups_bp.route('/api/groups/<group_id>', methods=['PUT'])
+@groups_bp.route('/groups/<group_id>', methods=['PUT'])
 def update_group(group_id):
     try:
         data = request.json
@@ -200,7 +200,7 @@ def update_group(group_id):
         return jsonify({'error': str(e)}), 500
 
 # ARCHIVE GROUP ENDPOINT - WITH DEPENDENCY CHECK
-@groups_bp.route('/api/groups/<group_id>/archive', methods=['PUT'])
+@groups_bp.route('/groups/<group_id>/archive', methods=['PUT'])
 def archive_group(group_id):
     try:
         group = groups_collection.find_one({'_id': ObjectId(group_id)})
@@ -255,7 +255,7 @@ def archive_group(group_id):
         return jsonify({'error': str(e)}), 500
 
 # RESTORE GROUP ENDPOINT
-@groups_bp.route('/api/groups/<group_id>/restore', methods=['PUT'])
+@groups_bp.route('/groups/<group_id>/restore', methods=['PUT'])
 def restore_group(group_id):
     try:
         # Check if group exists and is archived
@@ -293,7 +293,7 @@ def restore_group(group_id):
         return jsonify({'error': str(e)}), 500
 
 # Delete group
-@groups_bp.route('/api/groups/<group_id>', methods=['DELETE'])
+@groups_bp.route('/groups/<group_id>', methods=['DELETE'])
 def delete_group(group_id):
     try:
         result = groups_collection.delete_one({'_id': ObjectId(group_id)})

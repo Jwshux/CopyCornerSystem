@@ -92,7 +92,7 @@ def serialize_doc(doc):
     return serialized
 
 # Get all users with group names - UPDATED FOR PAGINATION AND ARCHIVE
-@users_bp.route('/api/users', methods=['GET'])
+@users_bp.route('/users', methods=['GET'])
 def get_users():
     try:
         # Get pagination parameters from query string
@@ -160,7 +160,7 @@ def get_users():
         return jsonify({'error': str(e)}), 500
 
 # GET ARCHIVED USERS
-@users_bp.route('/api/users/archived', methods=['GET'])
+@users_bp.route('/users/archived', methods=['GET'])
 def get_archived_users():
     try:
         # Get pagination parameters from query string
@@ -227,7 +227,7 @@ def get_archived_users():
         return jsonify({'error': str(e)}), 500
 
 # Get available roles (from groups collection)
-@users_bp.route('/api/users/roles', methods=['GET'])
+@users_bp.route('/users/roles', methods=['GET'])
 def get_roles():
     try:
         groups = list(groups_collection.find({}, {'group_name': 1}))
@@ -237,7 +237,7 @@ def get_roles():
         return jsonify({'error': str(e)}), 500
 
 # Create new user - UPDATED FOR PASSWORD HASHING
-@users_bp.route('/api/users', methods=['POST'])
+@users_bp.route('/users', methods=['POST'])
 def create_user():
     try:
         data = request.json
@@ -291,7 +291,7 @@ def create_user():
         return jsonify({'error': str(e)}), 500
 
 # Update user - UPDATED FOR PASSWORD HASHING
-@users_bp.route('/api/users/<user_id>', methods=['PUT'])
+@users_bp.route('/users/<user_id>', methods=['PUT'])
 def update_user(user_id):
     try:
         data = request.json
@@ -388,7 +388,7 @@ def update_user(user_id):
         return jsonify({'error': str(e)}), 500
 
 # ARCHIVE USER ENDPOINT
-@users_bp.route('/api/users/<user_id>/archive', methods=['PUT'])
+@users_bp.route('/users/<user_id>/archive', methods=['PUT'])
 def archive_user(user_id):
     try:
         # Check if user exists
@@ -442,7 +442,7 @@ def archive_user(user_id):
         return jsonify({'error': str(e)}), 500
 
 # RESTORE USER ENDPOINT
-@users_bp.route('/api/users/<user_id>/restore', methods=['PUT'])
+@users_bp.route('/users/<user_id>/restore', methods=['PUT'])
 def restore_user(user_id):
     try:
         # Check if user exists and is archived
@@ -489,7 +489,7 @@ def restore_user(user_id):
         return jsonify({'error': str(e)}), 500
 
 # Delete user
-@users_bp.route('/api/users/<user_id>', methods=['DELETE'])
+@users_bp.route('/users/<user_id>', methods=['DELETE'])
 def delete_user(user_id):
     try:
         # Check if user has any active schedules (if they are staff)
@@ -534,7 +534,7 @@ def delete_user(user_id):
         return jsonify({'error': str(e)}), 500
     
 # Add this route to users_api.py
-@users_bp.route('/api/users/<user_id>/role-level', methods=['GET'])
+@users_bp.route('/users/<user_id>/role-level', methods=['GET'])
 def get_user_role_level(user_id):
     try:
         user = users_collection.find_one({'_id': ObjectId(user_id)})
@@ -554,7 +554,7 @@ def get_user_role_level(user_id):
         return jsonify({'error': str(e)}), 500
 
 # ADD PASSWORD RESET ENDPOINT
-@users_bp.route('/api/users/<user_id>/reset-password', methods=['POST'])
+@users_bp.route('/users/<user_id>/reset-password', methods=['POST'])
 def reset_password(user_id):
     try:
         data = request.json

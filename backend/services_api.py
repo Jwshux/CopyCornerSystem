@@ -53,7 +53,7 @@ def generate_service_id():
     count = service_types_collection.count_documents({"is_archived": {"$ne": True}})
     return f"ST-{count + 1:03d}"
 
-@service_types_bp.route('/api/service_types', methods=['GET'])
+@service_types_bp.route('/service_types', methods=['GET'])
 def get_service_types():
     try:
         page_param = request.args.get('page')
@@ -121,7 +121,7 @@ def get_service_types():
         return jsonify({'error': str(e)}), 500
 
 # GET ARCHIVED SERVICE TYPES
-@service_types_bp.route('/api/service_types/archived', methods=['GET'])
+@service_types_bp.route('/service_types/archived', methods=['GET'])
 def get_archived_service_types():
     try:
         service_types = list(service_types_collection.find({"is_archived": True}).sort("archived_at", -1))
@@ -138,7 +138,7 @@ def get_archived_service_types():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@service_types_bp.route('/api/service_types/<service_type_id>', methods=['GET'])
+@service_types_bp.route('/service_types/<service_type_id>', methods=['GET'])
 def get_service_type(service_type_id):
     try:
         service_type = service_types_collection.find_one({'_id': ObjectId(service_type_id)})
@@ -164,7 +164,7 @@ def get_service_type(service_type_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@service_types_bp.route('/api/service_types', methods=['POST'])
+@service_types_bp.route('/service_types', methods=['POST'])
 def create_service_type():
     try:
         data = request.json
@@ -216,7 +216,7 @@ def create_service_type():
         print(f"Error creating service type: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@service_types_bp.route('/api/service_types/<service_type_id>', methods=['PUT'])
+@service_types_bp.route('/service_types/<service_type_id>', methods=['PUT'])
 def update_service_type(service_type_id):
     try:
         data = request.json
@@ -281,7 +281,7 @@ def update_service_type(service_type_id):
         return jsonify({'error': str(e)}), 500
 
 # ARCHIVE SERVICE TYPE ENDPOINT - FIXED
-@service_types_bp.route('/api/service_types/<service_type_id>/archive', methods=['PUT'])
+@service_types_bp.route('/service_types/<service_type_id>/archive', methods=['PUT'])
 def archive_service_type(service_type_id):
     try:
         service_type = service_types_collection.find_one({'_id': ObjectId(service_type_id)})
@@ -316,7 +316,7 @@ def archive_service_type(service_type_id):
         return jsonify({'error': str(e)}), 500
 
 # RESTORE SERVICE TYPE ENDPOINT
-@service_types_bp.route('/api/service_types/<service_type_id>/restore', methods=['PUT'])
+@service_types_bp.route('/service_types/<service_type_id>/restore', methods=['PUT'])
 def restore_service_type(service_type_id):
     try:
         # Check if service type exists and is archived
@@ -374,7 +374,7 @@ def restore_service_type(service_type_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@service_types_bp.route('/api/service_types/category/<category_id>', methods=['GET'])
+@service_types_bp.route('/service_types/category/<category_id>', methods=['GET'])
 def get_service_types_by_category_id(category_id):
     try:
         service_types = list(service_types_collection.find({
@@ -393,7 +393,7 @@ def get_service_types_by_category_id(category_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@service_types_bp.route('/api/service_types/<service_type_id>/products', methods=['GET'])
+@service_types_bp.route('/service_types/<service_type_id>/products', methods=['GET'])
 def get_products_for_service_type(service_type_id):
     try:
         service_type = service_types_collection.find_one({'_id': ObjectId(service_type_id)})

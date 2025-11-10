@@ -24,7 +24,7 @@ def serialize_doc(doc):
     return doc
 
 # Get sales analytics data
-@sales_bp.route('/api/sales/analytics', methods=['GET'])
+@sales_bp.route('/sales/analytics', methods=['GET'])
 def get_sales_analytics():
     try:
         # Get all COMPLETED transactions
@@ -178,7 +178,7 @@ def get_sales_analytics():
         return jsonify({'error': str(e)}), 500
 
 # Get sales by SERVICE TYPE for pie chart
-@sales_bp.route('/api/sales/by-service-type', methods=['GET'])
+@sales_bp.route('/sales/by-service-type', methods=['GET'])
 def get_sales_by_service_type():
     try:
         # Get all completed transactions

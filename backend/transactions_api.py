@@ -162,7 +162,7 @@ def restore_product_inventory(product_id, total_pages, quantity, service_type):
         print(f"Error restoring inventory: {e}")
         return False
 
-@transactions_bp.route('/api/transactions', methods=['GET'])
+@transactions_bp.route('/transactions', methods=['GET'])
 def get_transactions():
     try:
         page = int(request.args.get('page', 1))
@@ -212,7 +212,7 @@ def get_transactions():
         return jsonify({'error': str(e)}), 500
 
 # GET ARCHIVED TRANSACTIONS
-@transactions_bp.route('/api/transactions/archived', methods=['GET'])
+@transactions_bp.route('/transactions/archived', methods=['GET'])
 def get_archived_transactions():
     try:
         page = int(request.args.get('page', 1))
@@ -258,7 +258,7 @@ def get_archived_transactions():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@transactions_bp.route('/api/transactions/<transaction_id>', methods=['GET'])
+@transactions_bp.route('/transactions/<transaction_id>', methods=['GET'])
 def get_transaction(transaction_id):
     try:
         transaction = transactions_collection.find_one({'_id': ObjectId(transaction_id)})
@@ -282,7 +282,7 @@ def get_transaction(transaction_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@transactions_bp.route('/api/transactions', methods=['POST'])
+@transactions_bp.route('/transactions', methods=['POST'])
 def create_transaction():
     try:
         data = request.json
@@ -349,7 +349,7 @@ def create_transaction():
         print(f"Error creating transaction: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@transactions_bp.route('/api/transactions/<transaction_id>', methods=['PUT'])
+@transactions_bp.route('/transactions/<transaction_id>', methods=['PUT'])
 def update_transaction(transaction_id):
     try:
         data = request.json
@@ -456,7 +456,7 @@ def update_transaction(transaction_id):
         return jsonify({'error': str(e)}), 500
 
 # ARCHIVE TRANSACTION ENDPOINT
-@transactions_bp.route('/api/transactions/<transaction_id>/archive', methods=['PUT'])
+@transactions_bp.route('/transactions/<transaction_id>/archive', methods=['PUT'])
 def archive_transaction(transaction_id):
     try:
         transaction = transactions_collection.find_one({'_id': ObjectId(transaction_id)})
@@ -481,7 +481,7 @@ def archive_transaction(transaction_id):
         return jsonify({'error': str(e)}), 500
 
 # RESTORE TRANSACTION ENDPOINT - FIXED
-@transactions_bp.route('/api/transactions/<transaction_id>/restore', methods=['PUT'])
+@transactions_bp.route('/transactions/<transaction_id>/restore', methods=['PUT'])
 def restore_transaction(transaction_id):
     try:
         # Check if transaction exists and is archived
@@ -519,7 +519,7 @@ def restore_transaction(transaction_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@transactions_bp.route('/api/transactions/<transaction_id>', methods=['DELETE'])
+@transactions_bp.route('/transactions/<transaction_id>', methods=['DELETE'])
 def delete_transaction(transaction_id):
     try:
         result = transactions_collection.delete_one({'_id': ObjectId(transaction_id)})
@@ -529,7 +529,7 @@ def delete_transaction(transaction_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@transactions_bp.route('/api/transactions/status/<status>', methods=['GET'])
+@transactions_bp.route('/transactions/status/<status>', methods=['GET'])
 def get_transactions_by_status(status):
     try:
         page = int(request.args.get('page', 1))
@@ -579,7 +579,7 @@ def get_transactions_by_status(status):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@transactions_bp.route('/api/transactions/service-type/<service_type_name>', methods=['GET'])
+@transactions_bp.route('/transactions/service-type/<service_type_name>', methods=['GET'])
 def get_transactions_by_service_type(service_type_name):
     try:
         page = int(request.args.get('page', 1))

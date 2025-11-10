@@ -39,7 +39,7 @@ def serialize_doc(doc):
     return doc
 
 # Get all active staffs with user details
-@staffs_bp.route('/api/staffs', methods=['GET'])
+@staffs_bp.route('/staffs', methods=['GET'])
 def get_staffs():
     try:
         # Get pagination parameters from query string
@@ -112,7 +112,7 @@ def get_staffs():
         return jsonify({'error': str(e)}), 500
 
 # Get archived staffs - UPDATED FOR PAGINATION
-@staffs_bp.route('/api/staffs/archived', methods=['GET'])
+@staffs_bp.route('/staffs/archived', methods=['GET'])
 def get_archived_staffs():
     try:
         # Get pagination parameters from query string
@@ -185,7 +185,7 @@ def get_archived_staffs():
         return jsonify({'error': str(e)}), 500
 
 # Get single staff by user ID
-@staffs_bp.route('/api/staffs/user/<user_id>', methods=['GET'])
+@staffs_bp.route('/staffs/user/<user_id>', methods=['GET'])
 def get_staff_by_user_id(user_id):
     try:
         user = users_collection.find_one({'_id': ObjectId(user_id)})
@@ -220,7 +220,7 @@ def get_staff_by_user_id(user_id):
         return jsonify({'error': str(e)}), 500
 
 # Update staff details
-@staffs_bp.route('/api/staffs/user/<user_id>', methods=['PUT'])
+@staffs_bp.route('/staffs/user/<user_id>', methods=['PUT'])
 def update_staff(user_id):
     try:
         data = request.json
@@ -307,7 +307,7 @@ def update_staff(user_id):
         return jsonify({'error': str(e)}), 500
 
 # ARCHIVE STAFF ENDPOINT
-@staffs_bp.route('/api/staffs/user/<user_id>/archive', methods=['PUT'])
+@staffs_bp.route('/staffs/user/<user_id>/archive', methods=['PUT'])
 def archive_staff(user_id):
     try:
         # Check if user exists and is staff
@@ -362,7 +362,7 @@ def archive_staff(user_id):
         return jsonify({'error': str(e)}), 500
 
 # RESTORE STAFF ENDPOINT
-@staffs_bp.route('/api/staffs/user/<user_id>/restore', methods=['PUT'])
+@staffs_bp.route('/staffs/user/<user_id>/restore', methods=['PUT'])
 def restore_staff(user_id):
     try:
         # Check if user exists and is archived staff

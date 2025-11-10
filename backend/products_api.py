@@ -72,7 +72,7 @@ def renumber_products():
         print(f"Error renumbering products: {e}")
         return False
 
-@products_bp.route('/api/products', methods=['GET'])
+@products_bp.route('/products', methods=['GET'])
 def get_products():
     try:
         page = int(request.args.get('page', 1))
@@ -116,7 +116,7 @@ def get_products():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@products_bp.route('/api/products/<product_id>', methods=['GET'])
+@products_bp.route('/products/<product_id>', methods=['GET'])
 def get_product(product_id):
     try:
         product = products_collection.find_one({'_id': ObjectId(product_id)})
@@ -144,7 +144,7 @@ def get_product(product_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@products_bp.route('/api/products', methods=['POST'])
+@products_bp.route('/products', methods=['POST'])
 def create_product():
     try:
         data = request.json
@@ -198,7 +198,7 @@ def create_product():
         print(f"Error creating product: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@products_bp.route('/api/products/<product_id>', methods=['PUT'])
+@products_bp.route('/products/<product_id>', methods=['PUT'])
 def update_product(product_id):
     try:
         data = request.json
@@ -251,7 +251,7 @@ def update_product(product_id):
         return jsonify({'error': str(e)}), 500
 
 # ARCHIVE PRODUCT ENDPOINT
-@products_bp.route('/api/products/<product_id>/archive', methods=['PUT'])
+@products_bp.route('/products/<product_id>/archive', methods=['PUT'])
 def archive_product(product_id):
     try:
         # Check if product exists
@@ -279,7 +279,7 @@ def archive_product(product_id):
         return jsonify({'error': str(e)}), 500
 
 # RESTORE PRODUCT ENDPOINT
-@products_bp.route('/api/products/<product_id>/restore', methods=['PUT'])
+@products_bp.route('/products/<product_id>/restore', methods=['PUT'])
 def restore_product(product_id):
     try:
         # Check if product exists and is archived
@@ -341,7 +341,7 @@ def restore_product(product_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@products_bp.route('/api/products/category/<category_id>', methods=['GET'])
+@products_bp.route('/products/category/<category_id>', methods=['GET'])
 def get_products_by_category_id(category_id):
     try:
         # Only get non-archived products
@@ -360,7 +360,7 @@ def get_products_by_category_id(category_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@products_bp.route('/api/products/renumber', methods=['POST'])
+@products_bp.route('/products/renumber', methods=['POST'])
 def renumber_all_products():
     try:
         if renumber_products():
@@ -371,7 +371,7 @@ def renumber_all_products():
         return jsonify({'error': str(e)}), 500
 
 # GET ARCHIVED PRODUCTS
-@products_bp.route('/api/products/archived', methods=['GET'])
+@products_bp.route('/products/archived', methods=['GET'])
 def get_archived_products():
     try:
         products = list(products_collection.find({'is_archived': True}).sort("archived_at", -1))

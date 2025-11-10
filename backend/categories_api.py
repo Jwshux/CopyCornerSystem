@@ -21,7 +21,7 @@ def serialize_doc(doc):
         doc['_id'] = str(doc['_id'])
     return doc
 
-@categories_bp.route('/api/categories', methods=['GET'])
+@categories_bp.route('/categories', methods=['GET'])
 def get_categories():
     try:
         page_param = request.args.get('page')
@@ -86,7 +86,7 @@ def get_categories():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@categories_bp.route('/api/categories/<category_id>', methods=['GET'])
+@categories_bp.route('/categories/<category_id>', methods=['GET'])
 def get_category(category_id):
     try:
         category = categories_collection.find_one({'_id': ObjectId(category_id)})
@@ -129,7 +129,7 @@ def create_category():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@categories_bp.route('/api/categories/<category_id>', methods=['PUT'])
+@categories_bp.route('/categories/<category_id>', methods=['PUT'])
 def update_category(category_id):
     try:
         data = request.json
@@ -174,7 +174,7 @@ def update_category(category_id):
         return jsonify({'error': str(e)}), 500
 
 # ARCHIVE CATEGORY ENDPOINT
-@categories_bp.route('/api/categories/<category_id>/archive', methods=['PUT'])
+@categories_bp.route('/categories/<category_id>/archive', methods=['PUT'])
 def archive_category(category_id):
     try:
         # Check if category exists
@@ -221,7 +221,7 @@ def archive_category(category_id):
         return jsonify({'error': str(e)}), 500
 
 # RESTORE CATEGORY ENDPOINT
-@categories_bp.route('/api/categories/<category_id>/restore', methods=['PUT'])
+@categories_bp.route('/categories/<category_id>/restore', methods=['PUT'])
 def restore_category(category_id):
     try:
         # Check if category exists and is archived
@@ -259,7 +259,7 @@ def restore_category(category_id):
         return jsonify({'error': str(e)}), 500
 
 # GET ARCHIVED CATEGORIES - UPDATED WITH PAGINATION
-@categories_bp.route('/api/categories/archived', methods=['GET'])
+@categories_bp.route('/categories/archived', methods=['GET'])
 def get_archived_categories():
     try:
         page_param = request.args.get('page')
@@ -318,7 +318,7 @@ def get_archived_categories():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@categories_bp.route('/api/categories/<category_id>/products', methods=['GET'])
+@categories_bp.route('/categories/<category_id>/products', methods=['GET'])
 def get_products_by_category(category_id):
     try:
         products = list(products_collection.find({
@@ -330,7 +330,7 @@ def get_products_by_category(category_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@categories_bp.route('/api/categories/<category_id>/service-types', methods=['GET'])
+@categories_bp.route('/categories/<category_id>/service-types', methods=['GET'])
 def get_service_types_by_category(category_id):
     try:
         service_types = list(service_types_collection.find({'category_id': ObjectId(category_id), 'status': 'Active'}).sort("service_name", 1))

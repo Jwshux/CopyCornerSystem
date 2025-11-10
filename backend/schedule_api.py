@@ -35,7 +35,7 @@ def serialize_doc(doc):
     return doc
 
 # Get all schedules with staff names
-@schedules_bp.route('/api/schedules', methods=['GET'])
+@schedules_bp.route('/schedules', methods=['GET'])
 def get_schedules():
     try:
         schedules_cursor = schedules_collection.find()
@@ -57,7 +57,7 @@ def get_schedules():
         return jsonify({'error': str(e)}), 500
 
 # Get single schedule by ID
-@schedules_bp.route('/api/schedules/<schedule_id>', methods=['GET'])
+@schedules_bp.route('/schedules/<schedule_id>', methods=['GET'])
 def get_schedule(schedule_id):
     try:
         schedule = schedules_collection.find_one({'_id': ObjectId(schedule_id)})
@@ -72,7 +72,7 @@ def get_schedule(schedule_id):
         return jsonify({'error': str(e)}), 500
 
 # Create new schedule
-@schedules_bp.route('/api/schedules', methods=['POST'])
+@schedules_bp.route('/schedules', methods=['POST'])
 def create_schedule():
     try:
         data = request.json
@@ -111,7 +111,7 @@ def create_schedule():
         return jsonify({'error': str(e)}), 500
 
 # Update schedule
-@schedules_bp.route('/api/schedules/<schedule_id>', methods=['PUT'])
+@schedules_bp.route('/schedules/<schedule_id>', methods=['PUT'])
 def update_schedule(schedule_id):
     try:
         data = request.json
@@ -152,7 +152,7 @@ def update_schedule(schedule_id):
         return jsonify({'error': str(e)}), 500
 
 # Delete schedule
-@schedules_bp.route('/api/schedules/<schedule_id>', methods=['DELETE'])
+@schedules_bp.route('/schedules/<schedule_id>', methods=['DELETE'])
 def delete_schedule(schedule_id):
     try:
         # First, remove this schedule from any users who have it assigned
@@ -170,7 +170,7 @@ def delete_schedule(schedule_id):
         return jsonify({'error': str(e)}), 500
 
 # Get available staff (users with staff role)
-@schedules_bp.route('/api/schedules/staff', methods=['GET'])
+@schedules_bp.route('/schedules/staff', methods=['GET'])
 def get_available_staff():
     try:
         print("🔍 Looking for staff groups from Manage Roles...")
