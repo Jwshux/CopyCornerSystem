@@ -94,17 +94,17 @@ except Exception as e:
     print("❌ MongoDB connection error:", e)
     raise e
 
-app.register_blueprint(groups_bp, url_prefix='/api')
-app.register_blueprint(users_bp, url_prefix='/api')
-app.register_blueprint(products_bp, url_prefix='/api')
-app.register_blueprint(categories_bp, url_prefix='/api')
-app.register_blueprint(schedules_bp, url_prefix='/api')
-app.register_blueprint(staffs_bp, url_prefix='/api')
-app.register_blueprint(transactions_bp, url_prefix='/api')
-app.register_blueprint(service_types_bp, url_prefix='/api')
-app.register_blueprint(sales_bp, url_prefix='/api')
-app.register_blueprint(sales_report_bp, url_prefix='/api')
-app.register_blueprint(inventory_report_bp, url_prefix='/api')
+app.register_blueprint(groups_bp)
+app.register_blueprint(users_bp)
+app.register_blueprint(products_bp)
+app.register_blueprint(categories_bp)
+app.register_blueprint(schedules_bp)
+app.register_blueprint(staffs_bp)
+app.register_blueprint(transactions_bp)
+app.register_blueprint(service_types_bp)
+app.register_blueprint(sales_bp)
+app.register_blueprint(sales_report_bp)
+app.register_blueprint(inventory_report_bp)
 
 @app.route("/")
 def home():
