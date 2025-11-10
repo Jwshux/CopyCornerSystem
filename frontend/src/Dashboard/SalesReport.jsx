@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./SalesReport.css";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "https://copycornersystem-backend.onrender.com";
 
 function SalesReport() {
   const [reportData, setReportData] = useState({

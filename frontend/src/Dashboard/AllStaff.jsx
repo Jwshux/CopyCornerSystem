@@ -5,7 +5,7 @@ import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
 import archiveAnimation from "../animations/archive.json";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "https://copycornersystem-backend.onrender.com";
 
 function AllStaff() {
   const [staffs, setStaffs] = useState([]);
