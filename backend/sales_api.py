@@ -27,9 +27,9 @@ def serialize_doc(doc):
 @sales_bp.route('/sales/analytics', methods=['GET'])
 def get_sales_analytics():
     try:
-        # FIXED: Check for completed transactions with case-insensitive matching
+        # FIXED: Use exact case matching like in local version
         completed_transactions = list(transactions_collection.find({
-            'status': {'$regex': '^completed$', '$options': 'i'}
+            'status': 'Completed'
         }))
         
         # Use server's local time (make sure your server is set to Philippine time)
@@ -183,9 +183,9 @@ def get_sales_analytics():
 @sales_bp.route('/sales/by-service-type', methods=['GET'])
 def get_sales_by_service_type():
     try:
-        # FIXED: Check for completed transactions with case-insensitive matching
+        # FIXED: Use exact case matching like in local version
         completed_transactions = list(transactions_collection.find({
-            'status': {'$regex': '^completed$', '$options': 'i'}
+            'status': 'Completed'
         }))
         
         # Calculate sales by SERVICE TYPE
@@ -234,5 +234,23 @@ def debug_transactions():
             'completed_transactions_sample': [serialize_doc(t) for t in completed_transactions[:5]]  # First 5 for sample
         })
         
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# NEW: Debug endpoint to check status values
+@sales_bp.route('/sales/debug-status', methods=['GET'])
+def debug_status():
+    """Check what status values exist in transactions"""
+    try:
+        # Get all unique status values
+        pipeline = [
+            {"$group": {"_id": "$status", "count": {"$sum": 1}}}
+        ]
+        status_counts = list(transactions_collection.aggregate(pipeline))
+        
+        return jsonify({
+            'status_counts': status_counts,
+            'total_transactions': transactions_collection.count_documents({})
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
