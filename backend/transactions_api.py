@@ -232,7 +232,8 @@ def get_archived_transactions():
                 {'service_type': regex_pattern},
                 {'paper_type': regex_pattern},
                 {'size_type': regex_pattern},
-                {'supply_type': regex_pattern}
+                {'supply_type': regex_pattern},
+                {'product_name': regex_pattern}  # ADDED: Search by product_name
             ]
         
         total_transactions = transactions_collection.count_documents(query)
@@ -550,7 +551,8 @@ def get_transactions_by_status(status):
                 {'service_type': regex_pattern},
                 {'paper_type': regex_pattern},
                 {'size_type': regex_pattern},
-                {'supply_type': regex_pattern}
+                {'supply_type': regex_pattern},
+                {'product_name': regex_pattern}  # ADDED: Search by product_name
             ]
         
         total_transactions = transactions_collection.count_documents(query)
