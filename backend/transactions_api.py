@@ -3,6 +3,7 @@ from pymongo import MongoClient
 from bson import ObjectId
 from datetime import datetime, timedelta
 import os
+import re
 
 transactions_bp = Blueprint('transactions', __name__)
 
@@ -217,9 +218,22 @@ def get_archived_transactions():
     try:
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '').strip()
         skip = (page - 1) * per_page
         
-        query = {"is_archived": True}
+        query = {'is_archived': True}
+        
+        if search:
+            regex_pattern = re.compile(f'.*{re.escape(search)}.*', re.IGNORECASE)
+            query['$or'] = [
+                {'customer_name': regex_pattern},
+                {'queue_number': regex_pattern},
+                {'transaction_id': regex_pattern},
+                {'service_type': regex_pattern},
+                {'paper_type': regex_pattern},
+                {'size_type': regex_pattern},
+                {'supply_type': regex_pattern}
+            ]
         
         total_transactions = transactions_collection.count_documents(query)
         total_pages = (total_transactions + per_page - 1) // per_page
@@ -230,19 +244,6 @@ def get_archived_transactions():
         
         transactions_cursor = transactions_collection.find(query).sort("archived_at", -1).skip(skip).limit(per_page)
         transactions = list(transactions_cursor)
-        
-        for transaction in transactions:
-            if transaction.get('service_type'):
-                service_type = service_types_collection.find_one({'service_name': transaction['service_type']})
-                if service_type and service_type.get('category_id'):
-                    category = categories_collection.find_one({'_id': service_type['category_id']})
-                    transaction['service_category'] = category['name'] if category else 'Unknown'
-            
-            # Add product data if product_id exists
-            if transaction.get('product_id'):
-                product = products_collection.find_one({'_id': ObjectId(transaction['product_id'])})
-                if product:
-                    transaction['product_data'] = serialize_doc(product)
         
         serialized_transactions = [serialize_doc(transaction) for transaction in transactions]
         
@@ -534,9 +535,23 @@ def get_transactions_by_status(status):
     try:
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '').strip()
         skip = (page - 1) * per_page
         
-        query = {'status': status, "is_archived": {"$ne": True}}
+        # Build query with search
+        query = {'status': status, 'is_archived': {'$ne': True}}
+        
+        if search:
+            regex_pattern = re.compile(f'.*{re.escape(search)}.*', re.IGNORECASE)
+            query['$or'] = [
+                {'customer_name': regex_pattern},
+                {'queue_number': regex_pattern},
+                {'transaction_id': regex_pattern},
+                {'service_type': regex_pattern},
+                {'paper_type': regex_pattern},
+                {'size_type': regex_pattern},
+                {'supply_type': regex_pattern}
+            ]
         
         total_transactions = transactions_collection.count_documents(query)
         total_pages = (total_transactions + per_page - 1) // per_page
@@ -547,23 +562,6 @@ def get_transactions_by_status(status):
         
         transactions_cursor = transactions_collection.find(query).sort("created_at", -1).skip(skip).limit(per_page)
         transactions = list(transactions_cursor)
-        
-        for transaction in transactions:
-            if transaction.get('service_type'):
-                service_type = service_types_collection.find_one({'service_name': transaction['service_type']})
-                if service_type and service_type.get('category_id'):
-                    category = categories_collection.find_one({'_id': service_type['category_id']})
-                    transaction['service_category'] = category['name'] if category else 'Unknown'
-                else:
-                    transaction['service_category'] = 'Uncategorized'
-            else:
-                transaction['service_category'] = 'Unknown'
-            
-            # Add product data if product_id exists
-            if transaction.get('product_id'):
-                product = products_collection.find_one({'_id': ObjectId(transaction['product_id'])})
-                if product:
-                    transaction['product_data'] = serialize_doc(product)
         
         serialized_transactions = [serialize_doc(transaction) for transaction in transactions]
         

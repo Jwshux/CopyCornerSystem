@@ -38,39 +38,67 @@ def serialize_doc(doc):
                     
     return doc
 
-# Get all active staffs with user details
+# Get all active staffs with user details - UPDATED WITH SEARCH (INCLUDES STUDENT NUMBER AND COURSE)
 @staffs_bp.route('/staffs', methods=['GET'])
 def get_staffs():
     try:
         # Get pagination parameters from query string
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '').strip()
+        
+        # Base query for staff users
+        base_query = {
+            'group_id': {
+                '$in': [ObjectId(group['_id']) for group in groups_collection.find({
+                    'group_name': {'$regex': 'staff', '$options': 'i'}
+                })]
+            },
+            'is_archived': {'$ne': True}
+        }
+        
+        # Add search functionality
+        if search:
+            # First, find staff records that match student number, course, or section
+            matching_staffs = list(staffs_collection.find({
+                '$or': [
+                    {'studentNumber': {'$regex': search, '$options': 'i'}},
+                    {'course': {'$regex': search, '$options': 'i'}},
+                    {'section': {'$regex': search, '$options': 'i'}}
+                ]
+            }))
+            
+            # Get the user IDs from matching staff records
+            matching_user_ids = [staff['user_id'] for staff in matching_staffs]
+            
+            # Build search query - search user fields AND staff fields via user_id
+            search_conditions = [
+                {'name': {'$regex': search, '$options': 'i'}},
+                {'username': {'$regex': search, '$options': 'i'}}
+            ]
+            
+            # Add staff field search if matching staff records found
+            if matching_user_ids:
+                search_conditions.append({'_id': {'$in': matching_user_ids}})
+            
+            base_query['$or'] = search_conditions
         
         # Calculate skip value
         skip = (page - 1) * per_page
         
-        # Only get non-archived staff users
-        staff_users = list(users_collection.find({
-            'group_id': {
-                '$in': [ObjectId(group['_id']) for group in groups_collection.find({
-                    'group_name': {'$regex': 'staff', '$options': 'i'}
-                })]
-            },
-            'is_archived': {'$ne': True}
-        }).skip(skip).limit(per_page))
-        
-        # Get total count for pagination info
-        total_staffs = users_collection.count_documents({
-            'group_id': {
-                '$in': [ObjectId(group['_id']) for group in groups_collection.find({
-                    'group_name': {'$regex': 'staff', '$options': 'i'}
-                })]
-            },
-            'is_archived': {'$ne': True}
-        })
+        # Get total count for pagination info (WITH SEARCH FILTER)
+        total_staffs = users_collection.count_documents(base_query)
         
         # Calculate total pages
         total_pages = (total_staffs + per_page - 1) // per_page  # Ceiling division
+        
+        # Adjust page if it exceeds total pages
+        if page > total_pages and total_pages > 0:
+            page = total_pages
+            skip = (page - 1) * per_page
+        
+        # Get staff users with pagination and search
+        staff_users = list(users_collection.find(base_query).skip(skip).limit(per_page))
         
         # Get staff details for each staff user
         staffs = []
@@ -111,39 +139,67 @@ def get_staffs():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Get archived staffs - UPDATED FOR PAGINATION
+# Get archived staffs - UPDATED WITH SEARCH (INCLUDES STUDENT NUMBER AND COURSE)
 @staffs_bp.route('/staffs/archived', methods=['GET'])
 def get_archived_staffs():
     try:
         # Get pagination parameters from query string
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '').strip()
+        
+        # Base query for archived staff users
+        base_query = {
+            'group_id': {
+                '$in': [ObjectId(group['_id']) for group in groups_collection.find({
+                    'group_name': {'$regex': 'staff', '$options': 'i'}
+                })]
+            },
+            'is_archived': True
+        }
+        
+        # Add search functionality
+        if search:
+            # First, find staff records that match student number, course, or section
+            matching_staffs = list(staffs_collection.find({
+                '$or': [
+                    {'studentNumber': {'$regex': search, '$options': 'i'}},
+                    {'course': {'$regex': search, '$options': 'i'}},
+                    {'section': {'$regex': search, '$options': 'i'}}
+                ]
+            }))
+            
+            # Get the user IDs from matching staff records
+            matching_user_ids = [staff['user_id'] for staff in matching_staffs]
+            
+            # Build search query - search user fields AND staff fields via user_id
+            search_conditions = [
+                {'name': {'$regex': search, '$options': 'i'}},
+                {'username': {'$regex': search, '$options': 'i'}}
+            ]
+            
+            # Add staff field search if matching staff records found
+            if matching_user_ids:
+                search_conditions.append({'_id': {'$in': matching_user_ids}})
+            
+            base_query['$or'] = search_conditions
         
         # Calculate skip value
         skip = (page - 1) * per_page
         
-        # Get archived staff users with pagination
-        staff_users = list(users_collection.find({
-            'group_id': {
-                '$in': [ObjectId(group['_id']) for group in groups_collection.find({
-                    'group_name': {'$regex': 'staff', '$options': 'i'}
-                })]
-            },
-            'is_archived': True
-        }).skip(skip).limit(per_page))
-        
-        # Get total count for pagination info
-        total_staffs = users_collection.count_documents({
-            'group_id': {
-                '$in': [ObjectId(group['_id']) for group in groups_collection.find({
-                    'group_name': {'$regex': 'staff', '$options': 'i'}
-                })]
-            },
-            'is_archived': True
-        })
+        # Get total count for pagination info (WITH SEARCH FILTER)
+        total_staffs = users_collection.count_documents(base_query)
         
         # Calculate total pages
         total_pages = (total_staffs + per_page - 1) // per_page  # Ceiling division
+        
+        # Adjust page if it exceeds total pages
+        if page > total_pages and total_pages > 0:
+            page = total_pages
+            skip = (page - 1) * per_page
+        
+        # Get archived staff users with pagination and search
+        staff_users = list(users_collection.find(base_query).skip(skip).limit(per_page))
         
         # Get staff details for each archived staff user
         staffs = []

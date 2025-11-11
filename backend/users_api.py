@@ -98,12 +98,38 @@ def get_users():
         # Get pagination parameters from query string
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '').strip()
         
-        # Calculate skip value - Only fetch non-archived users
+        # Base query for non-archived users
+        query = {"is_archived": {"$ne": True}}
+        
+        # Add search functionality
+        if search:
+            # First, find groups that match the search term
+            matching_groups = list(groups_collection.find({
+                'group_name': {'$regex': search, '$options': 'i'}
+            }))
+            
+            # Get the group IDs that match
+            matching_group_ids = [group['_id'] for group in matching_groups]
+            
+            # Build search query - search user fields AND role via group_id
+            search_conditions = [
+                {'name': {'$regex': search, '$options': 'i'}},
+                {'username': {'$regex': search, '$options': 'i'}},
+                {'status': {'$regex': search, '$options': 'i'}}
+            ]
+            
+            # Add role search if matching groups found
+            if matching_group_ids:
+                search_conditions.append({'group_id': {'$in': matching_group_ids}})
+            
+            query['$or'] = search_conditions
+        
+        # Calculate skip value
         skip = (page - 1) * per_page
         
-        # Get total count for pagination info
-        query = {"is_archived": {"$ne": True}}
+        # Get total count for pagination info (WITH SEARCH FILTER)
         total_users = users_collection.count_documents(query)
         
         # Calculate total pages
@@ -114,7 +140,7 @@ def get_users():
             page = total_pages
             skip = (page - 1) * per_page
         
-        # Get paginated users
+        # Get paginated users (ALREADY FILTERED BY SEARCH)
         users_cursor = users_collection.find(query).skip(skip).limit(per_page)
         users = []
         
@@ -166,12 +192,38 @@ def get_archived_users():
         # Get pagination parameters from query string
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '').strip()
         
-        # Calculate skip value - Only fetch archived users
+        # Base query for archived users
+        query = {"is_archived": True}
+        
+        # Add search functionality
+        if search:
+            # First, find groups that match the search term
+            matching_groups = list(groups_collection.find({
+                'group_name': {'$regex': search, '$options': 'i'}
+            }))
+            
+            # Get the group IDs that match
+            matching_group_ids = [group['_id'] for group in matching_groups]
+            
+            # Build search query - search user fields AND role via group_id
+            search_conditions = [
+                {'name': {'$regex': search, '$options': 'i'}},
+                {'username': {'$regex': search, '$options': 'i'}},
+                {'status': {'$regex': search, '$options': 'i'}}
+            ]
+            
+            # Add role search if matching groups found
+            if matching_group_ids:
+                search_conditions.append({'group_id': {'$in': matching_group_ids}})
+            
+            query['$or'] = search_conditions
+        
+        # Calculate skip value
         skip = (page - 1) * per_page
         
-        # Get total count for pagination info
-        query = {"is_archived": True}
+        # Get total count for pagination info (WITH SEARCH FILTER)
         total_users = users_collection.count_documents(query)
         
         # Calculate total pages
@@ -182,7 +234,7 @@ def get_archived_users():
             page = total_pages
             skip = (page - 1) * per_page
         
-        # Get paginated archived users
+        # Get paginated archived users (ALREADY FILTERED BY SEARCH)
         users_cursor = users_collection.find(query).sort("archived_at", -1).skip(skip).limit(per_page)
         users = []
         

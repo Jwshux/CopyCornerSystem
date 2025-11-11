@@ -51,11 +51,16 @@ function AllStaff() {
   const [totalCount, setTotalCount] = useState(0);
   const [archivedTotalCount, setArchivedTotalCount] = useState(0);
 
-  // Fetch all active staffs
-  const fetchStaffs = async (page = 1) => {
+  // Fetch all active staffs with search
+  const fetchStaffs = async (page = 1, search = "") => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/staffs?page=${page}&per_page=${ITEMS_PER_PAGE}`);
+      let url = `${API_BASE}/staffs?page=${page}&per_page=${ITEMS_PER_PAGE}`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+      
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         console.log('Staffs data from API:', data);
@@ -90,11 +95,16 @@ function AllStaff() {
     }
   };
   
-  // Fetch archived staffs - UPDATED TO HANDLE BOTH RESPONSE FORMATS
-  const fetchArchivedStaffs = async (page = 1) => {
+  // Fetch archived staffs with search
+  const fetchArchivedStaffs = async (page = 1, search = "") => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/staffs/archived?page=${page}&per_page=${ITEMS_PER_PAGE}`);
+      let url = `${API_BASE}/staffs/archived?page=${page}&per_page=${ITEMS_PER_PAGE}`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+      
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         
@@ -138,6 +148,15 @@ function AllStaff() {
     fetchStaffs();
   }, []);
 
+  // INSTANT SEARCH - No debounce
+  useEffect(() => {
+    if (showArchivedView) {
+      fetchArchivedStaffs(1, searchTerm);
+    } else {
+      fetchStaffs(1, searchTerm);
+    }
+  }, [searchTerm, showArchivedView]);
+
   // Reset states when modals close
   useEffect(() => {
     if (!showEditModal) {
@@ -157,15 +176,15 @@ function AllStaff() {
     }
   }, [showRestoreModal]);
 
-  // Pagination handlers - SEPARATE for each view
+  // Pagination handlers with search term
   const handleNextPage = () => {
     if (showArchivedView) {
       if (archivedCurrentPage < archivedTotalPages) {
-        fetchArchivedStaffs(archivedCurrentPage + 1);
+        fetchArchivedStaffs(archivedCurrentPage + 1, searchTerm);
       }
     } else {
       if (currentPage < totalPages) {
-        fetchStaffs(currentPage + 1);
+        fetchStaffs(currentPage + 1, searchTerm);
       }
     }
   };
@@ -173,11 +192,11 @@ function AllStaff() {
   const handlePrevPage = () => {
     if (showArchivedView) {
       if (archivedCurrentPage > 1) {
-        fetchArchivedStaffs(archivedCurrentPage - 1);
+        fetchArchivedStaffs(archivedCurrentPage - 1, searchTerm);
       }
     } else {
       if (currentPage > 1) {
-        fetchStaffs(currentPage - 1);
+        fetchStaffs(currentPage - 1, searchTerm);
       }
     }
   };
@@ -260,7 +279,7 @@ function AllStaff() {
       if (response.ok) {
         setUpdateSuccess(true);
         setTimeout(async () => {
-          await fetchStaffs(currentPage);
+          await fetchStaffs(currentPage, searchTerm);
           setShowEditModal(false);
           resetForm();
           setUpdating(false);
@@ -323,9 +342,9 @@ function AllStaff() {
           const isLastItemOnPage = staffs.length === 1;
           
           if (isLastItemOnPage && currentPage > 1) {
-            await fetchStaffs(currentPage - 1);
+            await fetchStaffs(currentPage - 1, searchTerm);
           } else {
-            await fetchStaffs(currentPage);
+            await fetchStaffs(currentPage, searchTerm);
           }
           closeArchiveModal();
         }, 1500);
@@ -384,8 +403,8 @@ function AllStaff() {
       if (response.ok) {
         setRestoreSuccess(true);
         setTimeout(async () => {
-          await fetchArchivedStaffs(archivedCurrentPage);
-          await fetchStaffs(1);
+          await fetchArchivedStaffs(archivedCurrentPage, searchTerm);
+          await fetchStaffs(1, searchTerm);
           closeRestoreModal();
         }, 1500);
       } else {
@@ -407,23 +426,6 @@ function AllStaff() {
     setShowEditModal(false);
     resetForm();
   };
-
-  // Filter staffs based on search term
-  const filteredStaffs = staffs.filter(staff =>
-    staff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    staff.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    staff.studentNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    staff.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    staff.section.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredArchivedStaffs = archivedStaffs.filter(staff =>
-    staff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    staff.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    staff.studentNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    staff.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    staff.section.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   // Calculate display ranges CORRECTLY
   const getDisplayRange = () => {
@@ -454,14 +456,16 @@ function AllStaff() {
           {showArchivedView ? (
             <button className="back-to-main-btn" onClick={() => {
               setShowArchivedView(false);
-              fetchStaffs(1);
+              setSearchTerm("");
+              fetchStaffs(1, "");
             }}>
               ← Back to Main View
             </button>
           ) : (
             <button className="view-archive-btn" onClick={() => {
               setShowArchivedView(true);
-              fetchArchivedStaffs(1);
+              setSearchTerm("");
+              fetchArchivedStaffs(1, "");
             }}>
               📦 View Archived Staff
             </button>
@@ -510,7 +514,7 @@ function AllStaff() {
                     </td>
                   </tr>
                 ) : (
-                  filteredStaffs.map((staff, index) => (
+                  staffs.map((staff, index) => (
                     <tr key={staff._id}>
                       <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                       <td>{staff.name}</td>
@@ -614,7 +618,7 @@ function AllStaff() {
                     </td>
                   </tr>
                 ) : (
-                  filteredArchivedStaffs.map((staff, index) => (
+                  archivedStaffs.map((staff, index) => (
                     <tr key={staff._id}>
                       <td>{(archivedCurrentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                       <td>{staff.name}</td>

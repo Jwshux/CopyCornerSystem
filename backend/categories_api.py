@@ -26,9 +26,17 @@ def get_categories():
     try:
         page_param = request.args.get('page')
         per_page_param = request.args.get('per_page')
+        search = request.args.get('search', '').strip()
         
         # Only fetch non-archived categories
         query = {'is_archived': {'$ne': True}}
+        
+        # Add search functionality - THIS SEARCHES ACROSS ALL CATEGORIES
+        if search:
+            query['$or'] = [
+                {'name': {'$regex': search, '$options': 'i'}},
+                {'description': {'$regex': search, '$options': 'i'}}
+            ]
         
         # If no pagination parameters, return all categories
         if not page_param and not per_page_param:
@@ -49,16 +57,19 @@ def get_categories():
         
         # Handle paginated request
         page = int(page_param or 1)
-        per_page = int(per_page_param or 5)  # CHANGED TO 5 FOR CATEGORIES
+        per_page = int(per_page_param or 5)
         skip = (page - 1) * per_page
         
+        # COUNT TOTAL MATCHING DOCUMENTS (WITH SEARCH FILTER)
         total_categories = categories_collection.count_documents(query)
         total_pages = (total_categories + per_page - 1) // per_page
         
+        # Adjust page if it exceeds total pages
         if page > total_pages and total_pages > 0:
             page = total_pages
             skip = (page - 1) * per_page
         
+        # FETCH PAGINATED RESULTS (ALREADY FILTERED BY SEARCH)
         categories_cursor = categories_collection.find(query).sort("created_at", 1).skip(skip).limit(per_page)
         categories = list(categories_cursor)
         
@@ -79,7 +90,7 @@ def get_categories():
             'pagination': {
                 'page': page,
                 'per_page': per_page,
-                'total_count': total_categories,  # CHANGE THIS
+                'total_count': total_categories,  # TOTAL COUNT AFTER SEARCH FILTER
                 'total_pages': total_pages
             }
         })
@@ -264,9 +275,17 @@ def get_archived_categories():
     try:
         page_param = request.args.get('page')
         per_page_param = request.args.get('per_page')
+        search = request.args.get('search', '').strip()
         
         # Only fetch archived categories
         query = {'is_archived': True}
+        
+        # Add search functionality - THIS SEARCHES ACROSS ALL ARCHIVED CATEGORIES
+        if search:
+            query['$or'] = [
+                {'name': {'$regex': search, '$options': 'i'}},
+                {'description': {'$regex': search, '$options': 'i'}}
+            ]
         
         # If no pagination parameters, return all archived categories
         if not page_param and not per_page_param:
@@ -284,16 +303,19 @@ def get_archived_categories():
         
         # Handle paginated request
         page = int(page_param or 1)
-        per_page = int(per_page_param or 5)  # CHANGED TO 5 FOR CATEGORIES
+        per_page = int(per_page_param or 5)
         skip = (page - 1) * per_page
         
+        # COUNT TOTAL MATCHING ARCHIVED CATEGORIES (WITH SEARCH FILTER)
         total_categories = categories_collection.count_documents(query)
         total_pages = (total_categories + per_page - 1) // per_page
         
+        # Adjust page if it exceeds total pages
         if page > total_pages and total_pages > 0:
             page = total_pages
             skip = (page - 1) * per_page
         
+        # FETCH PAGINATED ARCHIVED RESULTS (ALREADY FILTERED BY SEARCH)
         categories_cursor = categories_collection.find(query).sort("archived_at", -1).skip(skip).limit(per_page)
         categories = list(categories_cursor)
         
@@ -311,7 +333,7 @@ def get_archived_categories():
             'pagination': {
                 'page': page,
                 'per_page': per_page,
-                'total_count': total_categories,  
+                'total_count': total_categories,  # TOTAL COUNT AFTER SEARCH FILTER
                 'total_pages': total_pages
             }
         })
