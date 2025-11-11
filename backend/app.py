@@ -24,7 +24,14 @@ if not MONGO_URI:
     raise ValueError("MONGO_URI not set in .env")
 
 app = Flask(__name__)
-CORS(app, origins=["https://copy-corner-system.web.app"], supports_credentials=True)
+CORS(app, origins=[
+    "http://localhost:3000",         # React dev
+    "http://127.0.0.1:3000",        # React dev
+    "http://localhost:5000",         # Firebase emulator / local Flask
+    "http://127.0.0.1:5000",        # local Flask
+    "https://copy-corner-system.web.app",   # your Firebase hosted site
+    "https://copycornersystem-backend.onrender.com"  # backend itself (optional, safe)
+], supports_credentials=True)
 
 # Password hashing helper functions
 def hash_password(password):

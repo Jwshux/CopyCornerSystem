@@ -23,7 +23,11 @@ function DashboardUI() {
     const [loading, setLoading] = useState(true);
 
     // API Base URL
-    const API_BASE = "https://copycornersystem-backend.onrender.com";
+    const API_BASE =
+    process.env.NODE_ENV === "development"
+        ? "http://127.0.0.1:5000"
+        : "https://copycornersystem-backend.onrender.com";
+
 
     // Fetch all dashboard data
     useEffect(() => {

@@ -5,7 +5,10 @@ import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
 import archiveAnimation from "../animations/archive.json";
 
-const API_BASE = "https://copycornersystem-backend.onrender.com";
+const API_BASE =
+  process.env.NODE_ENV === "development"
+    ? "http://127.0.0.1:5000"
+    : "https://copycornersystem-backend.onrender.com";
 
 function AllStaff() {
   const [staffs, setStaffs] = useState([]);
