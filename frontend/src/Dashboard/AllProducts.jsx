@@ -287,15 +287,11 @@ function AllProducts({ showAddModal, onAddModalClose }) {
 
   // NEW: Add search effect with debounce
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (showArchivedView) {
-        fetchArchivedProducts(1, searchTerm);
-      } else {
-        fetchProducts(1, searchTerm);
-      }
-    }, 500); // 500ms debounce
-
-    return () => clearTimeout(delayDebounceFn);
+    if (showArchivedView) {
+      fetchArchivedProducts(1, searchTerm);
+    } else {
+      fetchProducts(1, searchTerm);
+    }
   }, [searchTerm, showArchivedView]);
 
   useEffect(() => {
