@@ -184,7 +184,7 @@ def get_sales_by_service_type():
     try:
         # FIXED: Use exact case matching like in local version
         completed_transactions = list(transactions_collection.find({
-            'status': 'Completed'
+            'status': {'$regex': '^completed$', '$options': 'i'}  # ✅ Case-insensitive
         }))
         
         # Calculate sales by SERVICE TYPE
