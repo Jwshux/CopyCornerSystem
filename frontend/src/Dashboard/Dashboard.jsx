@@ -36,6 +36,9 @@ function AdminDashboard({ user, onLogout }) {
   const [showAddServiceTypeModal, setShowAddServiceTypeModal] = useState(false);
   const [showAddRoleModal, setShowAddRoleModal] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showLogoutUndo, setShowLogoutUndo] = useState(false);
+  const [logoutTimer, setLogoutTimer] = useState(null);
+  const [countdown, setCountdown] = useState(3);
   const profileRef = useRef(null);
   const isStaff = userRoleLevel === 1;
 
@@ -79,7 +82,42 @@ function AdminDashboard({ user, onLogout }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Countdown effect
+  useEffect(() => {
+    let interval;
+    if (showLogoutUndo && countdown > 0) {
+      interval = setInterval(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [showLogoutUndo, countdown]);
+
+  // Debounced logout function
   const handleLogout = () => {
+    setIsProfileOpen(false);
+    setShowLogoutUndo(true);
+    setCountdown(3);
+    
+    const timer = setTimeout(() => {
+      performLogout();
+    }, 3000);
+    
+    setLogoutTimer(timer);
+  };
+
+  // Cancel logout function
+  const cancelLogout = () => {
+    if (logoutTimer) {
+      clearTimeout(logoutTimer);
+      setLogoutTimer(null);
+    }
+    setShowLogoutUndo(false);
+    setCountdown(3);
+  };
+
+  // Actual logout function
+  const performLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     sessionStorage.removeItem("user");
@@ -89,6 +127,15 @@ function AdminDashboard({ user, onLogout }) {
       onLogout();
     }
   };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (logoutTimer) {
+        clearTimeout(logoutTimer);
+      }
+    };
+  }, [logoutTimer]);
 
   const toggleSubmenu = (menu) => {
     setOpenSubmenus(prev => ({
@@ -430,6 +477,29 @@ function AdminDashboard({ user, onLogout }) {
           {renderContent()}
         </div>
       </main>
+
+      {/* Undo Notification */}
+      {showLogoutUndo && (
+        <div className="undo-notification">
+          <div className="undo-content">
+            <span className="undo-message">
+              Logging out in <span className="countdown">{countdown}</span> seconds...
+            </span>
+            <button className="undo-btn" onClick={cancelLogout}>
+              UNDO
+            </button>
+          </div>
+          <div className="countdown-bar">
+            <div 
+              className="countdown-progress" 
+              style={{ 
+                animation: `countdown 3s linear forwards`,
+                animationPlayState: 'running'
+              }}
+            ></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

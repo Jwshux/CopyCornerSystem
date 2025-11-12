@@ -38,6 +38,15 @@ function AllStaff() {
     password: ""
   });
 
+  // VALIDATION STATES - ADDED
+  const [nameError, setNameError] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [studentNumberError, setStudentNumberError] = useState("");
+  const [courseError, setCourseError] = useState("");
+  const [sectionError, setSectionError] = useState("");
+  const [passwordStrength, setPasswordStrength] = useState("");
+
   // Archive view and search
   const [showArchivedView, setShowArchivedView] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -50,6 +59,193 @@ function AllStaff() {
   const [archivedTotalPages, setArchivedTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [archivedTotalCount, setArchivedTotalCount] = useState(0);
+
+  // VALIDATION FUNCTIONS - ADDED (SAME AS MANAGE USERS)
+  const checkName = (name) => {
+    if (!name) {
+      setNameError("");
+      return;
+    }
+
+    // Length validation
+    if (name.length < 2) {
+      setNameError("Full name must be at least 2 characters long");
+      return;
+    }
+
+    if (name.length > 100) {
+      setNameError("Full name must be less than 100 characters");
+      return;
+    }
+
+    // Check if contains only numbers
+    if (/^\d+$/.test(name)) {
+      setNameError("Full name cannot contain only numbers");
+      return;
+    }
+
+    // Check if contains only special characters (no letters or numbers)
+    if (/^[^a-zA-Z0-9]+$/.test(name)) {
+      setNameError("Please enter a valid full name");
+      return;
+    }
+
+    // Check if contains at least one letter
+    if (!/[a-zA-Z]/.test(name)) {
+      setNameError("Full name must contain at least one letter");
+      return;
+    }
+
+    setNameError("");
+  };
+
+  const checkUsername = (username) => {
+    if (!username) {
+      setUsernameError("");
+      return;
+    }
+
+    // Length validation
+    if (username.length < 2) {
+      setUsernameError("Username must be at least 2 characters long");
+      return;
+    }
+
+    if (username.length > 50) {
+      setUsernameError("Username must be less than 50 characters");
+      return;
+    }
+
+    // Check if contains only numbers
+    if (/^\d+$/.test(username)) {
+      setUsernameError("Username cannot contain only numbers");
+      return;
+    }
+
+    // Check if contains only special characters (no letters or numbers)
+    if (/^[^a-zA-Z0-9]+$/.test(username)) {
+      setUsernameError("Please enter a valid username");
+      return;
+    }
+
+    // Check if contains at least one letter
+    if (!/[a-zA-Z]/.test(username)) {
+      setUsernameError("Username must contain at least one letter");
+      return;
+    }
+
+    // Check for duplicate username (excluding current staff)
+    const existingStaff = staffs.find(staff => 
+      staff.username.toLowerCase() === username.toLowerCase() &&
+      (!selectedStaff || staff.user_id !== selectedStaff.user_id)
+    );
+
+    if (existingStaff) {
+      setUsernameError("Username already exists");
+    } else {
+      setUsernameError("");
+    }
+  };
+
+  const checkPassword = (password) => {
+    if (!password) {
+      setPasswordError("");
+      setPasswordStrength("");
+      return;
+    }
+
+    // Length validation
+    if (password.length < 6) {
+      setPasswordError("Password must be at least 6 characters long");
+      setPasswordStrength("Weak");
+      return;
+    }
+
+    if (password.length > 100) {
+      setPasswordError("Password must be less than 100 characters");
+      setPasswordStrength("");
+      return;
+    }
+
+    // Password strength calculation
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^a-zA-Z0-9]/.test(password)) strength++;
+
+    if (strength <= 2) {
+      setPasswordStrength("Weak");
+    } else if (strength <= 4) {
+      setPasswordStrength("Moderate");
+    } else {
+      setPasswordStrength("Strong");
+    }
+
+    setPasswordError("");
+  };
+
+  const checkStudentNumber = (studentNumber) => {
+    if (!studentNumber) {
+      setStudentNumberError("");
+      return;
+    }
+
+    // PDM-0001-000001 format validation
+    const studentNumberPattern = /^PDM-\d{4}-\d{6}$/;
+    if (!studentNumberPattern.test(studentNumber)) {
+      setStudentNumberError("Student number must be in format: PDM-0001-000001");
+      return;
+    }
+
+    setStudentNumberError("");
+  };
+
+  const checkCourse = (course) => {
+    if (!course) {
+      setCourseError("");
+      return;
+    }
+
+    // Valid course codes
+    const validCourses = ['BSIT', 'BSCS', 'BSHM', 'BSTM', 'BSOAD', 'BECED', 'BTLED'];
+    if (!validCourses.includes(course.toUpperCase())) {
+      setCourseError("Course must be one of: BSIT, BSCS, BSHM, BSTM, BSOAD, BECED, BTLED");
+      return;
+    }
+
+    setCourseError("");
+  };
+
+  const checkSection = (section) => {
+    if (!section) {
+      setSectionError("");
+      return;
+    }
+
+    // Section format validation (e.g., 31A, 32B, 21B)
+    const sectionPattern = /^[1-4][1-4][A-D]$/i;
+    if (!sectionPattern.test(section)) {
+      setSectionError("Section must be in format: 31A, 32B, 21B (2 digits + 1 letter)");
+      return;
+    }
+
+    setSectionError("");
+  };
+
+  // Check if form has any validation errors
+  const hasFormErrors = nameError || usernameError || passwordError || studentNumberError || courseError || sectionError;
+
+  // Get password strength color
+  const getPasswordStrengthColor = () => {
+    switch (passwordStrength) {
+      case "Weak": return "#ff4444";
+      case "Moderate": return "#ffa726";
+      case "Strong": return "#4caf50";
+      default: return "#666";
+    }
+  };
 
   // Fetch all active staffs with search
   const fetchStaffs = async (page = 1, search = "") => {
@@ -161,6 +357,14 @@ function AllStaff() {
   useEffect(() => {
     if (!showEditModal) {
       setUpdateSuccess(false);
+      // Reset validation errors when modal closes
+      setNameError("");
+      setUsernameError("");
+      setPasswordError("");
+      setStudentNumberError("");
+      setCourseError("");
+      setSectionError("");
+      setPasswordStrength("");
     }
   }, [showEditModal]);
 
@@ -213,13 +417,28 @@ function AllStaff() {
     setErrorMessage("");
   };
 
-  // Handle input changes
+  // Handle input changes - UPDATED WITH VALIDATION
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+
+    // Real-time validation
+    if (name === "name") {
+      checkName(value);
+    } else if (name === "username") {
+      checkUsername(value);
+    } else if (name === "password") {
+      checkPassword(value);
+    } else if (name === "studentNumber") {
+      checkStudentNumber(value);
+    } else if (name === "course") {
+      checkCourse(value);
+    } else if (name === "section") {
+      checkSection(value);
+    }
   };
 
-  // Reset form state
+  // Reset form state - UPDATED
   const resetForm = () => {
     setFormData({
       name: "",
@@ -231,9 +450,17 @@ function AllStaff() {
       password: ""
     });
     setSelectedStaff(null);
+    // Reset validation errors
+    setNameError("");
+    setUsernameError("");
+    setPasswordError("");
+    setStudentNumberError("");
+    setCourseError("");
+    setSectionError("");
+    setPasswordStrength("");
   };
 
-  // Edit staff - fills form for editing
+  // Edit staff - fills form for editing - UPDATED
   const handleEditStaff = (staff) => {
     setSelectedStaff(staff);
     setFormData({
@@ -245,12 +472,27 @@ function AllStaff() {
       status: staff.status || "Active",
       password: "" // Don't fill password for security
     });
+    // Reset validation errors when opening modal
+    setNameError("");
+    setUsernameError("");
+    setPasswordError("");
+    setStudentNumberError("");
+    setCourseError("");
+    setSectionError("");
+    setPasswordStrength("");
     setShowEditModal(true);
   };
 
-  // Update staff
+  // Update staff - UPDATED WITH VALIDATION CHECK
   const handleUpdateStaff = async (e) => {
     if (e) e.preventDefault();
+
+    // Check for validation errors before submitting
+    if (hasFormErrors) {
+      setErrorMessage("Please fix the form errors before updating.");
+      setShowErrorModal(true);
+      return;
+    }
 
     setUpdating(true);
     try {
@@ -688,7 +930,7 @@ function AllStaff() {
         )}
       </div>
 
-      {/* EDIT STAFF MODAL */}
+      {/* EDIT STAFF MODAL - UPDATED WITH VALIDATION */}
       {showEditModal && (
         <div className="overlay">
           <div className="modal-content">
@@ -718,8 +960,18 @@ function AllStaff() {
                     name="name" 
                     value={formData.name} 
                     onChange={handleInputChange} 
+                    className={nameError ? "error-input" : ""}
                     required 
+                    maxLength="100"
+                    pattern=".*[a-zA-Z].*"
+                    title="Full name must contain letters and cannot be only numbers or special characters"
+                    onInvalid={(e) => e.target.setCustomValidity('Please enter a valid full name with at least one letter')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
+                  {nameError && <div className="error-message">{nameError}</div>}
+                  <small className="character-count">
+                    {formData.name.length}/100 characters
+                  </small>
                 </div>
                 
                 <div className="input-with-error">
@@ -729,8 +981,18 @@ function AllStaff() {
                     value={formData.username} 
                     onChange={handleInputChange} 
                     placeholder="Username" 
+                    className={usernameError ? "error-input" : ""}
                     required
+                    maxLength="50"
+                    pattern=".*[a-zA-Z].*"
+                    title="Username must contain letters and cannot be only numbers or special characters"
+                    onInvalid={(e) => e.target.setCustomValidity('Please enter a valid username with at least one letter')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
+                  {usernameError && <div className="error-message">{usernameError}</div>}
+                  <small className="character-count">
+                    {formData.username.length}/50 characters
+                  </small>
                 </div>
                 
                 <div className="input-with-error">
@@ -741,7 +1003,18 @@ function AllStaff() {
                     value={formData.password} 
                     onChange={handleInputChange} 
                     placeholder="New Password (optional)" 
+                    className={passwordError ? "error-input" : ""}
+                    maxLength="100"
                   />
+                  {passwordError && <div className="error-message">{passwordError}</div>}
+                  {passwordStrength && !passwordError && formData.password && (
+                    <small className="password-strength" style={{ color: getPasswordStrengthColor() }}>
+                      Password Strength: {passwordStrength}
+                    </small>
+                  )}
+                  <small className="character-count">
+                    {formData.password.length}/100 characters
+                  </small>
                 </div>
                 
                 <div className="input-with-error">
@@ -750,9 +1023,14 @@ function AllStaff() {
                     name="studentNumber" 
                     value={formData.studentNumber} 
                     onChange={handleInputChange} 
-                    placeholder="e.g., 2023-00123" 
+                    placeholder="e.g., PDM-0001-000001" 
+                    className={studentNumberError ? "error-input" : ""}
                     required
+                    maxLength="15"
+                    onInvalid={(e) => e.target.setCustomValidity('Please enter student number in format: PDM-0001-000001')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
+                  {studentNumberError && <div className="error-message">{studentNumberError}</div>}
                 </div>
                 
                 <div className="input-with-error">
@@ -761,9 +1039,14 @@ function AllStaff() {
                     name="course" 
                     value={formData.course} 
                     onChange={handleInputChange} 
-                    placeholder="e.g., BSIT, BSCS, BSIS" 
+                    placeholder="e.g., BSIT, BSCS, BSHM" 
+                    className={courseError ? "error-input" : ""}
                     required
+                    maxLength="10"
+                    onInvalid={(e) => e.target.setCustomValidity('Please enter course (BSIT, BSCS, BSHM, BSTM, BSOAD, BECED, BTLED)')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
+                  {courseError && <div className="error-message">{courseError}</div>}
                 </div>
                 
                 <div className="input-with-error">
@@ -772,9 +1055,14 @@ function AllStaff() {
                     name="section" 
                     value={formData.section} 
                     onChange={handleInputChange} 
-                    placeholder="e.g., 3A, 2B" 
+                    placeholder="e.g., 31A, 32B, 21B" 
+                    className={sectionError ? "error-input" : ""}
                     required
+                    maxLength="3"
+                    onInvalid={(e) => e.target.setCustomValidity('Please enter section in format: 31A, 32B, 21B')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                   />
+                  {sectionError && <div className="error-message">{sectionError}</div>}
                 </div>
                 
                 <div className="input-with-error">
@@ -786,7 +1074,12 @@ function AllStaff() {
                 </div>
 
                 <div className="form-buttons">
-                  <button type="submit" className="save-btn" disabled={updating}>
+                  <button 
+                    type="submit" 
+                    className="save-btn" 
+                    disabled={updating || hasFormErrors}
+                    title={hasFormErrors ? "Please fix validation errors before updating" : ""}
+                  >
                     {updating ? "Updating..." : "Update"}
                   </button>
                   <button type="button" className="cancel-btn" onClick={closeEditModal}>Cancel</button>
