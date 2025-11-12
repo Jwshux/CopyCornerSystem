@@ -23,7 +23,11 @@ function DashboardUI() {
     const [loading, setLoading] = useState(true);
 
     // API Base URL
-    const API_BASE = "http://localhost:5000";
+    const API_BASE =
+    process.env.NODE_ENV === "development"
+        ? "http://127.0.0.1:5000"
+        : "https://copycornersystem-backend.onrender.com";
+
 
     // Fetch all dashboard data
     useEffect(() => {
@@ -40,11 +44,11 @@ function DashboardUI() {
                     salesByServiceResponse,
                     salesAnalyticsResponse
                 ] = await Promise.all([
-                    fetch(`${API_BASE}/api/products?page=1&per_page=1000`).then(res => res.json()),
-                    fetch(`${API_BASE}/api/staffs?page=1&per_page=1000`).then(res => res.json()),
-                    fetch(`${API_BASE}/api/transactions?page=1&per_page=1000`).then(res => res.json()),
-                    fetch(`${API_BASE}/api/sales/by-service-type`).then(res => res.json()),
-                    fetch(`${API_BASE}/api/sales/analytics`).then(res => res.json())
+                    fetch(`${API_BASE}/products?page=1&per_page=1000`).then(res => res.json()),
+                    fetch(`${API_BASE}/staffs?page=1&per_page=1000`).then(res => res.json()),
+                    fetch(`${API_BASE}/transactions?page=1&per_page=1000`).then(res => res.json()),
+                    fetch(`${API_BASE}/sales/by-service-type`).then(res => res.json()),
+                    fetch(`${API_BASE}/sales/analytics`).then(res => res.json())
                 ]);
 
                 console.log("API Responses:", {

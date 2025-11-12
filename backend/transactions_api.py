@@ -3,6 +3,7 @@ from pymongo import MongoClient
 from bson import ObjectId
 from datetime import datetime, timedelta
 import os
+import re
 
 transactions_bp = Blueprint('transactions', __name__)
 
@@ -162,7 +163,7 @@ def restore_product_inventory(product_id, total_pages, quantity, service_type):
         print(f"Error restoring inventory: {e}")
         return False
 
-@transactions_bp.route('/api/transactions', methods=['GET'])
+@transactions_bp.route('/transactions', methods=['GET'])
 def get_transactions():
     try:
         page = int(request.args.get('page', 1))
@@ -212,14 +213,28 @@ def get_transactions():
         return jsonify({'error': str(e)}), 500
 
 # GET ARCHIVED TRANSACTIONS
-@transactions_bp.route('/api/transactions/archived', methods=['GET'])
+@transactions_bp.route('/transactions/archived', methods=['GET'])
 def get_archived_transactions():
     try:
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '').strip()
         skip = (page - 1) * per_page
         
-        query = {"is_archived": True}
+        query = {'is_archived': True}
+        
+        if search:
+            regex_pattern = re.compile(f'.*{re.escape(search)}.*', re.IGNORECASE)
+            query['$or'] = [
+                {'customer_name': regex_pattern},
+                {'queue_number': regex_pattern},
+                {'transaction_id': regex_pattern},
+                {'service_type': regex_pattern},
+                {'paper_type': regex_pattern},
+                {'size_type': regex_pattern},
+                {'supply_type': regex_pattern},
+                {'product_name': regex_pattern}  # ADDED: Search by product_name
+            ]
         
         total_transactions = transactions_collection.count_documents(query)
         total_pages = (total_transactions + per_page - 1) // per_page
@@ -230,19 +245,6 @@ def get_archived_transactions():
         
         transactions_cursor = transactions_collection.find(query).sort("archived_at", -1).skip(skip).limit(per_page)
         transactions = list(transactions_cursor)
-        
-        for transaction in transactions:
-            if transaction.get('service_type'):
-                service_type = service_types_collection.find_one({'service_name': transaction['service_type']})
-                if service_type and service_type.get('category_id'):
-                    category = categories_collection.find_one({'_id': service_type['category_id']})
-                    transaction['service_category'] = category['name'] if category else 'Unknown'
-            
-            # Add product data if product_id exists
-            if transaction.get('product_id'):
-                product = products_collection.find_one({'_id': ObjectId(transaction['product_id'])})
-                if product:
-                    transaction['product_data'] = serialize_doc(product)
         
         serialized_transactions = [serialize_doc(transaction) for transaction in transactions]
         
@@ -258,7 +260,7 @@ def get_archived_transactions():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@transactions_bp.route('/api/transactions/<transaction_id>', methods=['GET'])
+@transactions_bp.route('/transactions/<transaction_id>', methods=['GET'])
 def get_transaction(transaction_id):
     try:
         transaction = transactions_collection.find_one({'_id': ObjectId(transaction_id)})
@@ -282,7 +284,7 @@ def get_transaction(transaction_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@transactions_bp.route('/api/transactions', methods=['POST'])
+@transactions_bp.route('/transactions', methods=['POST'])
 def create_transaction():
     try:
         data = request.json
@@ -349,7 +351,7 @@ def create_transaction():
         print(f"Error creating transaction: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@transactions_bp.route('/api/transactions/<transaction_id>', methods=['PUT'])
+@transactions_bp.route('/transactions/<transaction_id>', methods=['PUT'])
 def update_transaction(transaction_id):
     try:
         data = request.json
@@ -456,7 +458,7 @@ def update_transaction(transaction_id):
         return jsonify({'error': str(e)}), 500
 
 # ARCHIVE TRANSACTION ENDPOINT
-@transactions_bp.route('/api/transactions/<transaction_id>/archive', methods=['PUT'])
+@transactions_bp.route('/transactions/<transaction_id>/archive', methods=['PUT'])
 def archive_transaction(transaction_id):
     try:
         transaction = transactions_collection.find_one({'_id': ObjectId(transaction_id)})
@@ -481,7 +483,7 @@ def archive_transaction(transaction_id):
         return jsonify({'error': str(e)}), 500
 
 # RESTORE TRANSACTION ENDPOINT - FIXED
-@transactions_bp.route('/api/transactions/<transaction_id>/restore', methods=['PUT'])
+@transactions_bp.route('/transactions/<transaction_id>/restore', methods=['PUT'])
 def restore_transaction(transaction_id):
     try:
         # Check if transaction exists and is archived
@@ -519,7 +521,7 @@ def restore_transaction(transaction_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@transactions_bp.route('/api/transactions/<transaction_id>', methods=['DELETE'])
+@transactions_bp.route('/transactions/<transaction_id>', methods=['DELETE'])
 def delete_transaction(transaction_id):
     try:
         result = transactions_collection.delete_one({'_id': ObjectId(transaction_id)})
@@ -529,14 +531,29 @@ def delete_transaction(transaction_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@transactions_bp.route('/api/transactions/status/<status>', methods=['GET'])
+@transactions_bp.route('/transactions/status/<status>', methods=['GET'])
 def get_transactions_by_status(status):
     try:
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '').strip()
         skip = (page - 1) * per_page
         
-        query = {'status': status, "is_archived": {"$ne": True}}
+        # Build query with search
+        query = {'status': status, 'is_archived': {'$ne': True}}
+        
+        if search:
+            regex_pattern = re.compile(f'.*{re.escape(search)}.*', re.IGNORECASE)
+            query['$or'] = [
+                {'customer_name': regex_pattern},
+                {'queue_number': regex_pattern},
+                {'transaction_id': regex_pattern},
+                {'service_type': regex_pattern},
+                {'paper_type': regex_pattern},
+                {'size_type': regex_pattern},
+                {'supply_type': regex_pattern},
+                {'product_name': regex_pattern}  # ADDED: Search by product_name
+            ]
         
         total_transactions = transactions_collection.count_documents(query)
         total_pages = (total_transactions + per_page - 1) // per_page
@@ -547,23 +564,6 @@ def get_transactions_by_status(status):
         
         transactions_cursor = transactions_collection.find(query).sort("created_at", -1).skip(skip).limit(per_page)
         transactions = list(transactions_cursor)
-        
-        for transaction in transactions:
-            if transaction.get('service_type'):
-                service_type = service_types_collection.find_one({'service_name': transaction['service_type']})
-                if service_type and service_type.get('category_id'):
-                    category = categories_collection.find_one({'_id': service_type['category_id']})
-                    transaction['service_category'] = category['name'] if category else 'Unknown'
-                else:
-                    transaction['service_category'] = 'Uncategorized'
-            else:
-                transaction['service_category'] = 'Unknown'
-            
-            # Add product data if product_id exists
-            if transaction.get('product_id'):
-                product = products_collection.find_one({'_id': ObjectId(transaction['product_id'])})
-                if product:
-                    transaction['product_data'] = serialize_doc(product)
         
         serialized_transactions = [serialize_doc(transaction) for transaction in transactions]
         
@@ -579,7 +579,7 @@ def get_transactions_by_status(status):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@transactions_bp.route('/api/transactions/service-type/<service_type_name>', methods=['GET'])
+@transactions_bp.route('/transactions/service-type/<service_type_name>', methods=['GET'])
 def get_transactions_by_service_type(service_type_name):
     try:
         page = int(request.args.get('page', 1))

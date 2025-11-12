@@ -5,7 +5,10 @@ import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
 import deleteAnimation from "../animations/delete.json";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE =
+  process.env.NODE_ENV === "development"
+    ? "http://127.0.0.1:5000"
+    : "https://copycornersystem-backend.onrender.com";
 
 function StaffSchedule({ showAddModal, onAddModalClose, userRoleLevel = 0 }) {
   const [schedules, setSchedules] = useState([]);

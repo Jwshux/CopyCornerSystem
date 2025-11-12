@@ -5,7 +5,10 @@ import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
 import archiveAnimation from "../animations/archive.json";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE =
+  process.env.NODE_ENV === "development"
+    ? "http://127.0.0.1:5000"
+    : "https://copycornersystem-backend.onrender.com";
 
 const Categories = () => {
   const [categories, setCategories] = useState([]);
@@ -51,9 +54,9 @@ const Categories = () => {
 
   const [updateSuccess, setUpdateSuccess] = useState(false);
 
-  // Store all data for client-side filtering
-  const [allCategories, setAllCategories] = useState([]);
-  const [allArchivedCategories, setAllArchivedCategories] = useState([]);
+  // REMOVED: Client-side storage (no longer needed)
+  // const [allCategories, setAllCategories] = useState([]);
+  // const [allArchivedCategories, setAllArchivedCategories] = useState([]);
 
   // Enhanced category name validation - SAME AS SERVICE TYPES
   const checkCategoryName = (categoryName, isEdit = false) => {
@@ -116,7 +119,7 @@ const Categories = () => {
     }
 
     // Check for duplicate category names
-    const existingCategory = allCategories.find(cat => 
+    const existingCategory = categories.find(cat => 
       cat.name.toLowerCase() === categoryName.toLowerCase() &&
       (!isEdit || cat._id !== selectedCategory?._id)
     );
@@ -136,89 +139,89 @@ const Categories = () => {
     }
   };
 
-  // Filter categories based on search term
-  const filterCategories = (categories, term) => {
-    if (!term.trim()) return categories;
-    
-    return categories.filter(category =>
-      category.name.toLowerCase().includes(term.toLowerCase()) ||
-      (category.description && category.description.toLowerCase().includes(term.toLowerCase()))
-    );
-  };
-
-  // Fetch categories from backend
-  const fetchCategories = async () => {
+  // UPDATED: Fetch categories from backend with search
+  const fetchCategories = async (page = 1, search = "") => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/categories`);
+      let url = `${API_BASE}/categories?page=${page}&per_page=${ITEMS_PER_PAGE}`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+      
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         
-        let categoriesData = [];
-        if (Array.isArray(data)) {
-          categoriesData = data;
-        } else if (data.categories && Array.isArray(data.categories)) {
-          categoriesData = data.categories;
+        if (data.categories) {
+          setCategories(data.categories);
+          setCurrentPage(data.pagination?.page || 1);
+          setTotalPages(data.pagination?.total_pages || 1);
+          setTotalCount(data.pagination?.total_count || data.categories.length);
+        } else if (Array.isArray(data)) {
+          // Handle non-paginated response
+          setCategories(data);
+          setCurrentPage(1);
+          setTotalPages(1);
+          setTotalCount(data.length);
         } else {
-          categoriesData = [];
+          setCategories([]);
+          setTotalCount(0);
         }
-        
-        setAllCategories(categoriesData);
-        
-        // Apply search filter if there's a search term
-        const filteredData = filterCategories(categoriesData, searchTerm);
-        setCategories(filteredData);
-        
       } else {
         console.error('Failed to fetch categories');
         showError('Failed to load categories');
-        setAllCategories([]);
         setCategories([]);
+        setTotalCount(0);
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
       showError('Error loading categories');
-      setAllCategories([]);
       setCategories([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch archived categories
-  const fetchArchivedCategories = async () => {
+  // UPDATED: Fetch archived categories with search
+  const fetchArchivedCategories = async (page = 1, search = "") => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/categories/archived`);
+      let url = `${API_BASE}/categories/archived?page=${page}&per_page=${ITEMS_PER_PAGE}`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+      
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         
-        let archivedData = [];
-        if (Array.isArray(data)) {
-          archivedData = data;
-        } else if (data.categories && Array.isArray(data.categories)) {
-          archivedData = data.categories;
+        if (data.categories) {
+          setArchivedCategories(data.categories);
+          setArchivedCurrentPage(data.pagination?.page || 1);
+          setArchivedTotalPages(data.pagination?.total_pages || 1);
+          setArchivedTotalCount(data.pagination?.total_count || data.categories.length);
+        } else if (Array.isArray(data)) {
+          // Handle non-paginated response
+          setArchivedCategories(data);
+          setArchivedCurrentPage(1);
+          setArchivedTotalPages(1);
+          setArchivedTotalCount(data.length);
         } else {
-          archivedData = [];
+          setArchivedCategories([]);
+          setArchivedTotalCount(0);
         }
-        
-        setAllArchivedCategories(archivedData);
-        
-        // Apply search filter if there's a search term
-        const filteredData = filterCategories(archivedData, searchTerm);
-        setArchivedCategories(filteredData);
-        
       } else {
         console.error('Failed to fetch archived categories');
         showError('Failed to load archived categories');
-        setAllArchivedCategories([]);
         setArchivedCategories([]);
+        setArchivedTotalCount(0);
       }
     } catch (error) {
       console.error('Error fetching archived categories:', error);
       showError('Error loading archived categories');
-      setAllArchivedCategories([]);
       setArchivedCategories([]);
+      setArchivedTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -228,16 +231,12 @@ const Categories = () => {
     fetchCategories();
   }, []);
 
-  // Update displayed data when search term changes
+  // UPDATED: INSTANT SEARCH - No debounce
   useEffect(() => {
     if (showArchivedView) {
-      const filteredData = filterCategories(allArchivedCategories, searchTerm);
-      setArchivedCategories(filteredData);
-      setArchivedCurrentPage(1); // Reset to first page when searching
+      fetchArchivedCategories(1, searchTerm);
     } else {
-      const filteredData = filterCategories(allCategories, searchTerm);
-      setCategories(filteredData);
-      setCurrentPage(1); // Reset to first page when searching
+      fetchCategories(1, searchTerm);
     }
   }, [searchTerm, showArchivedView]);
 
@@ -260,42 +259,15 @@ const Categories = () => {
     }
   }, [showRestoreModal]);
 
-  // Pagination calculations
-  const getPaginatedData = (data, page) => {
-    const startIndex = (page - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    return data.slice(startIndex, endIndex);
-  };
-
-  const getTotalPages = (data) => {
-    return Math.ceil(data.length / ITEMS_PER_PAGE);
-  };
-
-  const getDisplayRange = (data, page) => {
-    const start = (page - 1) * ITEMS_PER_PAGE + 1;
-    const end = Math.min(page * ITEMS_PER_PAGE, data.length);
-    return { start, end, total: data.length };
-  };
-
-  // Current displayed data with pagination applied
-  const displayedCategories = getPaginatedData(categories, currentPage);
-  const displayedArchivedCategories = getPaginatedData(archivedCategories, archivedCurrentPage);
-
-  const categoriesDisplayRange = getDisplayRange(categories, currentPage);
-  const archivedCategoriesDisplayRange = getDisplayRange(archivedCategories, archivedCurrentPage);
-
-  const categoriesTotalPages = getTotalPages(categories);
-  const archivedCategoriesTotalPages = getTotalPages(archivedCategories);
-
-  // Pagination handlers
+  // UPDATED: Pagination handlers with search term
   const handleNextPage = () => {
     if (showArchivedView) {
-      if (archivedCurrentPage < archivedCategoriesTotalPages) {
-        setArchivedCurrentPage(archivedCurrentPage + 1);
+      if (archivedCurrentPage < archivedTotalPages) {
+        fetchArchivedCategories(archivedCurrentPage + 1, searchTerm);
       }
     } else {
-      if (currentPage < categoriesTotalPages) {
-        setCurrentPage(currentPage + 1);
+      if (currentPage < totalPages) {
+        fetchCategories(currentPage + 1, searchTerm);
       }
     }
   };
@@ -303,11 +275,11 @@ const Categories = () => {
   const handlePrevPage = () => {
     if (showArchivedView) {
       if (archivedCurrentPage > 1) {
-        setArchivedCurrentPage(archivedCurrentPage - 1);
+        fetchArchivedCategories(archivedCurrentPage - 1, searchTerm);
       }
     } else {
       if (currentPage > 1) {
-        setCurrentPage(currentPage - 1);
+        fetchCategories(currentPage - 1, searchTerm);
       }
     }
   };
@@ -376,7 +348,7 @@ const Categories = () => {
       });
 
       if (response.ok) {
-        await fetchCategories();
+        await fetchCategories(currentPage, searchTerm);
         resetForm();
       } else {
         const error = await response.json();
@@ -446,7 +418,7 @@ const Categories = () => {
       if (response.ok) {
         setUpdateSuccess(true);
         setTimeout(async () => {
-          await fetchCategories();
+          await fetchCategories(currentPage, searchTerm);
           setShowEditModal(false);
           resetForm();
           setUpdatingLoading(false);
@@ -488,7 +460,7 @@ const Categories = () => {
       if (response.ok) {
         setArchiveSuccess(true);
         setTimeout(async () => {
-          await fetchCategories();
+          await fetchCategories(currentPage, searchTerm);
           closeArchiveModal();
         }, 1500);
       } else {
@@ -528,8 +500,8 @@ const Categories = () => {
       if (response.ok) {
         setRestoreSuccess(true);
         setTimeout(async () => {
-          await fetchArchivedCategories();
-          await fetchCategories();
+          await fetchArchivedCategories(archivedCurrentPage, searchTerm);
+          await fetchCategories(1, searchTerm);
           closeRestoreModal();
         }, 1500);
       } else {
@@ -556,6 +528,21 @@ const Categories = () => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
+
+  // Calculate display ranges correctly
+  const getDisplayRange = () => {
+    if (showArchivedView) {
+      const start = (archivedCurrentPage - 1) * ITEMS_PER_PAGE + 1;
+      const end = Math.min(archivedCurrentPage * ITEMS_PER_PAGE, archivedTotalCount);
+      return { start, end, total: archivedTotalCount };
+    } else {
+      const start = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+      const end = Math.min(currentPage * ITEMS_PER_PAGE, totalCount);
+      return { start, end, total: totalCount };
+    }
+  };
+
+  const displayRange = getDisplayRange();
 
   // Check if form has any validation errors
   const hasAddFormErrors = categoryNameError;
@@ -619,7 +606,7 @@ const Categories = () => {
             <button className="back-to-main-btn" onClick={() => {
               setShowArchivedView(false);
               setSearchTerm("");
-              setCurrentPage(1);
+              fetchCategories(1, "");
             }}>
               ← Back to Main View
             </button>
@@ -627,8 +614,7 @@ const Categories = () => {
             <button className="view-archive-btn" onClick={() => {
               setShowArchivedView(true);
               setSearchTerm("");
-              setArchivedCurrentPage(1);
-              fetchArchivedCategories();
+              fetchArchivedCategories(1, "");
             }}>
               📦 View Archived Categories
             </button>
@@ -658,7 +644,7 @@ const Categories = () => {
                 </tr>
               </thead>
               <tbody>
-                {displayedCategories.length === 0 ? (
+                {categories.length === 0 ? (
                   <tr>
                     <td colSpan="4" style={{ textAlign: "center", color: "#888" }}>
                       {loading ? (
@@ -673,7 +659,7 @@ const Categories = () => {
                     </td>
                   </tr>
                 ) : (
-                  displayedCategories.map((category, index) => (
+                  categories.map((category, index) => (
                     <tr key={category._id}>
                       <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                       <td>{category.name}</td>
@@ -701,11 +687,11 @@ const Categories = () => {
             </table>
 
             {/* PAGINATION CONTROLS */}
-            {displayedCategories.length > 0 && (
+            {categories.length > 0 && (
               <div className="pagination-controls">
                 <div className="pagination-info">
                   <span className="pagination-text">
-                    Showing {categoriesDisplayRange.start}-{categoriesDisplayRange.end} of {categoriesDisplayRange.total} items
+                    Showing {displayRange.start}-{displayRange.end} of {displayRange.total} items
                   </span>
                 </div>
                 
@@ -718,11 +704,11 @@ const Categories = () => {
                     Previous
                   </button>
                   <span className="page-info">
-                    Page {currentPage} of {categoriesTotalPages}
+                    Page {currentPage} of {totalPages}
                   </span>
                   <button 
                     onClick={handleNextPage} 
-                    disabled={currentPage === categoriesTotalPages || loading}
+                    disabled={currentPage === totalPages || loading}
                     className="pagination-btn"
                   >
                     Next
@@ -747,7 +733,7 @@ const Categories = () => {
                 </tr>
               </thead>
               <tbody>
-                {displayedArchivedCategories.length === 0 ? (
+                {archivedCategories.length === 0 ? (
                   <tr>
                     <td colSpan="5" style={{ textAlign: "center", color: "#888" }}>
                       {loading ? (
@@ -762,7 +748,7 @@ const Categories = () => {
                     </td>
                   </tr>
                 ) : (
-                  displayedArchivedCategories.map((category, index) => (
+                  archivedCategories.map((category, index) => (
                     <tr key={category._id}>
                       <td>{(archivedCurrentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                       <td>{category.name}</td>
@@ -785,11 +771,11 @@ const Categories = () => {
             </table>
 
             {/* PAGINATION FOR ARCHIVED CATEGORIES */}
-            {displayedArchivedCategories.length > 0 && (
+            {archivedCategories.length > 0 && (
               <div className="pagination-controls">
                 <div className="pagination-info">
                   <span className="pagination-text">
-                    Showing {archivedCategoriesDisplayRange.start}-{archivedCategoriesDisplayRange.end} of {archivedCategoriesDisplayRange.total} items
+                    Showing {displayRange.start}-{displayRange.end} of {displayRange.total} items
                   </span>
                 </div>
                 
@@ -802,11 +788,11 @@ const Categories = () => {
                     Previous
                   </button>
                   <span className="page-info">
-                    Page {archivedCurrentPage} of {archivedCategoriesTotalPages}
+                    Page {archivedCurrentPage} of {archivedTotalPages}
                   </span>
                   <button 
                     onClick={handleNextPage} 
-                    disabled={archivedCurrentPage === archivedCategoriesTotalPages || loading}
+                    disabled={archivedCurrentPage === archivedTotalPages || loading}
                     className="pagination-btn"
                   >
                     Next

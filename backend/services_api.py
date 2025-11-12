@@ -53,14 +53,40 @@ def generate_service_id():
     count = service_types_collection.count_documents({"is_archived": {"$ne": True}})
     return f"ST-{count + 1:03d}"
 
-@service_types_bp.route('/api/service_types', methods=['GET'])
+@service_types_bp.route('/service_types', methods=['GET'])
 def get_service_types():
     try:
         page_param = request.args.get('page')
         per_page_param = request.args.get('per_page')
+        search = request.args.get('search', '').strip()
         
         # Only fetch non-archived service types
         query = {"is_archived": {"$ne": True}}
+        
+        # Add search functionality
+        if search:
+            # First, find categories that match the search term
+            matching_categories = list(categories_collection.find({
+                'name': {'$regex': search, '$options': 'i'}
+            }))
+            
+            # Get the category IDs that match
+            matching_category_ids = [category['_id'] for category in matching_categories]
+            
+            # Build search query - search service fields AND category via category_id
+            search_conditions = [
+                {'service_name': {'$regex': search, '$options': 'i'}},
+                {'service_id': {'$regex': search, '$options': 'i'}}
+            ]
+            
+            # Add category search if matching categories found
+            if matching_category_ids:
+                search_conditions.append({'category_id': {'$in': matching_category_ids}})
+            
+            # Also search old category field for backward compatibility
+            search_conditions.append({'category': {'$regex': search, '$options': 'i'}})
+            
+            query['$or'] = search_conditions
         
         # If no pagination parameters, return all active service types
         if not page_param and not per_page_param:
@@ -120,25 +146,92 @@ def get_service_types():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# GET ARCHIVED SERVICE TYPES
-@service_types_bp.route('/api/service_types/archived', methods=['GET'])
+# GET ARCHIVED SERVICE TYPES - UPDATED WITH CATEGORY SEARCH
+@service_types_bp.route('/service_types/archived', methods=['GET'])
 def get_archived_service_types():
     try:
-        service_types = list(service_types_collection.find({"is_archived": True}).sort("archived_at", -1))
+        page_param = request.args.get('page')
+        per_page_param = request.args.get('per_page')
+        search = request.args.get('search', '').strip()
         
-        for service in service_types:
-            if service.get('category_id'):
-                category = categories_collection.find_one({'_id': ObjectId(service['category_id'])})
-                service['category_name'] = category['name'] if category else 'Unknown'
-            elif service.get('category'):
-                service['category_name'] = service['category']
+        query = {"is_archived": True}
         
-        serialized_service_types = [serialize_doc(service) for service in service_types]
-        return jsonify(serialized_service_types)
+        # Add search functionality
+        if search:
+            # First, find categories that match the search term
+            matching_categories = list(categories_collection.find({
+                'name': {'$regex': search, '$options': 'i'}
+            }))
+            
+            # Get the category IDs that match
+            matching_category_ids = [category['_id'] for category in matching_categories]
+            
+            # Build search query - search service fields AND category via category_id
+            search_conditions = [
+                {'service_name': {'$regex': search, '$options': 'i'}},
+                {'service_id': {'$regex': search, '$options': 'i'}}
+            ]
+            
+            # Add category search if matching categories found
+            if matching_category_ids:
+                search_conditions.append({'category_id': {'$in': matching_category_ids}})
+            
+            # Also search old category field for backward compatibility
+            search_conditions.append({'category': {'$regex': search, '$options': 'i'}})
+            
+            query['$or'] = search_conditions
+        
+        # Handle paginated request
+        if page_param or per_page_param:
+            page = int(page_param or 1)
+            per_page = int(per_page_param or 10)
+            skip = (page - 1) * per_page
+            
+            total_service_types = service_types_collection.count_documents(query)
+            total_pages = (total_service_types + per_page - 1) // per_page
+            
+            if page > total_pages and total_pages > 0:
+                page = total_pages
+                skip = (page - 1) * per_page
+            
+            service_types_cursor = service_types_collection.find(query).sort("archived_at", -1).skip(skip).limit(per_page)
+            service_types = list(service_types_cursor)
+            
+            for service in service_types:
+                if service.get('category_id'):
+                    category = categories_collection.find_one({'_id': ObjectId(service['category_id'])})
+                    service['category_name'] = category['name'] if category else 'Unknown'
+                elif service.get('category'):
+                    service['category_name'] = service['category']
+            
+            serialized_service_types = [serialize_doc(service) for service in service_types]
+            
+            return jsonify({
+                'service_types': serialized_service_types,
+                'pagination': {
+                    'page': page,
+                    'per_page': per_page,
+                    'total_service_types': total_service_types,
+                    'total_pages': total_pages
+                }
+            })
+        else:
+            # Return all archived service types (for backward compatibility)
+            service_types = list(service_types_collection.find(query).sort("archived_at", -1))
+            
+            for service in service_types:
+                if service.get('category_id'):
+                    category = categories_collection.find_one({'_id': ObjectId(service['category_id'])})
+                    service['category_name'] = category['name'] if category else 'Unknown'
+                elif service.get('category'):
+                    service['category_name'] = service['category']
+            
+            serialized_service_types = [serialize_doc(service) for service in service_types]
+            return jsonify(serialized_service_types)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@service_types_bp.route('/api/service_types/<service_type_id>', methods=['GET'])
+@service_types_bp.route('/service_types/<service_type_id>', methods=['GET'])
 def get_service_type(service_type_id):
     try:
         service_type = service_types_collection.find_one({'_id': ObjectId(service_type_id)})
@@ -164,7 +257,7 @@ def get_service_type(service_type_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@service_types_bp.route('/api/service_types', methods=['POST'])
+@service_types_bp.route('/service_types', methods=['POST'])
 def create_service_type():
     try:
         data = request.json
@@ -216,7 +309,7 @@ def create_service_type():
         print(f"Error creating service type: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@service_types_bp.route('/api/service_types/<service_type_id>', methods=['PUT'])
+@service_types_bp.route('/service_types/<service_type_id>', methods=['PUT'])
 def update_service_type(service_type_id):
     try:
         data = request.json
@@ -281,7 +374,7 @@ def update_service_type(service_type_id):
         return jsonify({'error': str(e)}), 500
 
 # ARCHIVE SERVICE TYPE ENDPOINT - FIXED
-@service_types_bp.route('/api/service_types/<service_type_id>/archive', methods=['PUT'])
+@service_types_bp.route('/service_types/<service_type_id>/archive', methods=['PUT'])
 def archive_service_type(service_type_id):
     try:
         service_type = service_types_collection.find_one({'_id': ObjectId(service_type_id)})
@@ -316,7 +409,7 @@ def archive_service_type(service_type_id):
         return jsonify({'error': str(e)}), 500
 
 # RESTORE SERVICE TYPE ENDPOINT
-@service_types_bp.route('/api/service_types/<service_type_id>/restore', methods=['PUT'])
+@service_types_bp.route('/service_types/<service_type_id>/restore', methods=['PUT'])
 def restore_service_type(service_type_id):
     try:
         # Check if service type exists and is archived
@@ -374,7 +467,7 @@ def restore_service_type(service_type_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@service_types_bp.route('/api/service_types/category/<category_id>', methods=['GET'])
+@service_types_bp.route('/service_types/category/<category_id>', methods=['GET'])
 def get_service_types_by_category_id(category_id):
     try:
         service_types = list(service_types_collection.find({
@@ -393,7 +486,7 @@ def get_service_types_by_category_id(category_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@service_types_bp.route('/api/service_types/<service_type_id>/products', methods=['GET'])
+@service_types_bp.route('/service_types/<service_type_id>/products', methods=['GET'])
 def get_products_for_service_type(service_type_id):
     try:
         service_type = service_types_collection.find_one({'_id': ObjectId(service_type_id)})

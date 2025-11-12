@@ -36,7 +36,7 @@ def get_stock_status(stock_quantity, minimum_stock):
         return "In Stock"
 
 # Inventory Report Endpoint
-@inventory_report_bp.route('/api/reports/inventory', methods=['GET'])
+@inventory_report_bp.route('/reports/inventory', methods=['GET'])
 def get_inventory_report():
     try:
         print(f"=== INVENTORY REPORT DEBUG ===")

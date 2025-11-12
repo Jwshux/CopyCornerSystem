@@ -14,6 +14,11 @@ import ServiceTypes from "./ServiceTypes";
 import SalesReport from "./SalesReport"
 import InventoryReport from "./InventoryReport";
 
+const API_BASE =
+  process.env.NODE_ENV === "development"
+    ? "http://127.0.0.1:5000"
+    : "https://copycornersystem-backend.onrender.com";
+
 function AdminDashboard({ user, onLogout }) {
   const [activePage, setActivePage] = useState("Dashboard");
   const [openSubmenus, setOpenSubmenus] = useState({
@@ -47,7 +52,7 @@ function AdminDashboard({ user, onLogout }) {
         }
         
         if (user?.id) {
-          const response = await fetch(`http://localhost:5000/api/users/${user.id}/role-level`);
+          const response = await fetch(`${API_BASE}/users/${user.id}/role-level`);
           if (response.ok) {
             const data = await response.json();
             setUserRoleLevel(data.role_level);

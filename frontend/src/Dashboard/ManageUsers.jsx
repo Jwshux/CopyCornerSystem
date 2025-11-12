@@ -5,7 +5,10 @@ import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
 import archiveAnimation from "../animations/archive.json";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE =
+  process.env.NODE_ENV === "development"
+    ? "http://127.0.0.1:5000"
+    : "https://copycornersystem-backend.onrender.com";
 
 function ManageUsers({ showAddModal, onAddModalClose }) {
   const [users, setUsers] = useState([]);
@@ -56,10 +59,6 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
   const [archivedTotalPages, setArchivedTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [archivedTotalCount, setArchivedTotalCount] = useState(0);
-
-  // Store all data for client-side filtering
-  const [allUsers, setAllUsers] = useState([]);
-  const [allArchivedUsers, setAllArchivedUsers] = useState([]);
 
   // Enhanced validation functions - SAME AS OTHERS
   const checkName = (name) => {
@@ -135,7 +134,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       return;
     }
 
-    const existingUser = allUsers.find(user => 
+    const existingUser = users.find(user => 
       user.username.toLowerCase() === username.toLowerCase() &&
       (!selectedUser || user._id !== selectedUser._id)
     );
@@ -234,25 +233,16 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     setSectionError("");
   };
 
-  // Filter users based on search term
-  const filterUsers = (users, term) => {
-    if (!term.trim()) return users;
-    
-    return users.filter(user =>
-      user.name.toLowerCase().includes(term.toLowerCase()) ||
-      user.username.toLowerCase().includes(term.toLowerCase()) ||
-      user.role.toLowerCase().includes(term.toLowerCase()) ||
-      (user.studentNumber && user.studentNumber.toLowerCase().includes(term.toLowerCase())) ||
-      (user.course && user.course.toLowerCase().includes(term.toLowerCase())) ||
-      (user.section && user.section.toLowerCase().includes(term.toLowerCase()))
-    );
-  };
-
-  // Fetch active users from backend - UPDATED
-  const fetchUsers = async () => {
+  // Fetch active users from backend with search - UPDATED FOR SERVER-SIDE SEARCH
+  const fetchUsers = async (page = 1, search = "") => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/users`);
+      let url = `${API_BASE}/users?page=${page}&per_page=${ITEMS_PER_PAGE}`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+      
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         console.log('Users data from API:', data);
@@ -260,64 +250,75 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
         let usersData = [];
         if (Array.isArray(data)) {
           usersData = data;
+          setUsers(usersData);
+          setCurrentPage(1);
+          setTotalPages(1);
+          setTotalCount(usersData.length);
         } else if (data.users && Array.isArray(data.users)) {
           usersData = data.users;
+          setUsers(usersData);
+          setCurrentPage(data.pagination?.page || 1);
+          setTotalPages(data.pagination?.total_pages || 1);
+          setTotalCount(data.pagination?.total_users || usersData.length);
         } else {
-          usersData = [];
+          setUsers([]);
+          setTotalCount(0);
         }
-        
-        setAllUsers(usersData);
-        
-        // Apply search filter if there's a search term
-        const filteredData = filterUsers(usersData, searchTerm);
-        setUsers(filteredData);
         
       } else {
         console.error('Failed to fetch users');
-        setAllUsers([]);
         setUsers([]);
+        setTotalCount(0);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
-      setAllUsers([]);
       setUsers([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch archived users - UPDATED
-  const fetchArchivedUsers = async () => {
+  // Fetch archived users with search - UPDATED FOR SERVER-SIDE SEARCH
+  const fetchArchivedUsers = async (page = 1, search = "") => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/users/archived`);
+      let url = `${API_BASE}/users/archived?page=${page}&per_page=${ITEMS_PER_PAGE}`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+      
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         
         let archivedData = [];
         if (Array.isArray(data)) {
           archivedData = data;
+          setArchivedUsers(archivedData);
+          setArchivedCurrentPage(1);
+          setArchivedTotalPages(1);
+          setArchivedTotalCount(archivedData.length);
         } else if (data.users && Array.isArray(data.users)) {
           archivedData = data.users;
+          setArchivedUsers(archivedData);
+          setArchivedCurrentPage(data.pagination?.page || 1);
+          setArchivedTotalPages(data.pagination?.total_pages || 1);
+          setArchivedTotalCount(data.pagination?.total_users || archivedData.length);
         } else {
-          archivedData = [];
+          setArchivedUsers([]);
+          setArchivedTotalCount(0);
         }
-        
-        setAllArchivedUsers(archivedData);
-        
-        // Apply search filter if there's a search term
-        const filteredData = filterUsers(archivedData, searchTerm);
-        setArchivedUsers(filteredData);
         
       } else {
         console.error('Failed to fetch archived users');
-        setAllArchivedUsers([]);
         setArchivedUsers([]);
+        setArchivedTotalCount(0);
       }
     } catch (error) {
       console.error('Error fetching archived users:', error);
-      setAllArchivedUsers([]);
       setArchivedUsers([]);
+      setArchivedTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -340,16 +341,12 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     fetchRoles();
   }, []);
 
-  // Update displayed data when search term changes
+  // INSTANT SEARCH - No debounce - UPDATED FOR SERVER-SIDE SEARCH
   useEffect(() => {
     if (showArchivedView) {
-      const filteredData = filterUsers(allArchivedUsers, searchTerm);
-      setArchivedUsers(filteredData);
-      setArchivedCurrentPage(1); // Reset to first page when searching
+      fetchArchivedUsers(1, searchTerm);
     } else {
-      const filteredData = filterUsers(allUsers, searchTerm);
-      setUsers(filteredData);
-      setCurrentPage(1); // Reset to first page when searching
+      fetchUsers(1, searchTerm);
     }
   }, [searchTerm, showArchivedView]);
 
@@ -384,42 +381,15 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
     }
   }, [showRestoreModal]);
 
-  // Pagination calculations
-  const getPaginatedData = (data, page) => {
-    const startIndex = (page - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    return data.slice(startIndex, endIndex);
-  };
-
-  const getTotalPages = (data) => {
-    return Math.ceil(data.length / ITEMS_PER_PAGE);
-  };
-
-  const getDisplayRange = (data, page) => {
-    const start = (page - 1) * ITEMS_PER_PAGE + 1;
-    const end = Math.min(page * ITEMS_PER_PAGE, data.length);
-    return { start, end, total: data.length };
-  };
-
-  // Current displayed data with pagination applied
-  const displayedUsers = getPaginatedData(users, currentPage);
-  const displayedArchivedUsers = getPaginatedData(archivedUsers, archivedCurrentPage);
-
-  const usersDisplayRange = getDisplayRange(users, currentPage);
-  const archivedUsersDisplayRange = getDisplayRange(archivedUsers, archivedCurrentPage);
-
-  const usersTotalPages = getTotalPages(users);
-  const archivedUsersTotalPages = getTotalPages(archivedUsers);
-
-  // Pagination handlers
+  // Pagination handlers with search term - UPDATED FOR SERVER-SIDE SEARCH
   const handleNextPage = () => {
     if (showArchivedView) {
-      if (archivedCurrentPage < archivedUsersTotalPages) {
-        setArchivedCurrentPage(archivedCurrentPage + 1);
+      if (archivedCurrentPage < archivedTotalPages) {
+        fetchArchivedUsers(archivedCurrentPage + 1, searchTerm);
       }
     } else {
-      if (currentPage < usersTotalPages) {
-        setCurrentPage(currentPage + 1);
+      if (currentPage < totalPages) {
+        fetchUsers(currentPage + 1, searchTerm);
       }
     }
   };
@@ -427,14 +397,29 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
   const handlePrevPage = () => {
     if (showArchivedView) {
       if (archivedCurrentPage > 1) {
-        setArchivedCurrentPage(archivedCurrentPage - 1);
+        fetchArchivedUsers(archivedCurrentPage - 1, searchTerm);
       }
     } else {
       if (currentPage > 1) {
-        setCurrentPage(currentPage - 1);
+        fetchUsers(currentPage - 1, searchTerm);
       }
     }
   };
+
+  // Calculate display ranges
+  const getDisplayRange = () => {
+    if (showArchivedView) {
+      const start = (archivedCurrentPage - 1) * ITEMS_PER_PAGE + 1;
+      const end = Math.min(archivedCurrentPage * ITEMS_PER_PAGE, archivedTotalCount);
+      return { start, end, total: archivedTotalCount };
+    } else {
+      const start = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+      const end = Math.min(currentPage * ITEMS_PER_PAGE, totalCount);
+      return { start, end, total: totalCount };
+    }
+  };
+
+  const displayRange = getDisplayRange();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -542,7 +527,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setSaveSuccess(true);
         setTimeout(async () => {
-          await fetchUsers();
+          await fetchUsers(1, searchTerm);
           resetForm();
           setSaving(false);
           if (onAddModalClose) {
@@ -639,7 +624,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setSaveSuccess(true);
         setTimeout(async () => {
-          await fetchUsers();
+          await fetchUsers(currentPage, searchTerm);
           setShowEditModal(false);
           resetForm();
           setSaving(false);
@@ -699,7 +684,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setArchiveSuccess(true);
         setTimeout(async () => {
-          await fetchUsers();
+          await fetchUsers(currentPage, searchTerm);
           closeArchiveModal();
         }, 1500);
       } else {
@@ -757,8 +742,8 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setRestoreSuccess(true);
         setTimeout(async () => {
-          await fetchArchivedUsers();
-          await fetchUsers();
+          await fetchArchivedUsers(archivedCurrentPage, searchTerm);
+          await fetchUsers(1, searchTerm);
           closeRestoreModal();
         }, 1500);
       } else {
@@ -848,8 +833,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
             <button className="view-archive-btn" onClick={() => {
               setShowArchivedView(true);
               setSearchTerm("");
-              setArchivedCurrentPage(1);
-              fetchArchivedUsers();
+              fetchArchivedUsers(1, "");
             }}>
               📦 View Archived Users
             </button>
@@ -878,7 +862,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
               </tr>
             </thead>
             <tbody>
-              {displayedUsers.length === 0 ? (
+              {users.length === 0 ? (
                 <tr>
                   <td colSpan="7" style={{ textAlign: "center", color: "#888" }}>
                     {loading ? (
@@ -893,7 +877,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                   </td>
                 </tr>
               ) : (
-                displayedUsers.map((user, index) => (
+                users.map((user, index) => (
                   <tr key={user._id}>
                     <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                     <td>{user.name}</td>
@@ -914,8 +898,8 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
               )}
               
               {/* Add empty rows to maintain consistent height */}
-              {displayedUsers.length > 0 && displayedUsers.length < 10 &&
-                Array.from({ length: 10 - displayedUsers.length }).map((_, index) => (
+              {users.length > 0 && users.length < 10 &&
+                Array.from({ length: 10 - users.length }).map((_, index) => (
                   <tr key={`empty-${index}`} style={{ visibility: 'hidden' }}>
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>
@@ -931,11 +915,11 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
           </table>
 
           {/* PAGINATION CONTROLS */}
-          {displayedUsers.length > 0 && (
+          {users.length > 0 && (
             <div className="pagination-controls">
               <div className="pagination-info">
                 <span className="pagination-text">
-                  Showing {usersDisplayRange.start}-{usersDisplayRange.end} of {usersDisplayRange.total} items
+                  Showing {displayRange.start}-{displayRange.end} of {displayRange.total} items
                 </span>
               </div>
               
@@ -948,11 +932,11 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                   Previous
                 </button>
                 <span className="page-info">
-                  Page {currentPage} of {usersTotalPages}
+                  Page {currentPage} of {totalPages}
                 </span>
                 <button 
                   onClick={handleNextPage} 
-                  disabled={currentPage === usersTotalPages || loading}
+                  disabled={currentPage === totalPages || loading}
                   className="pagination-btn"
                 >
                   Next
@@ -970,7 +954,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
             <button className="back-to-main-btn" onClick={() => {
               setShowArchivedView(false);
               setSearchTerm("");
-              setCurrentPage(1);
+              fetchUsers(1, "");
             }}>
               ← Back to Main View
             </button>
@@ -989,6 +973,7 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
           <table>
             <thead>
               <tr>
+                <th>#</th>
                 <th>Name</th>
                 <th>Username</th>
                 <th>User Role</th>
@@ -998,9 +983,9 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
               </tr>
             </thead>
             <tbody>
-              {displayedArchivedUsers.length === 0 ? (
+              {archivedUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
+                  <td colSpan="7" style={{ textAlign: "center", color: "#888" }}>
                     {loading ? (
                       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
                         <Lottie animationData={loadingAnimation} loop={true} style={{ width: 250, height: 250 }} />
@@ -1013,8 +998,9 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                   </td>
                 </tr>
               ) : (
-                displayedArchivedUsers.map((user, index) => (
+                archivedUsers.map((user, index) => (
                   <tr key={user._id}>
+                    <td>{(archivedCurrentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                     <td>{user.name}</td>
                     <td>{user.username}</td>
                     <td>{user.role}</td>
@@ -1034,9 +1020,10 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
               )}
               
               {/* Add empty rows to maintain consistent height */}
-              {displayedArchivedUsers.length > 0 && displayedArchivedUsers.length < 10 &&
-                Array.from({ length: 10 - displayedArchivedUsers.length }).map((_, index) => (
+              {archivedUsers.length > 0 && archivedUsers.length < 10 &&
+                Array.from({ length: 10 - archivedUsers.length }).map((_, index) => (
                   <tr key={`empty-archived-${index}`} style={{ visibility: 'hidden' }}>
+                    <td>&nbsp;</td>
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>
@@ -1050,11 +1037,11 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
           </table>
 
           {/* PAGINATION FOR ARCHIVED USERS */}
-          {displayedArchivedUsers.length > 0 && (
+          {archivedUsers.length > 0 && (
             <div className="pagination-controls">
               <div className="pagination-info">
                 <span className="pagination-text">
-                  Showing {archivedUsersDisplayRange.start}-{archivedUsersDisplayRange.end} of {archivedUsersDisplayRange.total} items
+                  Showing {displayRange.start}-{displayRange.end} of {displayRange.total} items
                 </span>
               </div>
               
@@ -1067,11 +1054,11 @@ function ManageUsers({ showAddModal, onAddModalClose }) {
                   Previous
                 </button>
                 <span className="page-info">
-                  Page {archivedCurrentPage} of {archivedUsersTotalPages}
+                  Page {archivedCurrentPage} of {archivedTotalPages}
                 </span>
                 <button 
                   onClick={handleNextPage} 
-                  disabled={archivedCurrentPage === archivedUsersTotalPages || loading}
+                  disabled={archivedCurrentPage === archivedTotalPages || loading}
                   className="pagination-btn"
                 >
                   Next

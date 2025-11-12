@@ -24,7 +24,7 @@ def serialize_doc(doc):
     return doc
 
 # Sales Report Endpoint
-@sales_report_bp.route('/api/reports/sales', methods=['GET'])
+@sales_report_bp.route('/reports/sales', methods=['GET'])
 def get_sales_report():
     try:
         # Get date range from query parameters

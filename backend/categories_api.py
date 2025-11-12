@@ -21,14 +21,22 @@ def serialize_doc(doc):
         doc['_id'] = str(doc['_id'])
     return doc
 
-@categories_bp.route('/api/categories', methods=['GET'])
+@categories_bp.route('/categories', methods=['GET'])
 def get_categories():
     try:
         page_param = request.args.get('page')
         per_page_param = request.args.get('per_page')
+        search = request.args.get('search', '').strip()
         
         # Only fetch non-archived categories
         query = {'is_archived': {'$ne': True}}
+        
+        # Add search functionality - THIS SEARCHES ACROSS ALL CATEGORIES
+        if search:
+            query['$or'] = [
+                {'name': {'$regex': search, '$options': 'i'}},
+                {'description': {'$regex': search, '$options': 'i'}}
+            ]
         
         # If no pagination parameters, return all categories
         if not page_param and not per_page_param:
@@ -49,16 +57,19 @@ def get_categories():
         
         # Handle paginated request
         page = int(page_param or 1)
-        per_page = int(per_page_param or 5)  # CHANGED TO 5 FOR CATEGORIES
+        per_page = int(per_page_param or 5)
         skip = (page - 1) * per_page
         
+        # COUNT TOTAL MATCHING DOCUMENTS (WITH SEARCH FILTER)
         total_categories = categories_collection.count_documents(query)
         total_pages = (total_categories + per_page - 1) // per_page
         
+        # Adjust page if it exceeds total pages
         if page > total_pages and total_pages > 0:
             page = total_pages
             skip = (page - 1) * per_page
         
+        # FETCH PAGINATED RESULTS (ALREADY FILTERED BY SEARCH)
         categories_cursor = categories_collection.find(query).sort("created_at", 1).skip(skip).limit(per_page)
         categories = list(categories_cursor)
         
@@ -79,14 +90,14 @@ def get_categories():
             'pagination': {
                 'page': page,
                 'per_page': per_page,
-                'total_count': total_categories,  # CHANGE THIS
+                'total_count': total_categories,  # TOTAL COUNT AFTER SEARCH FILTER
                 'total_pages': total_pages
             }
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@categories_bp.route('/api/categories/<category_id>', methods=['GET'])
+@categories_bp.route('/categories/<category_id>', methods=['GET'])
 def get_category(category_id):
     try:
         category = categories_collection.find_one({'_id': ObjectId(category_id)})
@@ -129,7 +140,7 @@ def create_category():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@categories_bp.route('/api/categories/<category_id>', methods=['PUT'])
+@categories_bp.route('/categories/<category_id>', methods=['PUT'])
 def update_category(category_id):
     try:
         data = request.json
@@ -174,7 +185,7 @@ def update_category(category_id):
         return jsonify({'error': str(e)}), 500
 
 # ARCHIVE CATEGORY ENDPOINT
-@categories_bp.route('/api/categories/<category_id>/archive', methods=['PUT'])
+@categories_bp.route('/categories/<category_id>/archive', methods=['PUT'])
 def archive_category(category_id):
     try:
         # Check if category exists
@@ -221,7 +232,7 @@ def archive_category(category_id):
         return jsonify({'error': str(e)}), 500
 
 # RESTORE CATEGORY ENDPOINT
-@categories_bp.route('/api/categories/<category_id>/restore', methods=['PUT'])
+@categories_bp.route('/categories/<category_id>/restore', methods=['PUT'])
 def restore_category(category_id):
     try:
         # Check if category exists and is archived
@@ -259,14 +270,22 @@ def restore_category(category_id):
         return jsonify({'error': str(e)}), 500
 
 # GET ARCHIVED CATEGORIES - UPDATED WITH PAGINATION
-@categories_bp.route('/api/categories/archived', methods=['GET'])
+@categories_bp.route('/categories/archived', methods=['GET'])
 def get_archived_categories():
     try:
         page_param = request.args.get('page')
         per_page_param = request.args.get('per_page')
+        search = request.args.get('search', '').strip()
         
         # Only fetch archived categories
         query = {'is_archived': True}
+        
+        # Add search functionality - THIS SEARCHES ACROSS ALL ARCHIVED CATEGORIES
+        if search:
+            query['$or'] = [
+                {'name': {'$regex': search, '$options': 'i'}},
+                {'description': {'$regex': search, '$options': 'i'}}
+            ]
         
         # If no pagination parameters, return all archived categories
         if not page_param and not per_page_param:
@@ -284,16 +303,19 @@ def get_archived_categories():
         
         # Handle paginated request
         page = int(page_param or 1)
-        per_page = int(per_page_param or 5)  # CHANGED TO 5 FOR CATEGORIES
+        per_page = int(per_page_param or 5)
         skip = (page - 1) * per_page
         
+        # COUNT TOTAL MATCHING ARCHIVED CATEGORIES (WITH SEARCH FILTER)
         total_categories = categories_collection.count_documents(query)
         total_pages = (total_categories + per_page - 1) // per_page
         
+        # Adjust page if it exceeds total pages
         if page > total_pages and total_pages > 0:
             page = total_pages
             skip = (page - 1) * per_page
         
+        # FETCH PAGINATED ARCHIVED RESULTS (ALREADY FILTERED BY SEARCH)
         categories_cursor = categories_collection.find(query).sort("archived_at", -1).skip(skip).limit(per_page)
         categories = list(categories_cursor)
         
@@ -311,14 +333,14 @@ def get_archived_categories():
             'pagination': {
                 'page': page,
                 'per_page': per_page,
-                'total_count': total_categories,  
+                'total_count': total_categories,  # TOTAL COUNT AFTER SEARCH FILTER
                 'total_pages': total_pages
             }
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@categories_bp.route('/api/categories/<category_id>/products', methods=['GET'])
+@categories_bp.route('/categories/<category_id>/products', methods=['GET'])
 def get_products_by_category(category_id):
     try:
         products = list(products_collection.find({
@@ -330,7 +352,7 @@ def get_products_by_category(category_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@categories_bp.route('/api/categories/<category_id>/service-types', methods=['GET'])
+@categories_bp.route('/categories/<category_id>/service-types', methods=['GET'])
 def get_service_types_by_category(category_id):
     try:
         service_types = list(service_types_collection.find({'category_id': ObjectId(category_id), 'status': 'Active'}).sort("service_name", 1))

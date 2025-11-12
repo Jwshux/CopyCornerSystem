@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import "./InventoryReport.css";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE =
+  process.env.NODE_ENV === "development"
+    ? "http://127.0.0.1:5000"
+    : "https://copycornersystem-backend.onrender.com";
 
 function InventoryReport() {
   const [reportData, setReportData] = useState({

@@ -16,7 +16,10 @@ import loadingAnimation from "../animations/loading.json";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE =
+  process.env.NODE_ENV === "development"
+    ? "http://127.0.0.1:5000"
+    : "https://copycornersystem-backend.onrender.com";
 
 function Sales() {
   const [salesData, setSalesData] = useState(null);

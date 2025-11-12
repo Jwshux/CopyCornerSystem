@@ -5,7 +5,10 @@ import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
 import archiveAnimation from "../animations/archive.json";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE =
+  process.env.NODE_ENV === "development"
+    ? "http://127.0.0.1:5000"
+    : "https://copycornersystem-backend.onrender.com";
 
 function AllProducts({ showAddModal, onAddModalClose }) {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -160,10 +163,17 @@ function AllProducts({ showAddModal, onAddModalClose }) {
     setUnitPriceError("");
   };
 
-  const fetchProducts = async (page = 1) => {
+  // UPDATED: Fetch products with search functionality
+  const fetchProducts = async (page = 1, search = "") => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/products?page=${page}&per_page=${ITEMS_PER_PAGE}`);
+      // Build URL with search parameter
+      let url = `${API_BASE}/products?page=${page}&per_page=${ITEMS_PER_PAGE}`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         console.log('Products API Response:', data);
@@ -198,11 +208,17 @@ function AllProducts({ showAddModal, onAddModalClose }) {
     }
   };
 
-  // Fetch archived products with pagination
-  const fetchArchivedProducts = async (page = 1) => {
+  // UPDATED: Fetch archived products with search functionality
+  const fetchArchivedProducts = async (page = 1, search = "") => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/products/archived?page=${page}&per_page=${ITEMS_PER_PAGE}`);
+      // Build URL with search parameter
+      let url = `${API_BASE}/products/archived?page=${page}&per_page=${ITEMS_PER_PAGE}`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         
@@ -272,6 +288,15 @@ function AllProducts({ showAddModal, onAddModalClose }) {
     fetchCategories();
   }, []);
 
+  // NEW: Add search effect with debounce
+  useEffect(() => {
+    if (showArchivedView) {
+      fetchArchivedProducts(1, searchTerm);
+    } else {
+      fetchProducts(1, searchTerm);
+    }
+  }, [searchTerm, showArchivedView]);
+
   useEffect(() => {
     if (!showAddForm) {
       setAddSuccess(false);
@@ -296,15 +321,15 @@ function AllProducts({ showAddModal, onAddModalClose }) {
     }
   }, [showRestoreModal]);
 
-  // Pagination handlers - SEPARATE for each view
+  // UPDATED: Pagination handlers with search term
   const handleNextPage = () => {
     if (showArchivedView) {
       if (archivedCurrentPage < archivedTotalPages) {
-        fetchArchivedProducts(archivedCurrentPage + 1);
+        fetchArchivedProducts(archivedCurrentPage + 1, searchTerm);
       }
     } else {
       if (currentPage < totalPages) {
-        fetchProducts(currentPage + 1);
+        fetchProducts(currentPage + 1, searchTerm);
       }
     }
   };
@@ -312,11 +337,11 @@ function AllProducts({ showAddModal, onAddModalClose }) {
   const handlePrevPage = () => {
     if (showArchivedView) {
       if (archivedCurrentPage > 1) {
-        fetchArchivedProducts(archivedCurrentPage - 1);
+        fetchArchivedProducts(archivedCurrentPage - 1, searchTerm);
       }
     } else {
       if (currentPage > 1) {
-        fetchProducts(currentPage - 1);
+        fetchProducts(currentPage - 1, searchTerm);
       }
     }
   };
@@ -410,7 +435,7 @@ function AllProducts({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setAddSuccess(true);
         setTimeout(async () => {
-          await fetchProducts(currentPage);
+          await fetchProducts(currentPage, searchTerm);
           setShowAddForm(false);
           resetForm();
           setLoading(false);
@@ -491,7 +516,7 @@ function AllProducts({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setUpdateSuccess(true);
         setTimeout(async () => {
-          await fetchProducts(currentPage);
+          await fetchProducts(currentPage, searchTerm);
           setShowEditModal(false);
           resetForm();
           setLoading(false);
@@ -535,9 +560,9 @@ function AllProducts({ showAddModal, onAddModalClose }) {
           const isLastItemOnPage = products.length === 1;
           
           if (isLastItemOnPage && currentPage > 1) {
-            await fetchProducts(currentPage - 1);
+            await fetchProducts(currentPage - 1, searchTerm);
           } else {
-            await fetchProducts(currentPage);
+            await fetchProducts(currentPage, searchTerm);
           }
           closeArchiveModal();
         }, 1500);
@@ -577,8 +602,8 @@ function AllProducts({ showAddModal, onAddModalClose }) {
       if (response.ok) {
         setRestoreSuccess(true);
         setTimeout(async () => {
-          await fetchArchivedProducts(archivedCurrentPage);
-          await fetchProducts(1);
+          await fetchArchivedProducts(archivedCurrentPage, searchTerm);
+          await fetchProducts(1, searchTerm);
           closeRestoreModal();
         }, 700);
       } else {
@@ -632,18 +657,9 @@ function AllProducts({ showAddModal, onAddModalClose }) {
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
 
-  // Filter products based on search term
-  const filteredProducts = products.filter(product =>
-    product.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.product_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    getCategoryName(product).toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredArchivedProducts = archivedProducts.filter(product =>
-    product.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.product_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    getCategoryName(product).toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // REMOVED: Client-side filtering (no longer needed)
+  // const filteredProducts = products.filter(...)
+  // const filteredArchivedProducts = archivedProducts.filter(...)
 
   // Calculate display ranges CORRECTLY
   const getDisplayRange = () => {
@@ -671,6 +687,7 @@ function AllProducts({ showAddModal, onAddModalClose }) {
           {showArchivedView ? (
             <button className="back-to-main-btn" onClick={() => {
               setShowArchivedView(false);
+              setSearchTerm(""); // Clear search when switching views
               fetchProducts(1);
             }}>
               ← Back to Main View
@@ -678,6 +695,7 @@ function AllProducts({ showAddModal, onAddModalClose }) {
           ) : (
             <button className="view-archive-btn" onClick={() => {
               setShowArchivedView(true);
+              setSearchTerm(""); // Clear search when switching views
               fetchArchivedProducts(1);
             }}>
               📦 View Archived Products
@@ -728,7 +746,8 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                     </td>
                   </tr>
                 ) : (
-                  filteredProducts.map((product, index) => (
+                  // CHANGED: Use products instead of filteredProducts
+                  products.map((product, index) => (
                     <tr key={product._id}>
                       <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                       <td>{product.product_id}</td>
@@ -842,7 +861,8 @@ function AllProducts({ showAddModal, onAddModalClose }) {
                     </td>
                   </tr>
                 ) : (
-                  filteredArchivedProducts.map((product, index) => (
+                  // CHANGED: Use archivedProducts instead of filteredArchivedProducts
+                  archivedProducts.map((product, index) => (
                     <tr key={product._id}>
                       <td>{(archivedCurrentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                       <td>{product.product_id}</td>

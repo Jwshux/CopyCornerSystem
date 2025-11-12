@@ -3,6 +3,7 @@ from pymongo import MongoClient
 from bson import ObjectId
 from datetime import datetime
 import os
+import re
 
 products_bp = Blueprint('products', __name__)
 
@@ -72,15 +73,26 @@ def renumber_products():
         print(f"Error renumbering products: {e}")
         return False
 
-@products_bp.route('/api/products', methods=['GET'])
+@products_bp.route('/products', methods=['GET'])
 def get_products():
     try:
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '').strip()
         skip = (page - 1) * per_page
         
-        # Only fetch non-archived products
+        # Build query with search functionality
         query = {'is_archived': {'$ne': True}}
+        
+        if search:
+            # Create a regex pattern for case-insensitive search
+            regex_pattern = re.compile(f'.*{re.escape(search)}.*', re.IGNORECASE)
+            query['$or'] = [
+                {'product_name': regex_pattern},
+                {'product_id': regex_pattern},
+                {'category': regex_pattern}
+            ]
+        
         total_products = products_collection.count_documents(query)
         total_pages = (total_products + per_page - 1) // per_page
         
@@ -116,7 +128,7 @@ def get_products():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@products_bp.route('/api/products/<product_id>', methods=['GET'])
+@products_bp.route('/products/<product_id>', methods=['GET'])
 def get_product(product_id):
     try:
         product = products_collection.find_one({'_id': ObjectId(product_id)})
@@ -144,7 +156,7 @@ def get_product(product_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@products_bp.route('/api/products', methods=['POST'])
+@products_bp.route('/products', methods=['POST'])
 def create_product():
     try:
         data = request.json
@@ -198,7 +210,7 @@ def create_product():
         print(f"Error creating product: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@products_bp.route('/api/products/<product_id>', methods=['PUT'])
+@products_bp.route('/products/<product_id>', methods=['PUT'])
 def update_product(product_id):
     try:
         data = request.json
@@ -251,7 +263,7 @@ def update_product(product_id):
         return jsonify({'error': str(e)}), 500
 
 # ARCHIVE PRODUCT ENDPOINT
-@products_bp.route('/api/products/<product_id>/archive', methods=['PUT'])
+@products_bp.route('/products/<product_id>/archive', methods=['PUT'])
 def archive_product(product_id):
     try:
         # Check if product exists
@@ -279,7 +291,7 @@ def archive_product(product_id):
         return jsonify({'error': str(e)}), 500
 
 # RESTORE PRODUCT ENDPOINT
-@products_bp.route('/api/products/<product_id>/restore', methods=['PUT'])
+@products_bp.route('/products/<product_id>/restore', methods=['PUT'])
 def restore_product(product_id):
     try:
         # Check if product exists and is archived
@@ -341,7 +353,7 @@ def restore_product(product_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@products_bp.route('/api/products/category/<category_id>', methods=['GET'])
+@products_bp.route('/products/category/<category_id>', methods=['GET'])
 def get_products_by_category_id(category_id):
     try:
         # Only get non-archived products
@@ -360,7 +372,7 @@ def get_products_by_category_id(category_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@products_bp.route('/api/products/renumber', methods=['POST'])
+@products_bp.route('/products/renumber', methods=['POST'])
 def renumber_all_products():
     try:
         if renumber_products():
@@ -370,11 +382,36 @@ def renumber_all_products():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# GET ARCHIVED PRODUCTS
-@products_bp.route('/api/products/archived', methods=['GET'])
+# GET ARCHIVED PRODUCTS WITH SEARCH
+@products_bp.route('/products/archived', methods=['GET'])
 def get_archived_products():
     try:
-        products = list(products_collection.find({'is_archived': True}).sort("archived_at", -1))
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '').strip()
+        skip = (page - 1) * per_page
+        
+        # Build query for archived products with search
+        query = {'is_archived': True}
+        
+        if search:
+            # Create a regex pattern for case-insensitive search
+            regex_pattern = re.compile(f'.*{re.escape(search)}.*', re.IGNORECASE)
+            query['$or'] = [
+                {'product_name': regex_pattern},
+                {'product_id': regex_pattern},
+                {'category': regex_pattern}
+            ]
+        
+        total_products = products_collection.count_documents(query)
+        total_pages = (total_products + per_page - 1) // per_page
+        
+        if page > total_pages and total_pages > 0:
+            page = total_pages
+            skip = (page - 1) * per_page
+        
+        products_cursor = products_collection.find(query).sort("archived_at", -1).skip(skip).limit(per_page)
+        products = list(products_cursor)
         
         for product in products:
             if product.get('category_id'):
@@ -384,6 +421,15 @@ def get_archived_products():
                 product['category_name'] = product['category']
         
         serialized_products = [serialize_doc(product) for product in products]
-        return jsonify(serialized_products)
+        
+        return jsonify({
+            'products': serialized_products,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_products': total_products,
+                'total_pages': total_pages
+            }
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500

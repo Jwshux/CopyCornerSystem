@@ -92,18 +92,44 @@ def serialize_doc(doc):
     return serialized
 
 # Get all users with group names - UPDATED FOR PAGINATION AND ARCHIVE
-@users_bp.route('/api/users', methods=['GET'])
+@users_bp.route('/users', methods=['GET'])
 def get_users():
     try:
         # Get pagination parameters from query string
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '').strip()
         
-        # Calculate skip value - Only fetch non-archived users
+        # Base query for non-archived users
+        query = {"is_archived": {"$ne": True}}
+        
+        # Add search functionality
+        if search:
+            # First, find groups that match the search term
+            matching_groups = list(groups_collection.find({
+                'group_name': {'$regex': search, '$options': 'i'}
+            }))
+            
+            # Get the group IDs that match
+            matching_group_ids = [group['_id'] for group in matching_groups]
+            
+            # Build search query - search user fields AND role via group_id
+            search_conditions = [
+                {'name': {'$regex': search, '$options': 'i'}},
+                {'username': {'$regex': search, '$options': 'i'}},
+                {'status': {'$regex': search, '$options': 'i'}}
+            ]
+            
+            # Add role search if matching groups found
+            if matching_group_ids:
+                search_conditions.append({'group_id': {'$in': matching_group_ids}})
+            
+            query['$or'] = search_conditions
+        
+        # Calculate skip value
         skip = (page - 1) * per_page
         
-        # Get total count for pagination info
-        query = {"is_archived": {"$ne": True}}
+        # Get total count for pagination info (WITH SEARCH FILTER)
         total_users = users_collection.count_documents(query)
         
         # Calculate total pages
@@ -114,7 +140,7 @@ def get_users():
             page = total_pages
             skip = (page - 1) * per_page
         
-        # Get paginated users
+        # Get paginated users (ALREADY FILTERED BY SEARCH)
         users_cursor = users_collection.find(query).skip(skip).limit(per_page)
         users = []
         
@@ -160,18 +186,44 @@ def get_users():
         return jsonify({'error': str(e)}), 500
 
 # GET ARCHIVED USERS
-@users_bp.route('/api/users/archived', methods=['GET'])
+@users_bp.route('/users/archived', methods=['GET'])
 def get_archived_users():
     try:
         # Get pagination parameters from query string
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '').strip()
         
-        # Calculate skip value - Only fetch archived users
+        # Base query for archived users
+        query = {"is_archived": True}
+        
+        # Add search functionality
+        if search:
+            # First, find groups that match the search term
+            matching_groups = list(groups_collection.find({
+                'group_name': {'$regex': search, '$options': 'i'}
+            }))
+            
+            # Get the group IDs that match
+            matching_group_ids = [group['_id'] for group in matching_groups]
+            
+            # Build search query - search user fields AND role via group_id
+            search_conditions = [
+                {'name': {'$regex': search, '$options': 'i'}},
+                {'username': {'$regex': search, '$options': 'i'}},
+                {'status': {'$regex': search, '$options': 'i'}}
+            ]
+            
+            # Add role search if matching groups found
+            if matching_group_ids:
+                search_conditions.append({'group_id': {'$in': matching_group_ids}})
+            
+            query['$or'] = search_conditions
+        
+        # Calculate skip value
         skip = (page - 1) * per_page
         
-        # Get total count for pagination info
-        query = {"is_archived": True}
+        # Get total count for pagination info (WITH SEARCH FILTER)
         total_users = users_collection.count_documents(query)
         
         # Calculate total pages
@@ -182,7 +234,7 @@ def get_archived_users():
             page = total_pages
             skip = (page - 1) * per_page
         
-        # Get paginated archived users
+        # Get paginated archived users (ALREADY FILTERED BY SEARCH)
         users_cursor = users_collection.find(query).sort("archived_at", -1).skip(skip).limit(per_page)
         users = []
         
@@ -227,7 +279,7 @@ def get_archived_users():
         return jsonify({'error': str(e)}), 500
 
 # Get available roles (from groups collection)
-@users_bp.route('/api/users/roles', methods=['GET'])
+@users_bp.route('/users/roles', methods=['GET'])
 def get_roles():
     try:
         groups = list(groups_collection.find({}, {'group_name': 1}))
@@ -237,7 +289,7 @@ def get_roles():
         return jsonify({'error': str(e)}), 500
 
 # Create new user - UPDATED FOR PASSWORD HASHING
-@users_bp.route('/api/users', methods=['POST'])
+@users_bp.route('/users', methods=['POST'])
 def create_user():
     try:
         data = request.json
@@ -291,7 +343,7 @@ def create_user():
         return jsonify({'error': str(e)}), 500
 
 # Update user - UPDATED FOR PASSWORD HASHING
-@users_bp.route('/api/users/<user_id>', methods=['PUT'])
+@users_bp.route('/users/<user_id>', methods=['PUT'])
 def update_user(user_id):
     try:
         data = request.json
@@ -388,7 +440,7 @@ def update_user(user_id):
         return jsonify({'error': str(e)}), 500
 
 # ARCHIVE USER ENDPOINT
-@users_bp.route('/api/users/<user_id>/archive', methods=['PUT'])
+@users_bp.route('/users/<user_id>/archive', methods=['PUT'])
 def archive_user(user_id):
     try:
         # Check if user exists
@@ -442,7 +494,7 @@ def archive_user(user_id):
         return jsonify({'error': str(e)}), 500
 
 # RESTORE USER ENDPOINT
-@users_bp.route('/api/users/<user_id>/restore', methods=['PUT'])
+@users_bp.route('/users/<user_id>/restore', methods=['PUT'])
 def restore_user(user_id):
     try:
         # Check if user exists and is archived
@@ -489,7 +541,7 @@ def restore_user(user_id):
         return jsonify({'error': str(e)}), 500
 
 # Delete user
-@users_bp.route('/api/users/<user_id>', methods=['DELETE'])
+@users_bp.route('/users/<user_id>', methods=['DELETE'])
 def delete_user(user_id):
     try:
         # Check if user has any active schedules (if they are staff)
@@ -534,7 +586,7 @@ def delete_user(user_id):
         return jsonify({'error': str(e)}), 500
     
 # Add this route to users_api.py
-@users_bp.route('/api/users/<user_id>/role-level', methods=['GET'])
+@users_bp.route('/users/<user_id>/role-level', methods=['GET'])
 def get_user_role_level(user_id):
     try:
         user = users_collection.find_one({'_id': ObjectId(user_id)})
@@ -554,7 +606,7 @@ def get_user_role_level(user_id):
         return jsonify({'error': str(e)}), 500
 
 # ADD PASSWORD RESET ENDPOINT
-@users_bp.route('/api/users/<user_id>/reset-password', methods=['POST'])
+@users_bp.route('/users/<user_id>/reset-password', methods=['POST'])
 def reset_password(user_id):
     try:
         data = request.json

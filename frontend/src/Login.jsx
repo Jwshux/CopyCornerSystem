@@ -2,6 +2,11 @@ import React, { useState } from "react";
 import "./Login.css";
 import loginIcon from "./login-icon.png";
 
+  const API_BASE =
+    process.env.NODE_ENV === "development"
+      ? "http://127.0.0.1:5000"
+      : "https://copycornersystem-backend.onrender.com";
+
 function Login({ onLoginSuccess }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -15,7 +20,7 @@ function Login({ onLoginSuccess }) {
     setError("");
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/login", {
+      const response = await fetch(`${API_BASE}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),

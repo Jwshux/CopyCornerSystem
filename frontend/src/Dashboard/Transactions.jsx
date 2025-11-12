@@ -5,7 +5,7 @@ import loadingAnimation from "../animations/loading.json";
 import checkmarkAnimation from "../animations/checkmark.json";
 import archiveAnimation from "../animations/archive.json";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "https://copycornersystem-backend.onrender.com";
 
 const Transactions = ({ showAddModal, onAddModalClose }) => {
   const [allProducts, setAllProducts] = useState([]);
@@ -30,6 +30,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   const [priceError, setPriceError] = useState("");
   const [quantityError, setQuantityError] = useState("");
   const [pagesError, setPagesError] = useState("");
+  const [stockError, setStockError] = useState("");
   const [archiving, setArchiving] = useState(false);
   const [archiveSuccess, setArchiveSuccess] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -65,21 +66,18 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   const [archivedTotalCount, setArchivedTotalCount] = useState(0);
   const [showArchivedView, setShowArchivedView] = useState(false);
 
-  // Handle modal from parent
   useEffect(() => {
     if (showAddModal) {
       handleAdd();
     }
   }, [showAddModal]);
 
-  // Enhanced customer name validation
   const checkCustomerName = (customerName) => {
     if (!customerName) {
       setCustomerNameError("");
       return;
     }
 
-    // Length validation
     if (customerName.length < 2) {
       setCustomerNameError("Customer name must be at least 2 characters long");
       return;
@@ -90,19 +88,16 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       return;
     }
 
-    // Check if contains only numbers
     if (/^\d+$/.test(customerName)) {
       setCustomerNameError("Customer name cannot contain only numbers");
       return;
     }
 
-    // Check if contains only special characters (no letters or numbers)
     if (/^[^a-zA-Z0-9]+$/.test(customerName)) {
       setCustomerNameError("Please enter a valid customer name");
       return;
     }
 
-    // Check if contains at least one letter
     if (!/[a-zA-Z]/.test(customerName)) {
       setCustomerNameError("Customer name must contain at least one letter");
       return;
@@ -111,7 +106,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     setCustomerNameError("");
   };
 
-  // Price validation
   const checkPrice = (price) => {
     if (!price) {
       setPriceError("");
@@ -132,7 +126,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     setPriceError("");
   };
 
-  // Quantity validation
   const checkQuantity = (quantity) => {
     if (!quantity) {
       setQuantityError("");
@@ -153,7 +146,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     setQuantityError("");
   };
 
-  // Pages validation
   const checkPages = (pages) => {
     if (!pages) {
       setPagesError("");
@@ -174,15 +166,45 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     setPagesError("");
   };
 
-  // Fetch active transactions
-  const fetchTransactions = async (page = 1, status = "Completed") => {
+  const checkStockAvailability = (productId, quantity, totalPages = 1) => {
+    if (!productId) {
+      setStockError("");
+      return;
+    }
+
+    const selectedProduct = allProducts.find(p => p._id === productId);
+    if (!selectedProduct) {
+      setStockError("");
+      return;
+    }
+
+    const serviceCategory = getServiceCategory(formData.service_type);
+    const availableStock = parseInt(selectedProduct.stock_quantity || 0);
+    
+    let itemsNeeded = parseInt(quantity) || 1;
+    
+    if (serviceCategory === "Paper") {
+      itemsNeeded = (parseInt(totalPages) || 1) * (parseInt(quantity) || 1);
+    }
+
+    if (availableStock < itemsNeeded) {
+      setStockError(`Insufficient stock! Only ${availableStock} items available, but you need ${itemsNeeded}.`);
+    } else {
+      setStockError("");
+    }
+  };
+
+  const fetchTransactions = async (page = 1, status = "Completed", search = "") => {
     setLoading(true);
     try {
-      const url = `${API_BASE}/transactions/status/${status}?page=${page}&per_page=${ITEMS_PER_PAGE}`;
+      let url = `${API_BASE}/transactions/status/${status}?page=${page}&per_page=${ITEMS_PER_PAGE}`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+      
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        console.log('Transactions API Response:', data);
         
         if (data.transactions) {
           setTransactions(data.transactions);
@@ -207,22 +229,19 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     }
   };
 
-  // Fetch archived transactions
-  const fetchArchivedTransactions = async (page = 1) => {
+  const fetchArchivedTransactions = async (page = 1, search = "") => {
     setLoading(true);
     try {
-      const url = `${API_BASE}/transactions/archived?page=${page}&per_page=${ITEMS_PER_PAGE}`;
+      let url = `${API_BASE}/transactions/archived?page=${page}&per_page=${ITEMS_PER_PAGE}`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+      
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         
-        // Handle both response formats
-        if (Array.isArray(data)) {
-          setArchivedTransactions(data);
-          setArchivedCurrentPage(1);
-          setArchivedTotalPages(1);
-          setArchivedTotalCount(data.length);
-        } else if (data.transactions) {
+        if (data.transactions) {
           setArchivedTransactions(data.transactions);
           setArchivedCurrentPage(data.pagination?.page || 1);
           setArchivedTotalPages(data.pagination?.total_pages || 1);
@@ -245,13 +264,11 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     }
   };
 
-  // Fetch products
   const fetchAllProducts = async () => {
     try {
       const response = await fetch(`${API_BASE}/products?page=1&per_page=100`);
       if (response.ok) {
         const data = await response.json();
-        console.log('Products API Response:', data);
         
         if (data.products && Array.isArray(data.products)) {
           setAllProducts(data.products);
@@ -266,26 +283,35 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     }
   };
 
-  // Fetch service types
   const fetchServiceTypes = async () => {
     try {
+      setLoading(true);
       const response = await fetch(`${API_BASE}/service_types`);
       if (response.ok) {
         const data = await response.json();
-        console.log('Service Types API Response:', data);
         
         let servicesData = [];
         if (Array.isArray(data)) {
           servicesData = data;
         } else if (data.service_types && Array.isArray(data.service_types)) {
           servicesData = data.service_types;
+        } else if (data && Array.isArray(data)) {
+          servicesData = data;
         }
         
-        const activeServices = servicesData.filter(service => service.status === "Active");
+        const activeServices = servicesData.filter(service => 
+          service && service.status === "Active" && service.is_archived !== true
+        );
         setServiceTypes(activeServices);
+      } else {
+        console.error('Failed to fetch service types:', response.status);
+        setServiceTypes([]);
       }
     } catch (error) {
       console.error('Error fetching service types:', error);
+      setServiceTypes([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -296,18 +322,29 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   }, []);
 
   useEffect(() => {
+    if (showArchivedView) {
+      fetchArchivedTransactions(1, searchTerm);
+      setArchivedCurrentPage(1);
+    } else {
+      fetchTransactions(1, activeTab, searchTerm);
+      setCurrentPage(1);
+    }
+  }, [searchTerm]);
+
+  useEffect(() => {
     if (!showArchivedView) {
-      fetchTransactions(1, activeTab);
+      fetchTransactions(1, activeTab, searchTerm);
+      setCurrentPage(1);
     }
   }, [activeTab, showArchivedView]);
 
   useEffect(() => {
     if (showArchivedView) {
-      fetchArchivedTransactions(1);
+      fetchArchivedTransactions(1, searchTerm);
+      setArchivedCurrentPage(1);
     }
   }, [showArchivedView]);
 
-  // DYNAMIC: Get category for service type
   const getServiceCategory = (serviceType) => {
     if (!serviceType) return null;
     const service = serviceTypes.find(s => s.service_name === serviceType);
@@ -322,7 +359,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     return null;
   };
 
-  // DYNAMIC: Get products by category
   const getProductsByCategory = (categoryName) => {
     if (!categoryName || !allProducts || allProducts.length === 0) return [];
     return allProducts.filter(product => {
@@ -341,7 +377,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     });
   };
 
-  // DYNAMIC: Get product options for service type WITH STOCK STATUS
   const getServiceOptions = (serviceType) => {
     if (!serviceType) return [];
     const category = getServiceCategory(serviceType);
@@ -376,7 +411,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     });
   };
 
-  // DYNAMIC: Check if service has products
   const hasProductsForService = (serviceType) => {
     const category = getServiceCategory(serviceType);
     if (!category) return false;
@@ -385,7 +419,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     return products && products.length > 0;
   };
 
-  // DYNAMIC: Get quantity placeholder based on service category
   const getQuantityPlaceholder = (serviceType) => {
     const category = getServiceCategory(serviceType);
     switch(category) {
@@ -400,15 +433,20 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     const { name, value } = e.target;
     let updated = { ...formData, [name]: value };
 
-    // Real-time validation
     if (name === "customer_name") {
       checkCustomerName(value);
     } else if (name === "price_per_unit") {
       checkPrice(value);
     } else if (name === "quantity") {
       checkQuantity(value);
+      if (formData.product_id) {
+        checkStockAvailability(formData.product_id, value, formData.total_pages);
+      }
     } else if (name === "total_pages") {
       checkPages(value);
+      if (formData.product_id && getServiceCategory(formData.service_type) === "Paper") {
+        checkStockAvailability(formData.product_id, formData.quantity, value);
+      }
     }
 
     if (name === "price_per_unit" || name === "quantity") {
@@ -430,6 +468,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       updated.product_id = "";
       updated.total_pages = "";
       setPagesError("");
+      setStockError("");
     }
 
     setFormData(updated);
@@ -461,6 +500,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     setPriceError("");
     setQuantityError("");
     setPagesError("");
+    setStockError("");
     setIsEditing(false);
     setShowFormModal(true);
   };
@@ -480,7 +520,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       productType = transaction.paper_type || transaction.size_type || transaction.supply_type || "";
     }
     
-    // Get product_id from transaction data or find by name
     if (transaction.product_id) {
       productId = transaction.product_id;
     } else if (productType && allProducts.length > 0) {
@@ -509,6 +548,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     setPriceError("");
     setQuantityError("");
     setPagesError("");
+    setStockError("");
     setEditIndex(transaction._id);
     setIsEditing(true);
     setShowFormModal(true);
@@ -517,7 +557,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   const handleSave = async (e) => {
     e.preventDefault();
     
-    // Final validation before submission
     checkCustomerName(formData.customer_name);
     checkPrice(formData.price_per_unit);
     checkQuantity(formData.quantity);
@@ -526,12 +565,15 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       checkPages(formData.total_pages);
     }
     
-    if (customerNameError || priceError || quantityError || pagesError) {
+    if (formData.product_id) {
+      checkStockAvailability(formData.product_id, formData.quantity, formData.total_pages);
+    }
+    
+    if (customerNameError || priceError || quantityError || pagesError || stockError) {
       alert("Please fix the validation errors before saving.");
       return;
     }
 
-    // Additional validation for empty required fields
     if (!formData.customer_name.trim()) {
       setCustomerNameError("Customer name is required");
       return;
@@ -547,36 +589,27 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       return;
     }
 
-    // Paper service validation
     if (getServiceCategory(formData.service_type) === "Paper" && (!formData.total_pages || parseInt(formData.total_pages) <= 0)) {
       setPagesError("Pages must be greater than 0");
       return;
     }
 
-    // ✅ Check if selected product is out of stock
     if (formData.product_id) {
-      const selectedProduct = getServiceOptions(formData.service_type).find(
-        p => p.id === formData.product_id
-      );
-
-      if (selectedProduct && selectedProduct.isDisabled && !isEditing) {
-        alert("Cannot select out-of-stock product. Please choose a different product.");
-        return;
-      }
-
-      // 🆕 NEW: Check if quantity exceeds available stock
-      const serviceCategory = getServiceCategory(formData.service_type);
-      const quantity = parseInt(formData.quantity) || 1;
-      const totalPages = parseInt(formData.total_pages) || 1;
-      
-      let itemsNeeded = quantity;
-      if (serviceCategory === "Paper") {
-        itemsNeeded = totalPages * quantity;
-      }
-      
-      if (selectedProduct && selectedProduct.stockQuantity < itemsNeeded && !isEditing) {
-        alert(`Insufficient stock! Only ${selectedProduct.stockQuantity} items available, but you need ${itemsNeeded}.`);
-        return;
+      const selectedProduct = allProducts.find(p => p._id === formData.product_id);
+      if (selectedProduct) {
+        const serviceCategory = getServiceCategory(formData.service_type);
+        const quantity = parseInt(formData.quantity) || 1;
+        const totalPages = parseInt(formData.total_pages) || 1;
+        
+        let itemsNeeded = quantity;
+        if (serviceCategory === "Paper") {
+          itemsNeeded = totalPages * quantity;
+        }
+        
+        if (selectedProduct.stock_quantity < itemsNeeded && !isEditing) {
+          alert(`Insufficient stock! Only ${selectedProduct.stock_quantity} items available, but you need ${itemsNeeded}.`);
+          return;
+        }
       }
     }
 
@@ -636,9 +669,9 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       if (response.ok) {
         if (!isEditing) {
           setActiveTab("Pending");
-          await fetchTransactions(1, "Pending");
+          await fetchTransactions(1, "Pending", searchTerm);
         } else {
-          await fetchTransactions(currentPage, formData.status);
+          await fetchTransactions(currentPage, formData.status, searchTerm);
         }
         
         setShowFormModal(false);
@@ -656,8 +689,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     }
   };
 
-  // [Rest of the functions remain the same - archive, restore, delete, etc.]
-  // Archive transaction functions
   const openArchiveModal = (transaction) => {
     setTransactionToArchive(transaction);
     setShowArchiveModal(true);
@@ -683,7 +714,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       if (response.ok) {
         setArchiveSuccess(true);
         setTimeout(async () => {
-          await fetchTransactions(currentPage, activeTab);
+          await fetchTransactions(currentPage, activeTab, searchTerm);
           closeArchiveModal();
         }, 1500);
       } else {
@@ -698,7 +729,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     }
   };
 
-  // Restore transaction functions - FOR ARCHIVED VIEW
   const openRestoreModal = (transaction) => {
     setTransactionToRestore(transaction);
     setShowRestoreModal(true);
@@ -724,7 +754,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       if (response.ok) {
         setRestoreSuccess(true);
         setTimeout(async () => {
-          await fetchArchivedTransactions(archivedCurrentPage);
+          await fetchArchivedTransactions(archivedCurrentPage, searchTerm);
           closeRestoreModal();
         }, 1500);
       } else {
@@ -739,10 +769,8 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     }
   };
 
-  // Restore from Cancelled to Pending
   const handleRestoreFromCancelled = async (transaction) => {
     try {
-      // 🆕 Get product_id if available
       let productId = transaction.product_id;
       
       const response = await fetch(`${API_BASE}/transactions/${transaction._id}`, {
@@ -757,7 +785,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
           size_type: transaction.size_type,
           supply_type: transaction.supply_type,
           product_type: transaction.product_name || transaction.paper_type || transaction.size_type || transaction.supply_type,
-          product_id: productId,  // 🆕 ADD THIS
+          product_id: productId,
           total_pages: transaction.total_pages,
           price_per_unit: transaction.price_per_unit,
           quantity: transaction.quantity,
@@ -768,7 +796,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       });
 
       if (response.ok) {
-        await fetchTransactions(currentPage, activeTab);
+        await fetchTransactions(currentPage, activeTab, searchTerm);
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to restore transaction');
@@ -793,7 +821,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       });
 
       if (response.ok) {
-        await fetchTransactions(currentPage, activeTab);
+        await fetchTransactions(currentPage, activeTab, searchTerm);
         setShowDeleteModal(false);
         setTransactionToDelete(null);
       } else {
@@ -808,7 +836,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
 
   const handleComplete = async (transaction) => {
     try {
-      // 🆕 FIX: Check if transaction has a product
       const serviceCategory = getServiceCategory(transaction.service_type);
       const hasProducts = hasProductsForService(transaction.service_type);
       
@@ -817,10 +844,8 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
         return;
       }
 
-      // 🆕 Get the product_id from the transaction or find it by product name
       let productId = transaction.product_id;
       
-      // If no product_id, try to find it by product name
       if (!productId && transaction.product_name) {
         const allProducts = await fetch(`${API_BASE}/products?page=1&per_page=100`).then(res => res.json());
         const productsArray = allProducts.products || allProducts;
@@ -828,7 +853,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
         productId = product ? product._id : null;
       }
 
-      // 🆕 Final check - if service requires products but none is selected
       if (hasProducts && !productId) {
         alert(`Cannot complete transaction. No product selected for ${transaction.service_type} service.`);
         return;
@@ -846,7 +870,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
           size_type: transaction.size_type,
           supply_type: transaction.supply_type,
           product_type: transaction.product_name || transaction.paper_type || transaction.size_type || transaction.supply_type,
-          product_id: productId,  // 🆕 ADD THIS - CRITICAL!
+          product_id: productId,
           total_pages: transaction.total_pages,
           price_per_unit: transaction.price_per_unit,
           quantity: transaction.quantity,
@@ -857,7 +881,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       });
 
       if (response.ok) {
-        await fetchTransactions(currentPage, activeTab);
+        await fetchTransactions(currentPage, activeTab, searchTerm);
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to complete transaction');
@@ -870,7 +894,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
 
   const handleCancel = async (transaction) => {
     try {
-      // 🆕 FIX: Get product_id if available
       let productId = transaction.product_id;
       
       const response = await fetch(`${API_BASE}/transactions/${transaction._id}`, {
@@ -885,7 +908,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
           size_type: transaction.size_type,
           supply_type: transaction.supply_type,
           product_type: transaction.product_name || transaction.paper_type || transaction.size_type || transaction.supply_type,
-          product_id: productId,  // 🆕 ADD THIS
+          product_id: productId,
           total_pages: transaction.total_pages,
           price_per_unit: transaction.price_per_unit,
           quantity: transaction.quantity,
@@ -896,7 +919,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       });
 
       if (response.ok) {
-        await fetchTransactions(currentPage, activeTab);
+        await fetchTransactions(currentPage, activeTab, searchTerm);
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to cancel transaction');
@@ -929,18 +952,18 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     setPriceError("");
     setQuantityError("");
     setPagesError("");
+    setStockError("");
     setEditIndex(null);
   };
 
-  // Fixed pagination handlers
   const handleNextPage = () => {
     if (showArchivedView) {
       if (archivedCurrentPage < archivedTotalPages) {
-        fetchArchivedTransactions(archivedCurrentPage + 1);
+        fetchArchivedTransactions(archivedCurrentPage + 1, searchTerm);
       }
     } else {
       if (currentPage < totalPages) {
-        fetchTransactions(currentPage + 1, activeTab);
+        fetchTransactions(currentPage + 1, activeTab, searchTerm);
       }
     }
   };
@@ -948,11 +971,11 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   const handlePrevPage = () => {
     if (showArchivedView) {
       if (archivedCurrentPage > 1) {
-        fetchArchivedTransactions(archivedCurrentPage - 1);
+        fetchArchivedTransactions(archivedCurrentPage - 1, searchTerm);
       }
     } else {
       if (currentPage > 1) {
-        fetchTransactions(currentPage - 1, activeTab);
+        fetchTransactions(currentPage - 1, activeTab, searchTerm);
       }
     }
   };
@@ -972,15 +995,12 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       minimumFractionDigits: 2,
     })}`;
 
-  // FIXED: Get service-specific information for display
   const getServiceSpecificInfo = (transaction) => {
     const serviceCategory = getServiceCategory(transaction.service_type);
     
-    // 🆕 FIX: Use product_name first, then fall back to other fields
     let productType = "—";
     let details = "—";
     
-    // Check for product name in various possible fields
     if (transaction.product_name) {
       productType = transaction.product_name;
     } else if (transaction.product_type) {
@@ -1015,32 +1035,25 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
 
-  // Updated search filters to include Service Type and Product
-  const filteredTransactions = transactions.filter(
-    (t) =>
-      (t.customer_name && t.customer_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (t.queue_number && t.queue_number.includes(searchTerm)) ||
-      (t.transaction_id && t.transaction_id.includes(searchTerm)) ||
-      (t.service_type && t.service_type.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (t.paper_type && t.paper_type.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (t.size_type && t.size_type.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (t.supply_type && t.supply_type.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const handleProductChange = (e) => {
+    const productId = e.target.value;
+    const selectedProduct = getServiceOptions(formData.service_type).find(p => p.id === productId);
+    
+    setFormData(prev => ({
+      ...prev, 
+      product_id: productId,
+      product_type: selectedProduct ? selectedProduct.name : ""
+    }));
 
-  const filteredArchivedTransactions = archivedTransactions.filter(
-    (t) =>
-      (t.customer_name && t.customer_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (t.queue_number && t.queue_number.includes(searchTerm)) ||
-      (t.transaction_id && t.transaction_id.includes(searchTerm)) ||
-      (t.service_type && t.service_type.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (t.paper_type && t.paper_type.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (t.size_type && t.size_type.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (t.supply_type && t.supply_type.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+    if (productId) {
+      checkStockAvailability(productId, formData.quantity, formData.total_pages);
+    } else {
+      setStockError("");
+    }
+  };
 
   const serviceTypeOptions = serviceTypes.map(service => service.service_name);
 
-  // Calculate display ranges correctly
   const getDisplayRange = () => {
     if (showArchivedView) {
       const start = (archivedCurrentPage - 1) * ITEMS_PER_PAGE + 1;
@@ -1055,12 +1068,10 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
 
   const displayRange = getDisplayRange();
 
-  // Check if form has any validation errors
-  const hasFormErrors = customerNameError || priceError || quantityError || pagesError;
+  const hasFormErrors = customerNameError || priceError || quantityError || pagesError || stockError;
 
   return (
     <div className="transactions-container">
-      {/* Table Header with Archive Button and Search */}
       <div className="table-header">
         {showArchivedView ? (
           <button className="back-to-main-btn" onClick={() => setShowArchivedView(false)}>
@@ -1069,7 +1080,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
         ) : (
           <button className="view-archive-btn" onClick={() => {
             setShowArchivedView(true);
-            fetchArchivedTransactions(1);
+            fetchArchivedTransactions(1, searchTerm);
           }}>
             📦 View Archived Transactions
           </button>
@@ -1086,10 +1097,8 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
         </div>
       </div>
 
-      {/* MAIN TRANSACTIONS VIEW */}
       {!showArchivedView && (
         <>
-          {/* Tabs - Order: Completed, Pending, Cancelled */}
           <div className="transaction-tabs">
             {["Completed", "Pending", "Cancelled"].map((tab) => (
               <button
@@ -1102,7 +1111,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
             ))}
           </div>
 
-          {/* Table */}
           <table className="transactions-table">
             <thead>
               <tr>
@@ -1129,8 +1137,8 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                     </div>
                   </td>
                 </tr>
-              ) : filteredTransactions.length > 0 ? (
-                filteredTransactions.map((t, index) => {
+              ) : transactions.length > 0 ? (
+                transactions.map((t, index) => {
                   const serviceInfo = getServiceSpecificInfo(t);
                   return (
                     <tr key={t._id}>
@@ -1158,7 +1166,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                         </span>
                       </td>
                       <td>
-                        {/* PENDING TRANSACTIONS - Full actions */}
                         {t.status === "Pending" && (
                           <>
                             <button className="edit-btn" onClick={() => handleEdit(t)}>Edit</button>
@@ -1167,7 +1174,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                           </>
                         )}
 
-                        {/* COMPLETED TRANSACTIONS - Archive only */}
                         {t.status === "Completed" && (
                           <>
                             <button className="edit-btn" onClick={() => handleEdit(t)}>Edit</button>
@@ -1175,7 +1181,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                           </>
                         )}
 
-                        {/* CANCELLED TRANSACTIONS - Restore and Delete */}
                         {t.status === "Cancelled" && (
                           <>
                             <button className="restore-btn" onClick={() => handleRestoreFromCancelled(t)}>
@@ -1191,15 +1196,14 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
               ) : (
                 <tr>
                   <td colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
-                    No {activeTab.toLowerCase()} transactions found.
+                    {searchTerm ? "No transactions found matching your search." : `No ${activeTab.toLowerCase()} transactions found.`}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
 
-          {/* PAGINATION CONTROLS - FIXED */}
-          {filteredTransactions.length > 0 && (
+          {transactions.length > 0 && (
             <div className="pagination-controls">
               <div className="pagination-info">
                 <span className="pagination-text">
@@ -1231,7 +1235,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
         </>
       )}
 
-      {/* ARCHIVED TRANSACTIONS VIEW */}
       {showArchivedView && (
         <>
           <table className="transactions-table">
@@ -1261,8 +1264,8 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                     </div>
                   </td>
                 </tr>
-              ) : filteredArchivedTransactions.length > 0 ? (
-                filteredArchivedTransactions.map((t, index) => {
+              ) : archivedTransactions.length > 0 ? (
+                archivedTransactions.map((t, index) => {
                   const serviceInfo = getServiceSpecificInfo(t);
                   return (
                     <tr key={t._id}>
@@ -1301,15 +1304,14 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
               ) : (
                 <tr>
                   <td colSpan="13" style={{ textAlign: "center", padding: "20px" }}>
-                    No archived transactions found.
+                    {searchTerm ? "No archived transactions found matching your search." : "No archived transactions found."}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
 
-          {/* PAGINATION FOR ARCHIVED TRANSACTIONS - FIXED */}
-          {filteredArchivedTransactions.length > 0 && (
+          {archivedTransactions.length > 0 && (
             <div className="pagination-controls">
               <div className="pagination-info">
                 <span className="pagination-text">
@@ -1341,7 +1343,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
         </>
       )}
 
-      {/* ADD / EDIT MODAL */}
       {showFormModal && (
         <div className="overlay">
           <div className="add-form">
@@ -1411,22 +1412,13 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                 </select>
               </div>
 
-              {/* DYNAMIC PRODUCT SELECTION WITH STOCK INDICATORS */}
               {hasProductsForService(formData.service_type) && (
                 <div className="form-group">
                   <label>Select Product:</label>
                   <select
                     name="product_id"
                     value={formData.product_id || ""}
-                    onChange={(e) => {
-                      const productId = e.target.value;
-                      const selectedProduct = getServiceOptions(formData.service_type).find(p => p.id === productId);
-                      setFormData(prev => ({
-                        ...prev, 
-                        product_id: productId,
-                        product_type: selectedProduct ? selectedProduct.name : ""
-                      }));
-                    }}
+                    onChange={handleProductChange}
                     required
                     onInvalid={(e) => e.target.setCustomValidity('Please select a product')}
                     onInput={(e) => e.target.setCustomValidity('')}
@@ -1436,7 +1428,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                       <option 
                         key={product.id} 
                         value={product.id}
-                        disabled={!isEditing && product.isDisabled} // 🆕 FIX: Only disable for new transactions, not editing
+                        disabled={!isEditing && product.isDisabled}
                         style={{ color: product.statusColor }}
                       >
                         {product.name} - {product.status} {product.stockQuantity > 0 ? `(${product.stockQuantity} left)` : ''}
@@ -1450,10 +1442,10 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
                         : ""}
                     </small>
                   )}
+                  {stockError && <div className="error-message">{stockError}</div>}
                 </div>
               )}
 
-              {/* PAPER-SPECIFIC FIELD (Total Pages) */}
               {getServiceCategory(formData.service_type) === "Paper" && (
                 <div className="form-group">
                   <label>Total Pages:</label>
@@ -1546,7 +1538,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
         </div>
       )}
 
-      {/* ARCHIVE CONFIRMATION MODAL */}
       {showArchiveModal && transactionToArchive && (
         <div className="overlay">
           <div className="add-form archive-confirmation centered-modal">
@@ -1588,7 +1579,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
         </div>
       )}
 
-      {/* RESTORE CONFIRMATION MODAL - FOR ARCHIVED VIEW */}
       {showRestoreModal && transactionToRestore && (
         <div className="overlay">
           <div className="add-form restore-confirmation centered-modal">
@@ -1630,7 +1620,6 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
       {showDeleteModal && transactionToDelete && (
         <div className="overlay">
           <div className="add-form delete-confirmation">

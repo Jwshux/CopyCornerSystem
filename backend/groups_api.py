@@ -28,19 +28,59 @@ def is_protected_role(group_name):
     protected_roles = ['Administrator', 'Staff Member']
     return group_name in protected_roles
 
-# Get all groups - UPDATED FOR PAGINATION AND ARCHIVE
-@groups_bp.route('/api/groups', methods=['GET'])
+# Get all groups - UPDATED WITH SEARCH
+@groups_bp.route('/groups', methods=['GET'])
 def get_groups():
     try:
         # Get pagination parameters from query string
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '').strip()
         
-        # Calculate skip value - Only fetch non-archived groups
+        # Base query for non-archived groups
+        query = {"is_archived": {"$ne": True}}
+        
+        # Add search functionality
+        if search:
+            # Convert search term to lowercase for case-insensitive matching
+            search_lower = search.lower()
+            
+            # Build search query - ONLY search by exact field matching
+            search_conditions = [
+                {'group_name': {'$regex': search, '$options': 'i'}},
+                {'status': {'$regex': search, '$options': 'i'}}
+            ]
+            
+            # ONLY search by level if user explicitly searches for level terms
+            level_mapping = {
+                'level 0': 0, 'level0': 0,
+                'level 1': 1, 'level1': 1
+            }
+            
+            search_level = None
+            for key, value in level_mapping.items():
+                if key in search_lower:
+                    search_level = value
+                    break
+            
+            # Add level search ONLY if explicit level term found
+            if search_level is not None:
+                search_conditions.append({'group_level': search_level})
+            
+            # If user searches just "level", show ALL roles (both level 0 and 1)
+            elif 'level' in search_lower and not any(char.isdigit() for char in search):
+                # Show both level 0 and level 1 roles
+                search_conditions.append({'$or': [
+                    {'group_level': 0},
+                    {'group_level': 1}
+                ]})
+            
+            query['$or'] = search_conditions
+        
+        # Calculate skip value
         skip = (page - 1) * per_page
         
-        # Get total count for pagination info
-        query = {"is_archived": {"$ne": True}}
+        # Get total count for pagination info (WITH SEARCH FILTER)
         total_groups = groups_collection.count_documents(query)
         
         # Calculate total pages
@@ -51,7 +91,7 @@ def get_groups():
             page = total_pages
             skip = (page - 1) * per_page
         
-        # Get paginated groups
+        # Get paginated groups (ALREADY FILTERED BY SEARCH)
         groups_cursor = groups_collection.find(query).skip(skip).limit(per_page)
         groups = list(groups_cursor)
         
@@ -70,19 +110,60 @@ def get_groups():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# GET ARCHIVED GROUPS
-@groups_bp.route('/api/groups/archived', methods=['GET'])
+
+# GET ARCHIVED GROUPS - UPDATED WITH SEARCH
+@groups_bp.route('/groups/archived', methods=['GET'])
 def get_archived_groups():
     try:
         # Get pagination parameters from query string
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '').strip()
         
-        # Calculate skip value - Only fetch archived groups
+        # Base query for archived groups
+        query = {"is_archived": True}
+        
+        # Add search functionality
+        if search:
+            # Convert search term to lowercase for case-insensitive matching
+            search_lower = search.lower()
+            
+            # Build search query - ONLY search by exact field matching
+            search_conditions = [
+                {'group_name': {'$regex': search, '$options': 'i'}},
+                {'status': {'$regex': search, '$options': 'i'}}
+            ]
+            
+            # ONLY search by level if user explicitly searches for level terms
+            level_mapping = {
+                'level 0': 0, 'level0': 0,
+                'level 1': 1, 'level1': 1
+            }
+            
+            search_level = None
+            for key, value in level_mapping.items():
+                if key in search_lower:
+                    search_level = value
+                    break
+            
+            # Add level search ONLY if explicit level term found
+            if search_level is not None:
+                search_conditions.append({'group_level': search_level})
+            
+            # If user searches just "level", show ALL archived roles (both level 0 and 1)
+            elif 'level' in search_lower and not any(char.isdigit() for char in search):
+                # Show both level 0 and level 1 roles
+                search_conditions.append({'$or': [
+                    {'group_level': 0},
+                    {'group_level': 1}
+                ]})
+            
+            query['$or'] = search_conditions
+        
+        # Calculate skip value
         skip = (page - 1) * per_page
         
-        # Get total count for pagination info
-        query = {"is_archived": True}
+        # Get total count for pagination info (WITH SEARCH FILTER)
         total_groups = groups_collection.count_documents(query)
         
         # Calculate total pages
@@ -93,7 +174,7 @@ def get_archived_groups():
             page = total_pages
             skip = (page - 1) * per_page
         
-        # Get paginated archived groups
+        # Get paginated archived groups (ALREADY FILTERED BY SEARCH)
         groups_cursor = groups_collection.find(query).sort("archived_at", -1).skip(skip).limit(per_page)
         groups = list(groups_cursor)
         
@@ -111,8 +192,9 @@ def get_archived_groups():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
 # Get single group by ID
-@groups_bp.route('/api/groups/<group_id>', methods=['GET'])
+@groups_bp.route('/groups/<group_id>', methods=['GET'])
 def get_group(group_id):
     try:
         group = groups_collection.find_one({'_id': ObjectId(group_id)})
@@ -123,7 +205,7 @@ def get_group(group_id):
         return jsonify({'error': str(e)}), 500
 
 # Create new group
-@groups_bp.route('/api/groups', methods=['POST'])
+@groups_bp.route('/groups', methods=['POST'])
 def create_group():
     try:
         data = request.json
@@ -157,7 +239,7 @@ def create_group():
         return jsonify({'error': str(e)}), 500
 
 # Update group
-@groups_bp.route('/api/groups/<group_id>', methods=['PUT'])
+@groups_bp.route('/groups/<group_id>', methods=['PUT'])
 def update_group(group_id):
     try:
         data = request.json
@@ -200,7 +282,7 @@ def update_group(group_id):
         return jsonify({'error': str(e)}), 500
 
 # ARCHIVE GROUP ENDPOINT - WITH DEPENDENCY CHECK
-@groups_bp.route('/api/groups/<group_id>/archive', methods=['PUT'])
+@groups_bp.route('/groups/<group_id>/archive', methods=['PUT'])
 def archive_group(group_id):
     try:
         group = groups_collection.find_one({'_id': ObjectId(group_id)})
@@ -255,7 +337,7 @@ def archive_group(group_id):
         return jsonify({'error': str(e)}), 500
 
 # RESTORE GROUP ENDPOINT
-@groups_bp.route('/api/groups/<group_id>/restore', methods=['PUT'])
+@groups_bp.route('/groups/<group_id>/restore', methods=['PUT'])
 def restore_group(group_id):
     try:
         # Check if group exists and is archived
@@ -293,7 +375,7 @@ def restore_group(group_id):
         return jsonify({'error': str(e)}), 500
 
 # Delete group
-@groups_bp.route('/api/groups/<group_id>', methods=['DELETE'])
+@groups_bp.route('/groups/<group_id>', methods=['DELETE'])
 def delete_group(group_id):
     try:
         result = groups_collection.delete_one({'_id': ObjectId(group_id)})
