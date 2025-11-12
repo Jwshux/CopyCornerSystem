@@ -29,9 +29,12 @@ def get_sales_analytics():
     try:
         # FIXED: Use exact case matching like in local version
         completed_transactions = list(transactions_collection.find({
-            'status': 'Completed'
+            '$or': [
+                {'status': 'Completed'},
+                {'status': 'completed'},
+                {'status': 'COMPLETED'}
+            ]
         }))
-        
         # Use server's local time (make sure your server is set to Philippine time)
         today = datetime.now().date()
         today_str = today.strftime('%Y-%m-%d')
