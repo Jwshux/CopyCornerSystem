@@ -475,9 +475,9 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
   };
 
   const handleAdd = () => {
+    // FIXED: Remove timezone adjustment - use simple date
     const today = new Date();
-    const phDate = new Date(today.getTime() + (8 * 60 * 60 * 1000));
-    const dateString = phDate.toISOString().split('T')[0];
+    const dateString = today.toISOString().split('T')[0];
     
     setFormData({
       queue_number: "",
@@ -494,7 +494,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       quantity: "",
       total_amount: "",
       status: "Pending",
-      date: dateString,
+      date: dateString,  // This will match server date
     });
     setCustomerNameError("");
     setPriceError("");
@@ -542,7 +542,7 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
       quantity: transaction.quantity || "",
       total_amount: transaction.total_amount || "",
       status: transaction.status || "Completed",
-      date: transaction.date || new Date().toISOString().split("T")[0],
+      date: transaction.date || new Date().toISOString().split("T")[0], // FIXED: No timezone adjustment
     });
     setCustomerNameError("");
     setPriceError("");
@@ -834,63 +834,76 @@ const Transactions = ({ showAddModal, onAddModalClose }) => {
     }
   };
 
-  const handleComplete = async (transaction) => {
-    try {
-      const serviceCategory = getServiceCategory(transaction.service_type);
-      const hasProducts = hasProductsForService(transaction.service_type);
-      
-      if (hasProducts && !transaction.product_id && !transaction.product_name) {
-        alert(`Cannot complete transaction. Please select a product for ${transaction.service_type} service.`);
-        return;
-      }
+const handleComplete = async (transaction) => {
+  try {
+    // FIXED: Remove timezone adjustment - use current date
+    const today = new Date();
+    const dateString = today.toISOString().split('T')[0];
+    
+    console.log('🔄 Completing transaction with date:', dateString);
 
-      let productId = transaction.product_id;
-      
-      if (!productId && transaction.product_name) {
-        const allProducts = await fetch(`${API_BASE}/products?page=1&per_page=100`).then(res => res.json());
-        const productsArray = allProducts.products || allProducts;
-        const product = productsArray.find(p => p.product_name === transaction.product_name);
-        productId = product ? product._id : null;
-      }
-
-      if (hasProducts && !productId) {
-        alert(`Cannot complete transaction. No product selected for ${transaction.service_type} service.`);
-        return;
-      }
-
-      const response = await fetch(`${API_BASE}/transactions/${transaction._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          customer_name: transaction.customer_name,
-          service_type: transaction.service_type,
-          paper_type: transaction.paper_type,
-          size_type: transaction.size_type,
-          supply_type: transaction.supply_type,
-          product_type: transaction.product_name || transaction.paper_type || transaction.size_type || transaction.supply_type,
-          product_id: productId,
-          total_pages: transaction.total_pages,
-          price_per_unit: transaction.price_per_unit,
-          quantity: transaction.quantity,
-          total_amount: transaction.total_amount,
-          date: transaction.date,
-          status: "Completed"
-        }),
-      });
-
-      if (response.ok) {
-        await fetchTransactions(currentPage, activeTab, searchTerm);
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to complete transaction');
-      }
-    } catch (error) {
-      console.error('Error completing transaction:', error);
-      alert('Error completing transaction');
+    const serviceCategory = getServiceCategory(transaction.service_type);
+    const hasProducts = hasProductsForService(transaction.service_type);
+    
+    if (hasProducts && !transaction.product_id && !transaction.product_name) {
+      alert(`Cannot complete transaction. Please select a product for ${transaction.service_type} service.`);
+      return;
     }
-  };
+
+    let productId = transaction.product_id;
+    
+    if (!productId && transaction.product_name) {
+      const allProducts = await fetch(`${API_BASE}/products?page=1&per_page=100`).then(res => res.json());
+      const productsArray = allProducts.products || allProducts;
+      const product = productsArray.find(p => p.product_name === transaction.product_name);
+      productId = product ? product._id : null;
+    }
+
+    if (hasProducts && !productId) {
+      alert(`Cannot complete transaction. No product selected for ${transaction.service_type} service.`);
+      return;
+    }
+
+    const response = await fetch(`${API_BASE}/transactions/${transaction._id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        customer_name: transaction.customer_name,
+        service_type: transaction.service_type,
+        paper_type: transaction.paper_type,
+        size_type: transaction.size_type,
+        supply_type: transaction.supply_type,
+        product_type: transaction.product_name || transaction.paper_type || transaction.size_type || transaction.supply_type,
+        product_id: productId,
+        total_pages: transaction.total_pages,
+        price_per_unit: transaction.price_per_unit,
+        quantity: transaction.quantity,
+        total_amount: transaction.total_amount,
+        date: dateString,  // Use current date without timezone adjustment
+        status: "Completed"
+      }),
+    });
+
+    if (response.ok) {
+      console.log('✅ Transaction completed successfully');
+      // Refresh both transactions AND sales data
+      await fetchTransactions(currentPage, activeTab, searchTerm);
+      // If you're on the Sales page, refresh sales data too
+      if (window.location.pathname.includes('/sales')) {
+        window.dispatchEvent(new Event('refreshSales'));
+      }
+    } else {
+      const error = await response.json();
+      console.error('❌ Failed to complete transaction:', error);
+      alert(error.error || 'Failed to complete transaction');
+    }
+  } catch (error) {
+    console.error('❌ Error completing transaction:', error);
+    alert('Error completing transaction');
+  }
+};
 
   const handleCancel = async (transaction) => {
     try {
