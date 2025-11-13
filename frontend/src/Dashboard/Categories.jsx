@@ -317,51 +317,52 @@ const Categories = () => {
   };
 
   // Add category
-  const handleAddCategory = async (e) => {
-    e.preventDefault();
-    
-    // Final validation before submission
-    checkCategoryName(newCategory, false);
-    
-    if (categoryNameError) {
-      showError("Please fix the category name error before saving.");
-      return;
+// Add category
+const handleAddCategory = async (e) => {
+  e.preventDefault();
+  
+  // Final validation before submission
+  checkCategoryName(newCategory, false);
+  
+  if (categoryNameError) {
+    showError("Please fix the category name error before saving.");
+    return;
+  }
+
+  // Additional validation for empty required fields
+  if (!newCategory.trim()) {
+    setCategoryNameError("Category name is required");
+    return;
+  }
+
+  setAddingLoading(true);
+  try {
+    // FIXED: Added /api to the endpoint
+    const response = await fetch(`${API_BASE}/api/categories`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: newCategory.trim(),
+        description: newDescription.trim()
+      }),
+    });
+
+    if (response.ok) {
+      await fetchCategories(currentPage, searchTerm);
+      resetForm();
+    } else {
+      const error = await response.json();
+      showError(error.error || 'Failed to create category');
     }
-
-    // Additional validation for empty required fields
-    if (!newCategory.trim()) {
-      setCategoryNameError("Category name is required");
-      return;
-    }
-
-    setAddingLoading(true);
-    try {
-      const response = await fetch(`${API_BASE}/categories`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: newCategory.trim(),
-          description: newDescription.trim()
-        }),
-      });
-
-      if (response.ok) {
-        await fetchCategories(currentPage, searchTerm);
-        resetForm();
-      } else {
-        const error = await response.json();
-        showError(error.error || 'Failed to create category');
-      }
-    } catch (error) {
-      console.error('Error creating category:', error);
-      showError('Error creating category');
-    } finally {
-      setAddingLoading(false);
-    }
-  };
-
+  } catch (error) {
+    console.error('Error creating category:', error);
+    showError('Error creating category');
+  } finally {
+    setAddingLoading(false);
+  }
+};
   // Edit category - fills form for editing
   const handleEditCategory = (category) => {
     setSelectedCategory(category);
