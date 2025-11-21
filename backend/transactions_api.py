@@ -90,12 +90,17 @@ def update_product_inventory(product_id, total_pages, quantity, service_type):
         new_stock = max(0, product['stock_quantity'] - items_to_deduct)
         print(f"New stock will be: {new_stock}")
         
+        # FIX: Use the product's actual minimum_stock value instead of hardcoded 5
+        minimum_stock = product.get('minimum_stock', 5)  # Use actual min stock, default to 5 if not set
+        
         if new_stock <= 0:
             status = "Out of Stock"
-        elif new_stock <= 5:
+        elif new_stock <= minimum_stock:  # Use the actual minimum_stock value
             status = "Low Stock"
         else:
             status = "In Stock"
+        
+        print(f"Status update: {product['status']} -> {status} (min stock: {minimum_stock})")
         
         result = products_collection.update_one(
             {'_id': ObjectId(product_id)},
@@ -141,12 +146,16 @@ def restore_product_inventory(product_id, total_pages, quantity, service_type):
         new_stock = product['stock_quantity'] + items_to_restore
         print(f"New stock after restoration: {new_stock}")
         
+        # FIX: Use the product's actual minimum_stock value
+        minimum_stock = product.get('minimum_stock', 5)
         if new_stock <= 0:
             status = "Out of Stock"
-        elif new_stock <= 5:
+        elif new_stock <= minimum_stock:  # Use the actual minimum_stock value
             status = "Low Stock"
         else:
             status = "In Stock"
+        
+        print(f"Status after restoration: {status} (min stock: {minimum_stock})")
         
         result = products_collection.update_one(
             {'_id': ObjectId(product_id)},

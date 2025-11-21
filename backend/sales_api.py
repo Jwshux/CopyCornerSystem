@@ -27,13 +27,10 @@ def serialize_doc(doc):
 @sales_bp.route('/sales/analytics', methods=['GET'])
 def get_sales_analytics():
     try:
-        # FIXED: Use exact case matching like in local version
-        completed_transactions = list(transactions_collection.find({
-            'status': 'Completed'
-        }))
-        
-        # Use server's local time (make sure your server is set to Philippine time)
-        today = datetime.now().date()
+        # FIXED: Use Philippines time instead of server local time
+        utc_now = datetime.utcnow()
+        ph_time = utc_now + timedelta(hours=8)
+        today = ph_time.date()
         today_str = today.strftime('%Y-%m-%d')
         
         # Calculate weekly range (last 7 days including today)
@@ -41,8 +38,16 @@ def get_sales_analytics():
         weekly_start_str = weekly_start.strftime('%Y-%m-%d')
         
         print(f"=== SALES ANALYTICS DEBUG ===")
-        print(f"Server Date - Today: {today_str} ({today.strftime('%A')})")
+        print(f"UTC Time: {utc_now}")
+        print(f"PH Time: {ph_time}")
+        print(f"PH Date - Today: {today_str} ({today.strftime('%A')})")
         print(f"Weekly Start: {weekly_start_str} ({weekly_start.strftime('%A')})")
+
+        # FIXED: Use exact case matching like in local version
+        completed_transactions = list(transactions_collection.find({
+            'status': {'$regex': '^completed$', '$options': 'i'}  # 'i' = case insensitive
+        }))
+        
         print(f"Total completed transactions: {len(completed_transactions)}")
         
         # Filter transactions for different time periods
@@ -185,7 +190,7 @@ def get_sales_by_service_type():
     try:
         # FIXED: Use exact case matching like in local version
         completed_transactions = list(transactions_collection.find({
-            'status': 'Completed'
+            'status': {'$regex': '^completed$', '$options': 'i'}  # ✅ Case-insensitive
         }))
         
         # Calculate sales by SERVICE TYPE
